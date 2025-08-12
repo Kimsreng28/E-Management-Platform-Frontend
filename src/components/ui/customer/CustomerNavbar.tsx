@@ -1,0 +1,215 @@
+"use client";
+
+import { navLinks } from "@/data/navLinks";
+import { useTranslations } from "@/utils/useTranslations";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { LanguageDropdown } from "./LanguageDropdown";
+import { UserProfileDropdown } from "./UserProfileDropdown";
+
+export function CustomerNavbar() {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  // Extract current locale from pathname (assumes locale is first path segment)
+  const currentLocale = (() => {
+    const parts = pathname.split("/");
+    if (parts[1] === "en" || parts[1] === "kh") return parts[1];
+    return "en";
+  })();
+
+  const [language, setLanguage] = useState<"en" | "kh">(currentLocale);
+  const [search, setSearch] = useState("");
+  const [darkMode, setDarkMode] = useState(false);
+
+  // Load translations based on current language
+  const t = useTranslations(language);
+
+  // Sync language state when pathname changes (if user navigates)
+  useEffect(() => {
+    const savedLang = localStorage.getItem("language");
+    if (savedLang === "en" || savedLang === "kh") {
+      setLanguage(savedLang);
+    } else if (currentLocale === "en" || currentLocale === "kh") {
+      setLanguage(currentLocale);
+    } else {
+      setLanguage("en");
+    }
+  }, [currentLocale]);
+
+  // On mount, read dark mode preference from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("darkMode");
+    if (saved === "true") {
+      setDarkMode(true);
+      document.documentElement.classList.add("dark");
+    }
+  }, []);
+
+  function toggleDarkMode() {
+    if (darkMode) {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("darkMode", "false");
+      setDarkMode(false);
+    } else {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("darkMode", "true");
+      setDarkMode(true);
+    }
+  }
+
+  function toggleLanguage() {
+    const nextLang = language === "en" ? "kh" : "en";
+    setLanguage(nextLang);
+    localStorage.setItem("language", nextLang);
+  }
+
+  return (
+    <nav className="border-b border-gray-300 bg-white dark:bg-gray-900 px-6 py-3 flex items-center justify-between">
+      {/* Left: Logo and nav links */}
+      <div className="flex items-center space-x-8">
+        <Link
+          href={`/${language}/customer`}
+          className="flex items-center space-x-2 font-bold text-xl text-gray-900 dark:text-white"
+        >
+          <img src="/images/logo.png" alt="EMP Logo" className="h-15 w-15" />
+          <span>EMP</span>
+        </Link>
+
+        {navLinks.map(({ href, label }) => {
+          // href includes locale? If not, prepend it
+          const localizedHref = href.startsWith("/")
+            ? `/${language}${href}`
+            : `/${language}/${href}`;
+
+          const isActive = pathname === localizedHref;
+
+          return (
+            <Link
+              key={href}
+              href={localizedHref}
+              className={`ml-4 font-semibold hover:text-black dark:hover:text-white ${
+                isActive
+                  ? "text-black underline dark:text-white"
+                  : "text-gray-700 dark:text-gray-300"
+              }`}
+            >
+              {t[label] ?? label}
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Center: Search input */}
+      <div className="flex-1 max-w-lg mx-8 relative">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24"
+          className="w-6 h-6 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none"
+          fill="none"
+          stroke="currentColor"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="1.5"
+        >
+          <path d="m21 21-4.343-4.343m0 0A8 8 0 1 0 5.343 5.343a8 8 0 0 0 11.314 11.314" />
+        </svg>
+
+        <input
+          type="search"
+          placeholder={
+            language === "en" ? "Search products..." : "ស្វែងរកផលិតផល..."
+          }
+          className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-10 py-2 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
+      {/* Right: language, dark mode toggle, cart, profile */}
+      <div className="flex items-center space-x-6">
+        {/* Language toggle */}
+        <LanguageDropdown
+          language={language}
+          onLanguageChange={toggleLanguage}
+        />
+
+        {/* Dark mode toggle */}
+        <button
+          aria-label="Toggle dark mode"
+          title="Toggle dark mode"
+          onClick={toggleDarkMode}
+          className="p-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+          type="button"
+        >
+          {darkMode ? (
+            // Moon icon (dark mode active)
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"
+              />
+            </svg>
+          ) : (
+            // Sun icon (light mode active)
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 3v1m0 16v1m8.485-8.485h1M3.515 12h1m12.02 4.95l.707.707M6.343 6.343l.707.707M16.95 7.05l.707-.707M7.05 16.95l.707-.707M12 7a5 5 0 100 10a5 5 0 000-10z"
+              />
+            </svg>
+          )}
+        </button>
+
+        {/* Shopping Cart */}
+        <button
+          aria-label="Shopping cart"
+          title="Shopping cart"
+          className="relative text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white transition"
+          type="button"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6"
+            viewBox="0 0 24 24"
+            strokeWidth="1.5"
+            stroke="currentColor"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <g fill="none">
+              <path d="M7.5 18a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM16.5 18a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z" />
+              <path d="M11 9H8M2 3l.265.088c1.32.44 1.98.66 2.357 1.184S5 5.492 5 6.883V9.5c0 2.828 0 4.243.879 5.121.878.879 2.293.879 5.121.879h2m6 0h-2" />
+              <path d="M5 6h3m-2.5 7h10.522c.96 0 1.439 0 1.815-.248s.564-.688.942-1.57l.429-1c.81-1.89 1.214-2.833.77-3.508C19.533 6 18.505 6 16.45 6H12" />
+            </g>
+          </svg>
+          {/* Cart count badge, add your cart count here */}
+          <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full px-1">
+            {/* e.g. 3 */}
+          </span>
+        </button>
+
+        {/* User Profile Dropdown */}
+        <UserProfileDropdown />
+      </div>
+    </nav>
+  );
+}

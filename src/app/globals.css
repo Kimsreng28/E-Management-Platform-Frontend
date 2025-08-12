@@ -3,6 +3,21 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --font-inria-sans: "Inria Sans", sans-serif;
+  --font-kantumruy-pro: "Kantumruy Pro", sans-serif;
+  --font-combo: "Inria Sans", "Kantumruy Pro", sans-serif;
+}
+
+.font-inria-sans {
+  font-family: var(--font-inria-sans);
+}
+
+.font-kantumruy-pro {
+  font-family: var(--font-kantumruy-pro);
+}
+
+.font-combo {
+  font-family: var(--font-combo);
 }
 
 @theme inline {
