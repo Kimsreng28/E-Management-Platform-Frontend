@@ -1,0 +1,24 @@
+{
+  "welcome": "Welcome",
+  "searchPlaceholder": "Search products...",
+  "Home": "Home",
+  "Products": "Products",
+  "Categories": "Categories",
+  "Contact": "Contact",
+
+  "footer": {
+    "description": "EMP is a leading platform for electrical testing tools and instruments.",
+    "products": "Products",
+    "multimeter": "Multimeter",
+    "clampMeter": "Clamp Meter",
+    "oscilloscope": "Oscilloscope",
+    "powerSupply": "Power Supply",
+    "support": "Support",
+    "contactUs": "Contact Us",
+    "warranty": "Warranty",
+    "shipping": "Shipping",
+    "returns": "Returns",
+    "contact": "Contact",
+    "allRightsReserved": "All rights reserved"
+  }
+}

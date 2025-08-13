@@ -1,0 +1,24 @@
+{
+  "welcome": "សូមស្វាគមន៍",
+  "searchPlaceholder": "ស្វែងរកផលិតផល...",
+  "Home": "ទំព័រដើម",
+  "Products": "ផលិតផល",
+  "Categories": "ប្រភេទផលិតផល",
+  "Contact": "ទំនាក់ទំនង",
+
+  "footer": {
+    "description": "EMP គឺជាវេទិកាដឹកនាំសម្រាប់ឧបករណ៍វាស់តម្លៃអគ្គិសនី និងឧបករណ៍សាកល្បង។",
+    "products": "ផលិតផល",
+    "multimeter": "ម៉ុលទីមីត",
+    "clampMeter": "Clamp Meter",
+    "oscilloscope": "Oscilloscope",
+    "powerSupply": "Power Supply",
+    "support": "គាំទ្រ",
+    "contactUs": "ទំនាក់ទំនងមកយើង",
+    "warranty": "ការធានា",
+    "shipping": "ការដឹកជញ្ជូន",
+    "returns": "ការផ្តល់ត្រឡប់",
+    "contact": "ទំនាក់ទង",
+    "allRightsReserved": "រក្សាសិទ្ធិគ្រប់យ៉ាង"
+  }
+}
