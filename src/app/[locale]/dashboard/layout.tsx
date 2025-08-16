@@ -1,11 +1,28 @@
 "use client";
 
+import { LanguageDropdown } from "@/components/ui/customer/LanguageDropdown";
 import UserDropdown from "@/components/ui/dashboard/UserDropdown";
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
 import { navItems } from "@/data/navItems";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/utils/useTranslations";
+import { Inria_Sans, Kantumruy_Pro } from "next/font/google";
 import { usePathname, useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
+import { AiFillSun, AiOutlineClose, AiOutlineMenu } from "react-icons/ai";
+import { MdNightlightRound } from "react-icons/md";
+
+const inriaSans = Inria_Sans({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-inria-sans",
+});
+
+const kantumruyPro = Kantumruy_Pro({
+  subsets: ["latin", "khmer"],
+  weight: ["400", "700"],
+  variable: "--font-kantumruy-pro",
+});
 
 export default function DashboardLayout({
   children,
@@ -14,24 +31,51 @@ export default function DashboardLayout({
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }) {
-  // ✅ Unwrap params because in Next.js 15 params is now a Promise
   const { locale } = use(params);
-
   const pathname = usePathname();
   const router = useRouter();
+
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [language, setLanguage] = useState<"en" | "kh">(locale as "en" | "kh");
+  const [darkMode, setDarkMode] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // ✅ Now using the unwrapped locale value
+  const t = useTranslations(language);
+
+  // Prepare nav items with locale
   const localizedNavItems = navItems.map((item) => ({
     ...item,
-    href: `/${locale}${item.href}`,
+    href: `/${language}${item.href}`,
   }));
+
+  // Load dark mode from localStorage
+  useEffect(() => {
+    const savedDarkMode = localStorage.getItem("darkMode") === "true";
+    setDarkMode(savedDarkMode);
+    document.documentElement.classList.toggle("dark", savedDarkMode);
+  }, []);
+
+  const toggleDarkMode = () => {
+    setDarkMode((prev) => {
+      const newMode = !prev;
+      localStorage.setItem("darkMode", String(newMode));
+      document.documentElement.classList.toggle("dark", newMode);
+      return newMode;
+    });
+  };
+
+  const handleLanguageChange = (newLang: "en" | "kh") => {
+    setLanguage(newLang);
+    const newPath = pathname.replace(/^\/(en|kh)/, `/${newLang}`);
+    router.push(newPath);
+  };
 
   const handleNavClick = (href: string) => {
     if (pathname !== href) {
       setIsLoading(true);
       router.push(href);
+      setMobileMenuOpen(false); // Close mobile menu on navigation
     }
   };
 
@@ -40,58 +84,103 @@ export default function DashboardLayout({
   }, [pathname]);
 
   return (
-    <div className="flex min-h-screen font-inria-sans">
-      {/* Sidebar */}
-      <aside className="w-64 bg-[#F9F9F9] text-black flex flex-col">
-        <div className="flex items-center justify-between p-6 font-['Inria_Sans']">
-          <div className="flex items-center gap-3">
-            <img src="/images/logo.png" alt="EMP Admin" className="h-12 w-12" />
-            <span className="text-lg font-bold">EMP Admin</span>
-          </div>
+    <div
+      className={`flex min-h-screen ${inriaSans.variable} ${kantumruyPro.variable} font-combo antialiased`}
+    >
+      {/* Mobile menu button */}
+      <button
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        className="fixed z-50 bottom-4 right-4 sm:hidden bg-gray-900 dark:bg-white text-white dark:text-gray-900 p-3 rounded-full shadow-lg"
+      >
+        {mobileMenuOpen ? (
+          <AiOutlineClose size={24} />
+        ) : (
+          <AiOutlineMenu size={24} />
+        )}
+      </button>
 
-          {/* Notification bell icon */}
-          <div className="relative cursor-pointer bg-white w-8 h-8 flex items-center justify-center rounded-lg shadow-sm hover:shadow-md transition">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 text-gray-700"
-              viewBox="0 0 24 24"
-            >
-              <path
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeWidth="1.5"
-                d="M9.107 2.674A6.5 6.5 0 0 1 12 2c3.727 0 6.75 3.136 6.75 7.005v.705a4.4 4.4 0 0 0 .692 2.375l1.108 1.724c1.011 1.575.239 3.716-1.52 4.214a25.8 25.8 0 0 1-14.06 0c-1.759-.498-2.531-2.639-1.52-4.213l1.108-1.725A4.4 4.4 0 0 0 5.25 9.71v-.705c0-1.074.233-2.092.65-3.002M7.5 19c.655 1.748 2.422 3 4.5 3q.367 0 .72-.05M16.5 19a4.5 4.5 0 0 1-1.302 1.84"
+      {/* Sidebar - Mobile */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black bg-opacity-50 sm:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        ></div>
+      )}
+
+      <aside
+        className={cn(
+          "fixed sm:relative z-40 w-64 bg-[#F9F9F9] text-black flex flex-col dark:bg-gray-800 dark:text-white border-r border-gray-200 dark:border-gray-700 h-screen transition-transform duration-300 ease-in-out",
+          mobileMenuOpen
+            ? "translate-x-0"
+            : "-translate-x-full sm:translate-x-0"
+        )}
+      >
+        <div className="flex flex-col p-4 sm:p-6 font-['Inria_Sans'] h-full overflow-y-auto">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <img
+                src="/images/logo.png"
+                alt="EMP Admin"
+                className="h-10 w-10 sm:h-12 sm:w-12"
               />
-            </svg>
+              <span className="text-lg font-bold">EMP Admin</span>
+            </div>
           </div>
-        </div>
 
-        <nav className="flex-1 space-y-2 px-4">
-          {localizedNavItems.map((item) => (
-            <button
-              key={item.name}
-              onClick={() => handleNavClick(item.href)}
-              className={cn(
-                "flex items-center gap-3 w-full text-left bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 hover:bg-gray-900 hover:text-white transition",
-                pathname === item.href && "bg-gray-900 text-white"
-              )}
-            >
-              {item.icon}
-              {item.name}
-            </button>
-          ))}
-        </nav>
+          {/* Navigation */}
+          <nav className="flex-1 space-y-2">
+            {localizedNavItems.map((item) => (
+              <button
+                key={item.name}
+                onClick={() => handleNavClick(item.href)}
+                className={cn(
+                  "flex font-combo cursor-pointer items-center gap-3 w-full text-left dark:bg-gray-800 dark:text-white dark:border-gray-700 dark:hover:bg-gray-700 bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 hover:bg-gray-600 hover:text-white transition text-sm sm:text-base",
+                  pathname === item.href &&
+                    "bg-gray-900 text-white dark:bg-white dark:text-black"
+                )}
+              >
+                {item.icon}
+                {t[item.name]}
+              </button>
+            ))}
+          </nav>
+        </div>
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 bg-gray-100 flex flex-col">
-        <header className="flex items-center justify-between bg-[#F9F9F9] px-6 py-4 shadow">
-          <div className="flex-1 max-w-lg mx-8 relative">
+      <div className="flex-1 bg-gray-100 dark:bg-gray-900 flex flex-col min-w-0">
+        <header className="flex flex-col sm:flex-row items-center justify-between bg-[#F9F9F9] dark:bg-gray-800 px-4 sm:px-6 py-3 sm:py-4 shadow gap-3 sm:gap-0">
+          {/* Mobile header */}
+          <div className="flex items-center justify-between w-full sm:hidden">
+            <div className="flex items-center gap-3">
+              <img
+                src="/images/logo.png"
+                alt="EMP Admin"
+                className="h-10 w-10"
+              />
+              <span className="text-lg font-bold">EMP Admin</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleDarkMode}
+                className="flex items-center justify-center p-2 rounded-full border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200"
+              >
+                {darkMode ? (
+                  <MdNightlightRound size={18} />
+                ) : (
+                  <AiFillSun size={18} />
+                )}
+              </button>
+              <UserDropdown />
+            </div>
+          </div>
+
+          {/* Search bar */}
+          <div className="w-full sm:flex-1 sm:max-w-lg mx-0 sm:mx-8 relative">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
-              className="w-6 h-6 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+              className="w-5 h-5 sm:w-6 sm:h-6 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none"
               fill="none"
               stroke="currentColor"
               strokeLinecap="round"
@@ -103,19 +192,42 @@ export default function DashboardLayout({
 
             <input
               type="search"
-              placeholder="Search products, orders, customers..."
-              className="w-full rounded-lg border border-gray-300 px-10 py-2 focus:outline-none focus:ring-2 focus:ring-black"
+              placeholder={
+                language === "en"
+                  ? "Search products, orders, customers..."
+                  : "ស្វែងរកផលិតផល..."
+              }
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-700 pl-10 pr-3 py-2 sm:py-2.5 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm sm:text-base"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="flex items-center gap-4">
+
+          {/* Desktop controls */}
+          <div className="hidden sm:flex items-center gap-4">
+            {/* Language switch */}
+            <LanguageDropdown
+              language={language}
+              onLanguageChange={handleLanguageChange}
+            />
+
+            {/* Dark mode switch */}
+            <button
+              onClick={toggleDarkMode}
+              className="flex items-center justify-center p-2 rounded-full border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 h-10 w-10"
+            >
+              {darkMode ? (
+                <MdNightlightRound size={20} />
+              ) : (
+                <AiFillSun size={20} />
+              )}
+            </button>
+
             <UserDropdown />
           </div>
         </header>
 
-        {/* Page content with loading overlay */}
-        <main className="relative p-6 flex-1">
+        <main className="relative p-4 sm:p-6 flex-1 overflow-x-hidden">
           <LoadingOverlay show={isLoading} />
           {children}
         </main>

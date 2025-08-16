@@ -100,16 +100,24 @@ export function UserProfileDropdown() {
         className="bg-gray-200 p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-black"
       >
         {user ? (
-          <span className="flex items-center justify-center h-6 w-6 rounded-full bg-blue-500 text-white">
-            {user.name.charAt(0).toUpperCase()}
-          </span>
+          user.avatar || user.photo_url ? (
+            <img
+              src={user.avatar || user.photo_url}
+              alt={user.name || "User"}
+              className="h-6 w-6 rounded-full object-cover"
+            />
+          ) : (
+            <span className="flex items-center justify-center h-6 w-6 rounded-full bg-blue-500 text-white">
+              {user.name?.charAt(0).toUpperCase() || "U"}
+            </span>
+          )
         ) : (
+          // Default icon for guest
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="h-6 w-6 text-gray-600"
             viewBox="0 0 24 24"
           >
-            {/* Default user icon */}
             <g fill="none">
               <path
                 fill="currentColor"

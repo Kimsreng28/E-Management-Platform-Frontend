@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -37,5 +44,20 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inria-sans), Arial, Helvetica, sans-serif;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* Optional: smooth transition for all elements */
+* {
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* Tailwind dark mode override using CSS variables */
+.bg-custom {
+  background-color: var(--background) !important;
+}
+
+.text-custom {
+  color: var(--foreground) !important;
 }

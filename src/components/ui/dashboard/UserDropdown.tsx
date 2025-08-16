@@ -1,16 +1,32 @@
 "use client";
 
+import { getCurrentUser, logoutUser } from "@/lib/api/auth";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 export default function UserDropdown() {
-  const route = useRouter();
   const [open, setOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
   const pathname = usePathname();
-
-  // get current locale from url
   const currentLocale = pathname.split("/")[1] || "en";
+
+  // Fetch user data on mount
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const userData = await getCurrentUser();
+        setUser(userData);
+      } catch {
+        setUser(null);
+      }
+    }
+
+    if (typeof window !== "undefined" && localStorage.getItem("token")) {
+      fetchUser();
+    }
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -26,37 +42,58 @@ export default function UserDropdown() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      setUser(null);
+      setOpen(false);
+      router.push(`/${currentLocale}/customer`);
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
+
   return (
     <div className="relative" ref={dropdownRef}>
       <div
         className="w-10 h-10 rounded-full bg-gray-200 cursor-pointer flex items-center justify-center"
         onClick={() => setOpen(!open)}
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="h-5 w-5 text-gray-600"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <g fill="none">
-            <path
-              fill="currentColor"
-              fillOpacity="0.16"
-              d="M19.523 21.99H4.488c-1.503 0-2.663-1.134-2.466-2.624l.114-.869c.207-1.2 1.305-1.955 2.497-2.214L11.928 15h.144l7.295 1.283c1.212.28 2.29.993 2.497 2.214l.114.88c.197 1.49-.963 2.623-2.466 2.623z"
+        {user ? (
+          user.avatar || user.photo_url ? (
+            <img
+              src={user.avatar || user.photo_url}
+              alt={user.name || "User"}
+              className="h-6 w-6 rounded-full object-cover"
             />
-            <path
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="1.5"
-              d="M19.523 21.99H4.488c-1.503 0-2.663-1.134-2.466-2.624l.114-.869c.207-1.2 1.305-1.955 2.497-2.214L11.928 15h.144l7.295 1.283c1.212.28 2.29.993 2.497 2.214l.114.88c.197 1.49-.963 2.623-2.466 2.623zM17 7A5 5 0 1 1 7 7a5 5 0 0 1 10 0"
-            />
-          </g>
-        </svg>
+          ) : (
+            <span className="flex items-center justify-center h-6 w-6 rounded-full bg-blue-500 text-white">
+              {user.name?.charAt(0).toUpperCase() || "U"}
+            </span>
+          )
+        ) : (
+          // Default icon for guest
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6 text-gray-600"
+            viewBox="0 0 24 24"
+          >
+            <g fill="none">
+              <path
+                fill="currentColor"
+                fillOpacity="0.16"
+                d="M19.523 21.99H4.488c-1.503 0-2.663-1.134-2.466-2.624l.114-.869c.207-1.2 1.305-1.955 2.497-2.214L11.928 15h.144l7.295 1.283c1.212.28 2.29.993 2.497 2.214l.114.88c.197 1.49-.963 2.623-2.466 2.623z"
+              />
+              <path
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="1.5"
+                d="M19.523 21.99H4.488c-1.503 0-2.663-1.134-2.466-2.624l.114-.869c.207-1.2 1.305-1.955 2.497-2.214L11.928 15h.144l7.295 1.283c1.212.28 2.29.993 2.497 2.214l.114.88c.197 1.49-.963 2.623-2.466 2.623zM17 7A5 5 0 1 1 7 7a5 5 0 0 1 10 0"
+              />
+            </g>
+          </svg>
+        )}
       </div>
 
       {open && (
@@ -70,7 +107,7 @@ export default function UserDropdown() {
                 className="w-full flex items-center text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 onClick={() => {
                   // Push to setting
-                  route.push(`/${currentLocale}/dashboard/settings`);
+                  router.push(`/${currentLocale}/dashboard/settings`);
                   setOpen(false);
                 }}
               >
@@ -94,7 +131,7 @@ export default function UserDropdown() {
               <button
                 className="w-full flex items-center text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                 onClick={() => {
-                  route.push(`/${currentLocale}/dashboard/support`);
+                  router.push(`/${currentLocale}/dashboard/support`);
                   setOpen(false);
                 }}
               >
@@ -124,7 +161,7 @@ export default function UserDropdown() {
               <button
                 className="w-full flex items-center text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
                 onClick={() => {
-                  route.push(`/${currentLocale}/customer`);
+                  router.push(`/${currentLocale}/customer`);
                   setOpen(false);
                 }}
               >

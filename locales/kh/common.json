@@ -20,5 +20,78 @@
     "returns": "ការផ្តល់ត្រឡប់",
     "contact": "ទំនាក់ទង",
     "allRightsReserved": "រក្សាសិទ្ធិគ្រប់យ៉ាង"
+  },
+
+  "showCase": {
+    "title": "ឧបករណ៍អេឡិកត្រូនិក សម្រាប់អ្នកជំនាញ",
+    "subtitle": "ជាទីជឿទុកចិត្តដោយវិស្វករ និងអ្នកបច្ចេកទេសទូទាំងកម្ពុជា - ឧបករណ៍វាស់វែងគុណភាពធានាខ្ពស់ មានភាពត្រឹមត្រូវ",
+    "shopNow": "ស្វែងរកឧបករណ៍វិជ្ជាជីវ៍",
+    "browseCategories": "ស្វែងយល់អំពីឧបករណ៍ដែលមានប្រសិទ្ធភាពខ្ពស់",
+    "highlights": {
+      "secure": "ធានារ៉ាប់រង ១ឆ្នាំលើគ្រប់ផលិតផល",
+      "payment": "ជម្រើសការទូទាត់សុវត្ថិភាព",
+      "support": "គាំទ្របច្ចេកទេសឥតគិតថ្លៃ"
+    }
+  },
+
+  "feature": {
+    "qualityGuarantee": "ការធានាគុណភាព",
+    "authenticProducts": "ផលិតផលដើម",
+    "fastDelivery": "ការដឹកជញ្ជូនលឿន",
+    "delivery24h": "ដឹកជញ្ជូនក្នុង 24 ម៉ោង",
+    "technicalSupport": "គាំទ្របច្ចេកទេស",
+    "expertAssistance": "ជំនួយដោយអ្នកជំនាញ"
+  },
+
+  "dashboard": "ផ្ទាំងគ្រប់គ្រង",
+  "products": "ផលិតផល",
+  "categories": "ប្រភេទផលិតផល",
+  "orders": "ការបញ្ជាទិញ",
+  "customers": "អតិថិជន",
+  "reports": "របាយការណ៍",
+  "settings": "ការកំណត់",
+
+  "productDashboard": {
+    "products": "ផលិតផល",
+    "addCategory": "បន្ថែមប្រភេទផលិតផល",
+    "addProduct": "បន្ថែមផលិតផល",
+    "manageYourProducts": "គ្រប់គ្រងស្តុកផលិតផល និងព័ត៌មានលម្អិតរបស់អ្នក"
+  },
+
+  "createCategory": {
+    "addNewCategory": "បន្ថែមប្រភេទផលិតផលថ្មី",
+    "createNewProductCategory": "បង្កើតប្រភេទផលិតផលថ្មីទៅតាមប្រភេទ",
+    "viewCategories": "មើលប្រភេទផលិតផលទាំងអស់",
+    "name": "ឈ្មោះប្រភេទផលិតផល",
+    "description": "ពិពណ៌នាអំពីប្រភេទផលិតផល",
+    "imageUrl": "តំណររូបភាព",
+    "uploadImage": "ផ្ទុករូបភាពឡើង",
+    "parentCategory": "ប្រភេទផលិតផលដើម",
+    "order": "លំដាប់",
+    "featured": "មានលក្ខណៈពិសេស",
+    "createNewCategory": "បង្កើតប្រភេទផលិតផល",
+    "imagePreview": "មើលរូបភាព",
+    "remove": "លុបរូបភាព",
+    "creating": "កំពុងបង្កើត...",
+    "none": "គ្មានទិន្នន័យ",
+    "size": "ទំហំ",
+    "type": "ប្រភេទ",
+    "nameImage": "ឈ្មោះរូបភាព"
+  },
+
+  "viewCategory": {
+    "categories": "ប្រភេទផលិតផល",
+    "manageCategories": "មើល និងគ្រប់គ្រងប្រភេទផលិតផល",
+    "rowsPerPage": "ជួរដេកក្នុងមួយទំព័រ",
+    "page": "ទំព័រ",
+    "of": "នៃទំព័រទី",
+    "first": "ដំបូង",
+    "last": "ចុងក្រោយ",
+    "next": "បន្ទាប់",
+    "previous": "មុន",
+    "search": "ស្វែងរក...",
+    "showMore": "បង្ហាញច្រើនទៀត",
+    "showLess": "បង្ហាញតិចជាងនេះ",
+    "actions": "សកម្មភាព"
   }
 }

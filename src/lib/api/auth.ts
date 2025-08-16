@@ -1,7 +1,7 @@
 // lib/api/auth.ts
 import { API_BASE_URL } from "../config";
 
-const getToken = () => {
+export const getToken = () => {
   if (typeof window !== "undefined") {
     return localStorage.getItem("token");
   }
@@ -60,6 +60,8 @@ export const loginUser = async (data: {
   });
 
   const responseData = await response.json();
+
+  console.log("Login Response Data:", responseData);
 
   if (!response.ok) {
     let errorMessage = "Login failed";
@@ -215,4 +217,26 @@ export const resetPassword = async (
   }
 
   return responseData;
+};
+
+export const verifyToken = async (token: string) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error("Invalid token");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Token verification failed:", error);
+    throw error;
+  }
 };

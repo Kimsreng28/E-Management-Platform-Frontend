@@ -2,7 +2,7 @@ import clsx from "clsx";
 import React from "react";
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "default" | "ghost" | "outline" | "black";
+  variant?: "default" | "ghost" | "outline" | "black" | "white";
   size?: "sm" | "md" | "lg";
   className?: string;
 };
@@ -22,6 +22,7 @@ export function Button({
     ghost: "bg-transparent hover:bg-primary/10 focus:ring-primary",
     outline: "border border-border hover:bg-primary/5 focus:ring-primary",
     black: "bg-black text-white hover:bg-gray-900 focus:ring-black",
+    white: "bg-white text-gray-900 hover:bg-gray-100 focus:ring-gray-900",
   };
 
   const sizes = {

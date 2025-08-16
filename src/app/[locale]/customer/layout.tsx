@@ -31,6 +31,16 @@ export default function CustomerLayout({
   const [loading, setLoading] = useState(true);
   const [language, setLanguage] = useState<"en" | "kh">("en");
 
+  // Dark mode initialization
+  useEffect(() => {
+    const savedDarkMode = localStorage.getItem("darkMode");
+    if (savedDarkMode === "true") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
   // Extract language from pathname or localStorage
   useEffect(() => {
     const savedLang = localStorage.getItem("language");
@@ -75,7 +85,7 @@ export default function CustomerLayout({
       />
       <LoadingOverlay show={loading} />
       <main
-        className={`antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-6 min-h-[calc(100vh-60px)] transition-opacity duration-500 ${
+        className={`antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-[calc(100vh-60px)] transition-opacity duration-500 ${
           loading ? "opacity-0" : "opacity-100"
         }`}
       >

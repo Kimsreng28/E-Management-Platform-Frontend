@@ -19,15 +19,14 @@ export function CustomerNavbar({
   const [hydrated, setHydrated] = useState(false);
   const [search, setSearch] = useState("");
   const [darkMode, setDarkMode] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const t = useTranslations(language);
 
-  // Hydration-safe flag
   useEffect(() => {
     setHydrated(true);
   }, []);
 
-  // Dark mode load (client only)
   useEffect(() => {
     const saved = localStorage.getItem("darkMode");
     if (saved === "true") {
@@ -37,15 +36,12 @@ export function CustomerNavbar({
   }, []);
 
   function toggleDarkMode() {
-    if (darkMode) {
-      document.documentElement.classList.remove("dark");
-      localStorage.setItem("darkMode", "false");
-      setDarkMode(false);
-    } else {
-      document.documentElement.classList.add("dark");
-      localStorage.setItem("darkMode", "true");
-      setDarkMode(true);
-    }
+    setDarkMode((prev) => {
+      const newMode = !prev;
+      localStorage.setItem("darkMode", String(newMode));
+      document.documentElement.classList.toggle("dark", newMode);
+      return newMode;
+    });
   }
 
   function toggleLanguage() {
@@ -53,9 +49,7 @@ export function CustomerNavbar({
     onLanguageChange(nextLang);
   }
 
-  // Helper function to create localized href
   const getLocalizedHref = (href: string) => {
-    // Remove any existing locale prefix
     const cleanHref = href.replace(/^\/(en|kh)/, "");
     return `/${language}${
       cleanHref.startsWith("/") ? cleanHref : `/${cleanHref}`
@@ -63,42 +57,86 @@ export function CustomerNavbar({
   };
 
   return (
-    <nav className="border-b border-gray-300 bg-white dark:bg-gray-900 px-6 py-3 flex items-center justify-between">
-      {/* Left: Logo and nav links */}
-      <div className="flex items-center space-x-8">
+    <nav className="border-b border-gray-300 bg-white dark:bg-gray-900 px-4 sm:px-6 py-3 flex items-center justify-between flex-wrap">
+      {/* Logo & Hamburger */}
+      <div className="flex items-center justify-between w-full md:w-auto">
         <Link
           href={getLocalizedHref("/customer")}
           className="flex items-center space-x-2 font-bold text-xl text-gray-900 dark:text-white"
         >
-          <img src="/images/logo.png" alt="EMP Logo" className="h-15 w-15" />
+          <img src="/images/logo.png" alt="EMP Logo" className="h-12 w-12" />
           <span>EMP</span>
         </Link>
 
-        {navLinks.map(({ href, label }) => {
-          const localizedHref = getLocalizedHref(href);
-          const isActive = hydrated && pathname === localizedHref;
-
-          return (
-            <Link
-              key={href}
-              href={localizedHref}
-              className={`ml-4 font-semibold hover:text-black dark:hover:text-white ${
-                isActive
-                  ? "text-black underline dark:text-white"
-                  : "text-gray-700 dark:text-gray-300"
-              }`}
+        {/* Mobile menu button */}
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="md:hidden p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+        >
+          {menuOpen ? (
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              {t[label] ?? label}
-            </Link>
-          );
-        })}
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          ) : (
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          )}
+        </button>
       </div>
 
-      {/* Center: Search */}
-      <div className="flex-1 max-w-lg mx-8 relative">
+      {/* Navigation Links */}
+      <div
+        className={`${
+          menuOpen ? "block" : "hidden"
+        } w-full md:flex md:items-center md:w-auto mt-4 md:mt-0`}
+      >
+        <div className="flex flex-col md:flex-row md:space-x-6">
+          {navLinks.map(({ href, label }) => {
+            const localizedHref = getLocalizedHref(href);
+            const isActive = hydrated && pathname === localizedHref;
+
+            return (
+              <Link
+                key={href}
+                href={localizedHref}
+                className={`py-2 md:py-0 font-semibold hover:text-black dark:hover:text-white ${
+                  isActive
+                    ? "text-black underline dark:text-white"
+                    : "text-gray-700 dark:text-gray-300"
+                }`}
+              >
+                {t[label] ?? label}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Search & Controls */}
+      <div className="flex-1 md:max-w-lg mx-0 md:mx-8 relative mt-4 md:mt-0 hidden md:block">
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 24 24"
           className="w-6 h-6 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none"
           fill="none"
           stroke="currentColor"
@@ -120,19 +158,17 @@ export function CustomerNavbar({
         />
       </div>
 
-      {/* Right: controls */}
-      <div className="flex items-center space-x-6">
+      {/* Right Controls */}
+      <div className="flex items-center space-x-4 mt-4 md:mt-0">
         <LanguageDropdown
           language={language}
           onLanguageChange={toggleLanguage}
         />
 
+        {/* Dark mode toggle */}
         <button
-          aria-label="Toggle dark mode"
-          title="Toggle dark mode"
           onClick={toggleDarkMode}
-          className="p-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition"
-          type="button"
+          className="p-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
         >
           {darkMode ? (
             <svg
@@ -167,12 +203,8 @@ export function CustomerNavbar({
           )}
         </button>
 
-        <button
-          aria-label="Shopping cart"
-          title="Shopping cart"
-          className="relative text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white transition"
-          type="button"
-        >
+        {/* Cart */}
+        <button className="relative text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="h-6 w-6"
@@ -183,7 +215,7 @@ export function CustomerNavbar({
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <g fill="none">
+            <g>
               <path d="M7.5 18a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zM16.5 18a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z" />
               <path d="M11 9H8M2 3l.265.088c1.32.44 1.98.66 2.357 1.184S5 5.492 5 6.883V9.5c0 2.828 0 4.243.879 5.121.878.879 2.293.879 5.121.879h2m6 0h-2" />
               <path d="M5 6h3m-2.5 7h10.522c.96 0 1.439 0 1.815-.248s.564-.688.942-1.57l.429-1c.81-1.89 1.214-2.833.77-3.508C19.533 6 18.505 6 16.45 6H12" />

@@ -262,7 +262,7 @@ export default function LoginPage() {
                 variant="outline"
                 className="w-full flex items-center justify-center border-black text-black hover:bg-black hover:text-white"
                 onClick={() => {
-                  window.location.href = `${API_BASE_URL}/auth/google/redirect`;
+                  window.open(`${API_BASE_URL}/auth/google/redirect`, "_self");
                 }}
               >
                 <svg

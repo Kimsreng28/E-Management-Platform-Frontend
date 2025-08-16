@@ -1,6 +1,20 @@
-export const navItems = [
+import { JSX } from "react";
+
+type TranslationKeys =
+  | "dashboard"
+  | "products"
+  | "orders"
+  | "customers"
+  | "reports"
+  | "settings";
+
+export const navItems: {
+  name: TranslationKeys;
+  href: string;
+  icon: JSX.Element;
+}[] = [
   {
-    name: "Dashboard",
+    name: "dashboard",
     href: "/dashboard",
     icon: (
       <svg
@@ -16,7 +30,7 @@ export const navItems = [
     ),
   },
   {
-    name: "Products",
+    name: "products",
     href: "/dashboard/products",
     icon: (
       <svg
@@ -35,7 +49,7 @@ export const navItems = [
     ),
   },
   {
-    name: "Orders",
+    name: "orders",
     href: "/dashboard/orders",
     icon: (
       <svg
@@ -58,7 +72,7 @@ export const navItems = [
     ),
   },
   {
-    name: "Customers",
+    name: "customers",
     href: "/dashboard/customers",
     icon: (
       <svg
@@ -78,7 +92,7 @@ export const navItems = [
     ),
   },
   {
-    name: "Reports",
+    name: "reports",
     href: "/dashboard/reports",
     icon: (
       <svg
@@ -97,7 +111,7 @@ export const navItems = [
     ),
   },
   {
-    name: "Settings",
+    name: "settings",
     href: "/dashboard/settings",
     icon: (
       <svg

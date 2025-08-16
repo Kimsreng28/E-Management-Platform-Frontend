@@ -20,5 +20,78 @@
     "returns": "Returns",
     "contact": "Contact",
     "allRightsReserved": "All rights reserved"
+  },
+
+  "showCase": {
+    "title": "Precision Electronics for Professionals",
+    "subtitle": "Trusted by Engineers & Technicians Across Cambodia - Premium Measurement Tools with Guaranteed Accuracy",
+    "shopNow": "Discover Professional Gear",
+    "browseCategories": "Explore Our High-Performance Tools",
+    "highlights": {
+      "secure": "1-Year Warranty on All Products",
+      "payment": "Secure Payment Options",
+      "support": "Free Technical Support"
+    }
+  },
+
+  "feature": {
+    "qualityGuarantee": "Quality Guarantee",
+    "authenticProducts": "Authentic Products",
+    "fastDelivery": "Fast Delivery",
+    "delivery24h": "Delivery within 24 hours",
+    "technicalSupport": "Technical Support",
+    "expertAssistance": "Expert Assistance"
+  },
+
+  "dashboard": "Dashboard",
+  "products": "Products",
+  "categories": "Categories",
+  "orders": "Orders",
+  "customers": "Customers",
+  "reports": "Reports",
+  "settings": "Settings",
+
+  "productDashboard": {
+    "products": "Products",
+    "addCategory": "Add Category",
+    "addProduct": "Add Product",
+    "manageYourProducts": "Manage your product inventory and details"
+  },
+
+  "createCategory": {
+    "addNewCategory": "Add New Category",
+    "createNewProductCategory": "Create a new product category",
+    "viewCategories": "View Categories",
+    "name": "Name",
+    "description": "Description",
+    "imageUrl": "Image URL",
+    "uploadImage": "Upload Image",
+    "parentCategory": "Parent Category",
+    "order": "Order",
+    "featured": "Featured",
+    "createNewCategory": "Create Category",
+    "imagePreview": "Image Preview",
+    "remove": "Remove",
+    "creating": "Creating...",
+    "none": "None",
+    "size": "Size",
+    "type": "Type",
+    "nameImage": "Name"
+  },
+
+  "viewCategory": {
+    "categories": "Categories",
+    "manageCategories": "View and manage product categories",
+    "rowsPerPage": "Rows per page",
+    "page": "Page",
+    "of": "of",
+    "first": "First",
+    "last": "Last",
+    "next": "Next",
+    "previous": "Prev",
+    "search": "Search...",
+    "showMore": "Show More",
+    "showLess": "Show Less",
+    "actions": "Actions"
   }
 }
