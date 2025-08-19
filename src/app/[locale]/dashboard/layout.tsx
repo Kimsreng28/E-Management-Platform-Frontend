@@ -109,7 +109,7 @@ export default function DashboardLayout({
 
       <aside
         className={cn(
-          "fixed sm:relative z-40 w-64 bg-[#F9F9F9] text-black flex flex-col dark:bg-gray-800 dark:text-white border-r border-gray-200 dark:border-gray-700 h-screen transition-transform duration-300 ease-in-out",
+          "fixed min-h-screen sm:relative z-40 w-64 bg-[#F9F9F9] text-black flex flex-col dark:bg-gray-800 dark:text-white border-r border-gray-200 dark:border-gray-700 transition-transform duration-300 ease-in-out",
           mobileMenuOpen
             ? "translate-x-0"
             : "-translate-x-full sm:translate-x-0"

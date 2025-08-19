@@ -4,7 +4,7 @@ import RichTextEditor from "@/components/ui/dashboard/RichTextEditor";
 import { API_BASE_URL } from "@/lib/config";
 import { useTranslations } from "@/utils/useTranslations";
 import { usePathname, useRouter } from "next/navigation";
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { IoIosArrowBack, IoIosArrowDown } from "react-icons/io";
 import { MdAdd, MdOutlineViewInAr } from "react-icons/md";
 import Swal from "sweetalert2";
@@ -21,6 +21,7 @@ export default function CreateCategoryPage({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const currentLocale = pathname.split("/")[1] || "en";
 
   const language = params.locale || "en";
@@ -221,12 +222,7 @@ export default function CreateCategoryPage({
                   onChange={(e) => {
                     const url = e.target.value;
                     setImageUrl(url);
-                    if (
-                      url &&
-                      /^https?:\/\/.*\.(?:png|jpg|jpeg|gif|webp|svg)$/i.test(
-                        url
-                      )
-                    ) {
+                    if (url && /^https?:\/\/.+/.test(url)) {
                       setPreview(url);
                       setImageFile(null);
                     } else if (!url) {
@@ -248,6 +244,7 @@ export default function CreateCategoryPage({
                 <input
                   id="imageFile"
                   type="file"
+                  ref={fileInputRef}
                   accept="image/*"
                   onChange={handleFileChange}
                   className="w-full text-xs sm:text-sm dark:text-white rounded-lg file:px-2 file:py-1.5 file:cursor-pointer file:rounded-lg file:border-1 file:border-gray-300 file:bg-gray-200 file:text-gray-800 hover:file:bg-gray-300 dark:file:bg-gray-700 dark:file:text-gray-200 transition-all duration-200 ease-in-out"
@@ -265,9 +262,13 @@ export default function CreateCategoryPage({
                   <button
                     type="button"
                     onClick={() => {
+                      if (imageFile && preview) {
+                        URL.revokeObjectURL(preview); // cleanup object URL
+                      }
                       setPreview(null);
                       setImageFile(null);
                       setImageUrl("");
+                      if (fileInputRef.current) fileInputRef.current.value = "";
                     }}
                     className="text-sm sm:text-base text-red-500 hover:text-red-700 dark:hover:text-red-400 font-medium"
                   >

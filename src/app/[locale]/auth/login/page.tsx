@@ -19,12 +19,30 @@ import { Label } from "@/components/ui/Label";
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
 import { Separator } from "@/components/ui/Separator";
 import { loginUser } from "@/lib/api/auth";
+import { Inria_Sans, Kantumruy_Pro } from "next/font/google";
 import { usePathname, useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 
 import { API_BASE_URL } from "@/lib/config";
+import { useTranslations } from "@/utils/useTranslations";
 
-export default function LoginPage() {
+const inriaSans = Inria_Sans({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-inria-sans",
+});
+
+const kantumruyPro = Kantumruy_Pro({
+  subsets: ["latin", "khmer"],
+  weight: ["400", "700"],
+  variable: "--font-kantumruy-pro",
+});
+
+export default function LoginPage({
+  params,
+}: {
+  params: { locale: "en" | "kh" };
+}) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -36,6 +54,10 @@ export default function LoginPage() {
 
   // get current locale from url
   const currentLocale = pathname.split("/")[1] || "en";
+
+  // translate
+  const language = params.locale || "en";
+  const t = useTranslations(language);
 
   // Validation error states
   const [errors, setErrors] = useState<{ email?: string; password?: string }>(
@@ -82,7 +104,7 @@ export default function LoginPage() {
       },
       didOpen: (toast) => {
         toast.style.fontSize = "0.85rem";
-        toast.style.fontFamily = "Inria Sans, sans-serif";
+        toast.style.fontFamily = "Inria Sans, Kantumruy Pro, sans-serif";
         toast.style.minWidth = "200px";
         toast.style.padding = "8px 12px";
         toast.style.borderRadius = "10px";
@@ -108,7 +130,7 @@ export default function LoginPage() {
       if (response.token) {
         Toast.fire({
           icon: "success",
-          title: "Login Successful",
+          title: t.login.loginSuccess,
         });
 
         if (rememberMe) {
@@ -123,7 +145,7 @@ export default function LoginPage() {
       } else {
         Toast.fire({
           icon: "error",
-          title: "Login Failed",
+          title: t.login.loginFailed,
         });
       }
     } catch (error: any) {
@@ -137,17 +159,19 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white to-gray-100 flex items-center justify-center px-6 py-12">
+    <div
+      className={`${inriaSans.variable} ${kantumruyPro.variable} font-combo min-h-screen bg-gradient-to-br from-white to-gray-100 flex items-center justify-center px-6 py-12`}
+    >
       <Card className="w-full max-w-md rounded-3xl border border-gray-300 shadow-lg">
         <CardHeader className="text-center px-10 pt-10">
           <div className="flex items-center justify-center gap-2 mb-4">
             <img src="/images/logo.png" alt="" className="h-25 w-25" />
           </div>
-          <CardTitle className="text-3xl font-semibold text-black/85 font-inria-sans">
-            Welcome Back
+          <CardTitle className="text-3xl font-semibold text-black/85 font-combo ">
+            {t.login.welcomeBack}
           </CardTitle>
-          <CardDescription className="text-gray-600 mt-1 font-inria-sans">
-            Sign in to your account to continue
+          <CardDescription className="text-gray-600 mt-1 font-combo ">
+            {t.login.description}
           </CardDescription>
         </CardHeader>
         <CardContent className="px-10 pt-6 pb-8">
@@ -155,9 +179,9 @@ export default function LoginPage() {
             <div className="space-y-1.5">
               <Label
                 htmlFor="email"
-                className="text-gray-900 font-medium font-inria-sans"
+                className="text-gray-900 font-medium font-combo "
               >
-                Email Address
+                {t.login.emailAddress}
               </Label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 h-5 w-5" />
@@ -179,9 +203,9 @@ export default function LoginPage() {
             <div className="space-y-1.5">
               <Label
                 htmlFor="password"
-                className="text-gray-900 font-medium font-inria-sans"
+                className="text-gray-900 font-medium font-combo"
               >
-                Password
+                {t.login.password}
               </Label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 h-5 w-5" />
@@ -224,25 +248,25 @@ export default function LoginPage() {
                 />
                 <Label
                   htmlFor="remember"
-                  className="text-sm text-gray-900 font-inria-sans"
+                  className="text-sm text-gray-900 font-combo"
                 >
-                  Remember me
+                  {t.login.rememberMe}
                 </Label>
               </div>
               <Link
                 href={`/${currentLocale}/auth/forgot-password`}
-                className="text-sm font-medium text-black hover:underline hover:text-gray-700"
+                className="text-sm font-combo font-medium text-black hover:underline hover:text-gray-700"
               >
-                Forgot password?
+                {t.login.forgotPassword}
               </Link>
             </div>
 
             <Button
               type="submit"
-              className="w-full bg-black text-white hover:bg-gray-900 focus:ring-black font-semibold"
+              className="w-full bg-black text-white hover:bg-gray-900 focus:ring-black font-combo font-semibold"
               disabled={isLoading}
             >
-              {isLoading ? "Signing in..." : "Sign in"}
+              {isLoading ? t.login.signingIn : t.login.signIn}
             </Button>
           </form>
 
@@ -252,15 +276,15 @@ export default function LoginPage() {
               <div className="absolute inset-0 flex items-center">
                 <Separator className="border-gray-300" />
               </div>
-              <div className="relative flex justify-center text-xs uppercase text-gray-600 font-semibold tracking-wider font-inria-sans">
-                <span className="bg-white px-3">Or continue with</span>
+              <div className="relative flex justify-center text-xs uppercase text-gray-600 font-semibold tracking-wider font-combo">
+                <span className="bg-white px-3">{t.login.orContinueWith}</span>
               </div>
             </div>
 
             <div className="mt-6 grid grid-cols-2 gap-4">
               <Button
                 variant="outline"
-                className="w-full flex items-center justify-center border-black text-black hover:bg-black hover:text-white"
+                className="w-full font-combo flex items-center justify-center border-black text-black hover:bg-black hover:text-white"
                 onClick={() => {
                   window.open(`${API_BASE_URL}/auth/google/redirect`, "_self");
                 }}
@@ -279,7 +303,7 @@ export default function LoginPage() {
               </Button>
               <Button
                 variant="outline"
-                className="w-full flex items-center justify-center border-black text-black hover:bg-black hover:text-white"
+                className="w-full font-combo flex items-center justify-center border-black text-black hover:bg-black hover:text-white"
                 onClick={() =>
                   (window.location.href = `${API_BASE_URL}/auth/telegram/redirect`)
                 }
@@ -303,8 +327,8 @@ export default function LoginPage() {
           {/* Loading overlay */}
           <LoadingOverlay show={isLoading} />
 
-          <p className="text-sm text-gray-700 font-inria-sans flex items-center justify-center gap-2 relative z-10">
-            Don&apos;t have an account?
+          <p className="text-sm text-gray-700 font-combo flex items-center justify-center gap-2 relative z-10">
+            {t.login.doNotHaveAnAccount}{" "}
             <button
               type="button"
               onClick={() => {
@@ -316,7 +340,7 @@ export default function LoginPage() {
               className="font-semibold text-black hover:underline hover:text-gray-900"
               disabled={isLoading}
             >
-              Sign up
+              {t.login.signUp}
             </button>
           </p>
         </CardFooter>

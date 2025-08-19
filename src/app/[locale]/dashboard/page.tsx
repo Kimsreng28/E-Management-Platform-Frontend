@@ -6,13 +6,15 @@ import StatCard from "@/components/ui/dashboard/StatCard";
 export default function DashboardPage() {
   const stats = [
     {
+      gradientFrom: "from-[#5e31b6]",
+      gradientTo: "to-[#5752cf]",
       title: "Total Revenue",
       value: "$24,500",
       change: "+10% from last month",
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className="h-6 w-6 text-gray-600"
+          className="h-6 w-6 text-white"
           viewBox="0 0 24 24"
         >
           <g
@@ -29,13 +31,15 @@ export default function DashboardPage() {
     },
 
     {
+      gradientFrom: "from-[#ff6a00]",
+      gradientTo: "to-[#ee0979]",
       title: "Orders",
       value: "+1,230",
       change: "+180.1% from last month",
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className="h-6 w-6 text-gray-600"
+          className="h-6 w-6 text-white"
           viewBox="0 0 24 24"
         >
           <g fill="none" stroke="currentColor" stroke-width="1.5">
@@ -53,13 +57,15 @@ export default function DashboardPage() {
       ),
     },
     {
+      gradientFrom: "from-[#2563eb]",
+      gradientTo: "to-[#06b6d4]",
       title: "Products",
       value: "320",
       change: "+19% from last month",
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className="h-6 w-6 text-gray-600"
+          className="h-6 w-6 text-white"
           viewBox="0 0 24 24"
         >
           <path
@@ -73,13 +79,15 @@ export default function DashboardPage() {
       ),
     },
     {
+      gradientFrom: "from-[#22c55e]",
+      gradientTo: "to-[#0d9488]",
       title: "Active Customers",
       value: "+890",
       change: "+201 since last hour",
       icon: (
         <svg
           xmlns="http://www.w3.org/2000/svg"
-          className="h-6 w-6 text-gray-600"
+          className="h-6 w-6 text-white"
           viewBox="0 0 24 24"
         >
           <path
@@ -140,6 +148,8 @@ export default function DashboardPage() {
               value={stat.value}
               change={stat.change}
               icon={stat.icon}
+              gradientFrom={stat.gradientFrom}
+              gradientTo={stat.gradientTo}
             />
           ))}
         </div>

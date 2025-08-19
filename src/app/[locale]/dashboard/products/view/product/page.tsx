@@ -1,21 +1,13 @@
 "use client";
 
-import StatCard from "@/components/ui/dashboard/StatCard";
 import { API_BASE_URL } from "@/lib/config";
 import { useTranslations } from "@/utils/useTranslations";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { IoIosArrowDown, IoIosArrowUp, IoIosSearch } from "react-icons/io";
+import { IoIosArrowBack, IoIosSearch } from "react-icons/io";
 import { MdAdd, MdDelete, MdMoreVert, MdVisibility } from "react-icons/md";
 import { RiEditLine } from "react-icons/ri";
 import Swal from "sweetalert2";
-
-interface ProductStats {
-  total_products: number;
-  active_products: number;
-  low_stock_products: number;
-  out_of_stock_products: number;
-}
 
 interface Product {
   id: number;
@@ -41,35 +33,19 @@ interface Product {
   }[];
 }
 
-interface Category {
-  id: number;
-  name: string;
-  slug: string;
-  description: string;
-  image: string;
-  parent_id: number | null;
-  parent_name?: string | null;
-  order: number;
-  is_featured: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export default function ProductsPage({
+export default function ProductListPage({
   params,
 }: {
   params: { locale: "en" | "kh" };
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const language = params.locale || "en";
   const currentLocale = pathname.split("/")[1] || "en";
+  const language = params.locale || "en";
   const t = useTranslations(language);
-  const [stats, setStats] = useState<ProductStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -77,52 +53,6 @@ export default function ProductsPage({
   const [sortField, setSortField] = useState("created_at");
   const [sortOrder, setSortOrder] = useState("desc");
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
-
-  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(false);
-
-  // Status options
-  const statusOptions = [
-    { value: null, label: t.createProduct.allStatuses },
-    { value: "Active", label: t.createProduct.active },
-    { value: "Inactive", label: t.createProduct.inactive },
-    { value: "Out of Stock", label: t.createProduct.outOfStock },
-  ];
-
-  // Fetch categories from API (add this useEffect)
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${API_BASE_URL}/api/categories`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        });
-        if (!res.ok) throw new Error("Failed to fetch categories");
-        const data = await res.json();
-
-        // Handle different response structures
-        if (Array.isArray(data)) {
-          setCategories(data);
-        } else if (data.data && Array.isArray(data.data)) {
-          setCategories(data.data);
-        } else if (data.items && Array.isArray(data.items)) {
-          setCategories(data.items);
-        } else {
-          console.error("Unexpected categories response structure:", data);
-          setCategories([]);
-        }
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-        setCategories([]);
-      }
-    };
-    fetchCategories();
-  }, []);
 
   // Fetch products from API
   useEffect(() => {
@@ -137,8 +67,6 @@ export default function ProductsPage({
           sort_by: sortField,
           sort_order: sortOrder,
           ...(searchTerm && { search: searchTerm }),
-          ...(selectedStatus && { status: selectedStatus }),
-          ...(selectedCategory && { category_id: selectedCategory.toString() }),
         });
 
         const res = await fetch(
@@ -172,15 +100,7 @@ export default function ProductsPage({
     };
 
     fetchProducts();
-  }, [
-    currentPage,
-    itemsPerPage,
-    searchTerm,
-    sortField,
-    sortOrder,
-    selectedStatus,
-    selectedCategory,
-  ]);
+  }, [currentPage, itemsPerPage, searchTerm, sortField, sortOrder]);
 
   // Handle delete product
   const handleDelete = async (productId: number, productName: string) => {
@@ -244,24 +164,8 @@ export default function ProductsPage({
 
   // Get sort indicator
   const getSortIndicator = (field: string) => {
-    return (
-      <span className="inline-flex flex-col ml-1">
-        <IoIosArrowUp
-          className={`w-3 h-3 ${
-            sortField === field && sortOrder === "asc"
-              ? "text-gray-900 dark:text-gray-200"
-              : "text-gray-400 dark:text-gray-200"
-          }`}
-        />
-        <IoIosArrowDown
-          className={`w-3 h-3 ${
-            sortField === field && sortOrder === "desc"
-              ? "text-gray-900 dark:text-gray-200"
-              : "text-gray-400 dark:text-gray-200"
-          }`}
-        />
-      </span>
-    );
+    if (sortField !== field) return null;
+    return sortOrder === "asc" ? "↑" : "↓";
   };
 
   // Toggle dropdown
@@ -300,273 +204,53 @@ export default function ProductsPage({
     );
   }
 
-  // Fetch product statistics from backend
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        const token = localStorage.getItem("token");
-
-        if (!token) {
-          throw new Error("No authentication token found");
-        }
-
-        const response = await fetch(`${API_BASE_URL}/api/products/stats`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to fetch statistics");
-        }
-
-        const data = await response.json();
-        setStats(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
-        console.error("Error fetching product stats:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, []);
-
-  const handleAddCategory = () => {
-    router.push(`/${currentLocale}/dashboard/products/new/category`);
-  };
-
-  const handleAddBrand = () => {
-    router.push(`/${currentLocale}/dashboard/products/new/brand`);
-  };
-  const handleAddProduct = () => {
-    router.push(`/${currentLocale}/dashboard/products/new/product`);
-  };
-
-  if (error) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <p className="text-red-500 dark:text-red-400">{error}</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6 px-4 sm:px-6 lg:px-8 py-6 sm:space-y-6 md:px-6 sm:py-6">
+    <div className="space-y-6 px-4 sm:px-6 lg:px-8 py-6">
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6">
-        {/* Title Section */}
-        <div className="flex-1 min-w-0">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2 dark:text-white">
-            {t.productDashboard.products}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        {/* Back Button */}
+        <button
+          onClick={() => router.push(`/${currentLocale}/dashboard/products`)}
+          className="bg-gray-100 border border-gray-300 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-lg shadow px-2 py-2 transition flex-shrink-0"
+        >
+          <IoIosArrowBack className="w-5 h-5" />
+        </button>
+
+        {/* Title */}
+        <div className="flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold dark:text-white">
+            {t.createProduct.manageProducts}
           </h1>
-          <p className="text-sm sm:text-base text-gray-500 dark:text-gray-300">
-            {t.productDashboard.manageYourProducts}
+          <p className="text-muted-foreground text-gray-500 dark:text-gray-300 text-sm sm:text-base">
+            {t.createProduct.viewAndManageProducts}
           </p>
         </div>
 
-        {/* Buttons Section */}
-        <div className="flex xs:flex-row items-stretch xs:items-center gap-2 sm:gap-3 w-full sm:w-auto">
-          {/* Add Category Button (secondary) */}
-          <button
-            onClick={handleAddCategory}
-            className="flex items-center justify-center shadow-md border border-gray-300 bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 transition-all duration-200 rounded-lg py-2 px-3 sm:py-2 sm:px-4 text-sm sm:text-base"
-          >
-            <MdAdd className="mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="whitespace-nowrap">
-              {t.productDashboard.addCategory}
-            </span>
-          </button>
-
-          {/* Add Brand Button (outline/tertiary) */}
-          <button
-            onClick={handleAddBrand}
-            className="flex items-center justify-center shadow-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800 transition-all duration-200 rounded-lg py-2 px-3 sm:py-2 sm:px-4 text-sm sm:text-base"
-          >
-            <MdAdd className="mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="whitespace-nowrap">
-              {t.createProduct.addBrand}
-            </span>
-          </button>
-
-          {/* Add Product Button (primary) */}
-          <button
-            onClick={handleAddProduct}
-            className="flex items-center justify-center shadow-md bg-black text-white hover:bg-gray-800 dark:bg-gray-200 dark:text-gray-800 dark:hover:bg-gray-300 transition-all duration-200 rounded-lg py-2 px-3 sm:py-2 sm:px-4 text-sm sm:text-base"
-          >
-            <MdAdd className="mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="whitespace-nowrap">
-              {t.productDashboard.addProduct}
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {/* Stats Section */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <StatCard
-          title={t.createProduct.totalProducts}
-          value={stats?.total_products?.toString() || "0"}
-          icon={
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-6 h-6"
-              viewBox="0 0 24 24"
-            >
-              <path
-                fill="none"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-width="1.5"
-                d="M21.984 10c-.037-1.311-.161-2.147-.581-2.86c-.598-1.015-1.674-1.58-3.825-2.708l-2-1.05C13.822 2.461 12.944 2 12 2s-1.822.46-3.578 1.382l-2 1.05C4.271 5.56 3.195 6.125 2.597 7.14C2 8.154 2 9.417 2 11.942v.117c0 2.524 0 3.787.597 4.801c.598 1.015 1.674 1.58 3.825 2.709l2 1.049C10.178 21.539 11.056 22 12 22s1.822-.46 3.578-1.382l2-1.05c2.151-1.129 3.227-1.693 3.825-2.708c.42-.713.544-1.549.581-2.86M21 7.5l-4 2M12 12L3 7.5m9 4.5v9.5m0-9.5l4.5-2.25l.5-.25m0 0V13m0-3.5l-9.5-5"
-              />
-            </svg>
-          }
-          gradientFrom="from-[#5d30b6]"
-          gradientTo="to-[#5752cf]"
-        />
-        <StatCard
-          title={t.createProduct.activeProducts}
-          value={stats?.active_products?.toString() || "0"}
-          icon={
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-6 h-6"
-              viewBox="0 0 24 24"
-            >
-              <path
-                fill="none"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-width="1.5"
-                d="M21.984 10c-.037-1.311-.161-2.147-.581-2.86c-.598-1.015-1.674-1.58-3.825-2.708l-2-1.05C13.822 2.461 12.944 2 12 2s-1.822.46-3.578 1.382l-2 1.05C4.271 5.56 3.195 6.125 2.597 7.14C2 8.154 2 9.417 2 11.942v.117c0 2.524 0 3.787.597 4.801c.598 1.015 1.674 1.58 3.825 2.709l2 1.049C10.178 21.539 11.056 22 12 22s1.822-.46 3.578-1.382l2-1.05c2.151-1.129 3.227-1.693 3.825-2.708c.42-.713.544-1.549.581-2.86M21 7.5l-4 2M12 12L3 7.5m9 4.5v9.5m0-9.5l4.5-2.25l.5-.25m0 0V13m0-3.5l-9.5-5"
-              />
-            </svg>
-          }
-          gradientFrom="from-[#2563eb]"
-          gradientTo="to-[#06b6d4]"
-        />
-        <StatCard
-          title={t.createProduct.lowStock}
-          value={stats?.low_stock_products?.toString() || "0"}
-          icon={
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-6 h-6"
-              viewBox="0 0 24 24"
-            >
-              <g fill="none">
-                <path
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-width="1.5"
-                  d="M6.31 9C8.594 5 9.967 3 12 3c2.31 0 3.77 2.587 6.688 7.762l.364.644c2.425 4.3 3.638 6.45 2.542 8.022S17.786 21 12.364 21h-.728c-5.422 0-8.134 0-9.23-1.572c-.951-1.364-.163-3.165 1.648-6.428M12 8v5"
-                />
-                <circle cx="12" cy="16" r="1" fill="currentColor" />
-              </g>
-            </svg>
-          }
-          gradientFrom="from-[#ec4899]"
-          gradientTo="to-[#f97316]"
-        />
-        <StatCard
-          title={t.createProduct.outOfStock}
-          value={stats?.out_of_stock_products?.toString() || "0"}
-          icon={
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-6 h-6"
-              viewBox="0 0 24 24"
-            >
-              <g fill="none">
-                <path
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-width="1.5"
-                  d="M6.31 9C8.594 5 9.967 3 12 3c2.31 0 3.77 2.587 6.688 7.762l.364.644c2.425 4.3 3.638 6.45 2.542 8.022S17.786 21 12.364 21h-.728c-5.422 0-8.134 0-9.23-1.572c-.951-1.364-.163-3.165 1.648-6.428M12 8v5"
-                />
-                <circle cx="12" cy="16" r="1" fill="currentColor" />
-              </g>
-            </svg>
-          }
-          gradientFrom="from-[#22c55e]"
-          gradientTo="to-[#0d9488]"
-        />
-      </div>
-
-      {/* Search, filter by status and categories, and manage your products */}
-      <div className="bg-white dark:bg-gray-700 shadow rounded-lg p-6 mt-4">
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            {t.createProduct.manageYourProducts}
-          </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            {t.createProduct.searchFilterManage}
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search Bar */}
-            <div className="relative flex-1 max-w-sm">
-              <div className="absolute inset-y-0 left-0 flex justify-center items-center pl-2 pointer-events-none">
-                <IoIosSearch className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 dark:text-gray-500" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search products..."
-                className="w-full text-xs sm:text-sm md:text-base border shadow focus:border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-gray-300 border-gray-300 rounded-lg pl-8 sm:pl-10 py-1.5 sm:py-2 dark:bg-gray-800 dark:text-white dark:border-gray-600"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-
-            {/* Filter by Status (Dropdown) */}
-            <div className="relative w-full md:w-48">
-              <select
-                id="status"
-                value={selectedStatus || ""}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full text-sm sm:text-base border shadow focus:border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-gray-300 border-gray-300 rounded-lg px-3 py-2 pr-8 dark:bg-gray-800 dark:text-white dark:border-gray-600 appearance-none"
-              >
-                {statusOptions.map((option) => (
-                  <option
-                    key={option.value || "all"}
-                    value={option.value || ""}
-                  >
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <IoIosArrowDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none w-4 h-4" />
-            </div>
-
-            {/* Filter by Categories (Dropdown) */}
-            <div className="relative w-full md:w-52">
-              <select
-                id="category"
-                value={selectedCategory || ""}
-                onChange={(e) =>
-                  setSelectedCategory(
-                    e.target.value ? Number(e.target.value) : null
-                  )
-                }
-                className="w-full text-sm sm:text-base border shadow focus:border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-gray-300 border-gray-300 rounded-lg px-2 py-2 pr-8 dark:bg-gray-800 dark:text-white dark:border-gray-600 appearance-none"
-              >
-                <option value="">{t.createProduct.allCategories}</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-              <IoIosArrowDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none w-4 h-4" />
-            </div>
+        {/* Search Bar */}
+        <div className="relative w-full sm:w-48 md:w-64">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <IoIosSearch className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 dark:text-gray-500" />
           </div>
+          <input
+            type="text"
+            placeholder="Search products..."
+            className="w-full text-xs sm:text-sm md:text-base border shadow focus:border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-gray-300 border-gray-300 rounded-lg pl-8 sm:pl-10 py-1.5 sm:py-2 dark:bg-gray-800 dark:text-white dark:border-gray-600"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() =>
+              router.push(`/${currentLocale}/dashboard/products/new/product`)
+            }
+            className="flex items-center justify-center shadow-md border border-gray-300 bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 transition-all duration-200 rounded-lg py-1.5 px-2 sm:py-2 sm:px-3 md:px-4 text-xs sm:text-sm md:text-base w-full sm:w-auto"
+          >
+            <MdAdd className="mr-2 w-5 h-5" />
+            {t.createProduct.addNewProduct}
+          </button>
         </div>
       </div>
 
@@ -653,7 +337,7 @@ export default function ProductsPage({
                       colSpan={8}
                       className="px-6 py-4 text-center text-gray-500 dark:text-gray-400"
                     >
-                      {t.createProduct.noProductFound}
+                      No products found
                     </td>
                   </tr>
                 ) : (
@@ -664,10 +348,10 @@ export default function ProductsPage({
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <div className="flex-shrink-0 h-15 w-15 rounded-md overflow-hidden shadow shadow-gray-400 dark:shadow-gray-200">
+                          <div className="flex-shrink-0 h-10 w-10">
                             {product.images.length > 0 ? (
                               <img
-                                className="h-15 w-15 object-cover"
+                                className="h-10 w-10 rounded-md object-cover"
                                 src={`${API_BASE_URL}/${product.images[0].path}`}
                                 alt={product.name}
                               />

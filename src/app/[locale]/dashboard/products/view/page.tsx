@@ -507,7 +507,7 @@ export default function ViewCategoriesPage({
                           <button
                             onClick={() =>
                               router.push(
-                                `/${currentLocale}/dashboard/products/${category.slug}/edit`
+                                `/${currentLocale}/dashboard/products/${category.slug}/edit/category`
                               )
                             }
                             className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-500"

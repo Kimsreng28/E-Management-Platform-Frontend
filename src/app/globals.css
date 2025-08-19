@@ -27,6 +27,10 @@
   font-family: var(--font-combo);
 }
 
+.font-combo {
+  font-family: "Inria Sans", "Kantumruy Pro", sans-serif;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

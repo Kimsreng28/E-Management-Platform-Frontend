@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { ChangeEvent, useEffect, useState } from "react";
 import { BiSolidImageAdd } from "react-icons/bi";
 import { FaFileUpload } from "react-icons/fa";
+import { GrUpdate } from "react-icons/gr";
 import { IoIosArrowBack, IoIosArrowDown } from "react-icons/io";
 import { MdAdd, MdDelete, MdOutlineViewInAr } from "react-icons/md";
 import Swal from "sweetalert2";
@@ -21,19 +22,32 @@ interface Brand {
   name: string;
 }
 
-export default function CreateProductPage({
+interface ProductImage {
+  id: number;
+  path: string;
+  is_primary: boolean;
+}
+
+interface ProductVideo {
+  id: number;
+  url: string;
+}
+
+export default function EditProductPage({
   params,
 }: {
-  params: { locale: "en" | "kh" };
+  params: { locale: "en" | "kh"; slug: string };
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const currentLocale = pathname.split("/")[1] || "en";
   const language = params.locale || "en";
   const t = useTranslations(language);
+  const { slug } = params;
 
   // Form states
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [name, setName] = useState("");
@@ -52,19 +66,85 @@ export default function CreateProductPage({
     {}
   );
   const [images, setImages] = useState<File[]>([]);
+  const [existingImages, setExistingImages] = useState<ProductImage[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [videos, setVideos] = useState<File[]>([]);
+  const [existingVideos, setExistingVideos] = useState<ProductVideo[]>([]);
   const [videoPreviews, setVideoPreviews] = useState<string[]>([]);
   const [specKey, setSpecKey] = useState("");
   const [specValue, setSpecValue] = useState("");
   const [lowStockThreshold, setLowStockThreshold] = useState<number>(10);
+  const [imagesToDelete, setImagesToDelete] = useState<number[]>([]);
+  const [videosToDelete, setVideosToDelete] = useState<number[]>([]);
 
-  // Fetch categories and brands on mount
+  // Fetch product data and categories/brands on mount
   useEffect(() => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("token");
 
+        // Fetch product data
+        const productRes = await fetch(`${API_BASE_URL}/api/products/${slug}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        });
+
+        if (!productRes.ok) throw new Error("Failed to fetch product data");
+        const productData = await productRes.json();
+
+        // Set form data from product
+        const product = productData.data || productData;
+        setName(product.name);
+        setModelCode(product.model_code);
+        setStock(product.stock);
+        setPrice(product.price);
+        setCostPrice(product.cost_price);
+        setShortDescription(product.short_description);
+        setDescription(product.description);
+        setCategoryId(product.category_id);
+        setBrandId(product.brand_id);
+        setWarrantyMonths(product.warranty_months);
+        setIsFeatured(product.is_featured);
+        setIsActive(product.is_active);
+        setLowStockThreshold(product.low_stock_threshold || 10);
+
+        // Set specifications if they exist
+        if (product.specifications) {
+          try {
+            const specs =
+              typeof product.specifications === "string"
+                ? JSON.parse(product.specifications)
+                : product.specifications;
+            setSpecifications(specs);
+          } catch (e) {
+            console.error("Error parsing specifications:", e);
+          }
+        }
+
+        // Set existing media
+        if (product.images) {
+          setExistingImages(product.images);
+          setImagePreviews(
+            product.images.map((img: ProductImage) =>
+              img.path.startsWith("http")
+                ? img.path
+                : `${API_BASE_URL}/${img.path}`
+            )
+          );
+        }
+
+        if (product.videos) {
+          setExistingVideos(product.videos);
+          setVideoPreviews(
+            product.videos.map((vid: ProductVideo) =>
+              vid.url.startsWith("http") ? vid.url : `${API_BASE_URL}${vid.url}`
+            )
+          );
+        }
+
+        // Fetch categories and brands
         const [categoriesRes, brandsRes] = await Promise.all([
           fetch(`${API_BASE_URL}/api/categories`),
           fetch(`${API_BASE_URL}/api/companies`, {
@@ -83,27 +163,30 @@ export default function CreateProductPage({
 
         setCategories(categoriesData.data || categoriesData);
         setBrands(brandsData.data || brandsData);
+
+        setFetching(false);
       } catch (error) {
         console.error("Failed to fetch data:", error);
         Swal.fire({
           position: "top-end",
           icon: "error",
-          title: "Failed to load categories/brands",
+          title: "Failed to load product data",
           showConfirmButton: false,
           timer: 2000,
           toast: true,
         });
+        setFetching(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [slug]);
 
-  // Handle image selection
+  // Handle image selection - Updated version
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
+    if (e.target.files && e.target.files.length > 0) {
       const newImages = Array.from(e.target.files);
-      if (images.length + newImages.length > 5) {
+      if (existingImages.length + images.length + newImages.length > 5) {
         Swal.fire({
           position: "top-end",
           icon: "error",
@@ -115,14 +198,19 @@ export default function CreateProductPage({
         return;
       }
 
-      setImages([...images, ...newImages]);
+      const newPreviews: string[] = [];
 
-      // Create previews
       newImages.forEach((file) => {
         const reader = new FileReader();
-        reader.onload = () => {
-          if (reader.readyState === 2) {
-            setImagePreviews((prev) => [...prev, reader.result as string]);
+        reader.onload = (event) => {
+          if (event.target?.result) {
+            newPreviews.push(event.target.result as string);
+
+            // Update state only after all images are processed
+            if (newPreviews.length === newImages.length) {
+              setImages((prev) => [...prev, ...newImages]);
+              setImagePreviews((prev) => [...prev, ...newPreviews]);
+            }
           }
         };
         reader.readAsDataURL(file);
@@ -130,11 +218,11 @@ export default function CreateProductPage({
     }
   };
 
-  // Handle video selection
+  // Handle video selection - Updated version
   const handleVideoChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
+    if (e.target.files && e.target.files.length > 0) {
       const newVideos = Array.from(e.target.files);
-      if (videos.length + newVideos.length > 2) {
+      if (existingVideos.length + videos.length + newVideos.length > 2) {
         Swal.fire({
           position: "top-end",
           icon: "error",
@@ -146,14 +234,19 @@ export default function CreateProductPage({
         return;
       }
 
-      setVideos([...videos, ...newVideos]);
+      const newPreviews: string[] = [];
 
-      // Create previews
       newVideos.forEach((file) => {
         const reader = new FileReader();
-        reader.onload = () => {
-          if (reader.readyState === 2) {
-            setVideoPreviews((prev) => [...prev, reader.result as string]);
+        reader.onload = (event) => {
+          if (event.target?.result) {
+            newPreviews.push(event.target.result as string);
+
+            // Update state only after all videos are processed
+            if (newPreviews.length === newVideos.length) {
+              setVideos((prev) => [...prev, ...newVideos]);
+              setVideoPreviews((prev) => [...prev, ...newPreviews]);
+            }
           }
         };
         reader.readAsDataURL(file);
@@ -161,25 +254,55 @@ export default function CreateProductPage({
     }
   };
 
-  // Remove image
-  const removeImage = (index: number) => {
-    const newImages = [...images];
-    newImages.splice(index, 1);
-    setImages(newImages);
+  // Remove existing image
+  const removeExistingImage = (id: number, index: number) => {
+    setImagesToDelete([...imagesToDelete, id]);
+
+    const newExistingImages = [...existingImages];
+    newExistingImages.splice(index, 1);
+    setExistingImages(newExistingImages);
 
     const newPreviews = [...imagePreviews];
     newPreviews.splice(index, 1);
     setImagePreviews(newPreviews);
   };
 
-  // Remove video
-  const removeVideo = (index: number) => {
+  // Remove new image
+  const removeNewImage = (index: number) => {
+    const newImages = [...images];
+    newImages.splice(index, 1);
+    setImages(newImages);
+
+    // Adjust index for previews (existing images come first)
+    const previewIndex = existingImages.length + index;
+    const newPreviews = [...imagePreviews];
+    newPreviews.splice(previewIndex, 1);
+    setImagePreviews(newPreviews);
+  };
+
+  // Remove existing video
+  const removeExistingVideo = (id: number, index: number) => {
+    setVideosToDelete([...videosToDelete, id]);
+
+    const newExistingVideos = [...existingVideos];
+    newExistingVideos.splice(index, 1);
+    setExistingVideos(newExistingVideos);
+
+    const newPreviews = [...videoPreviews];
+    newPreviews.splice(index, 1);
+    setVideoPreviews(newPreviews);
+  };
+
+  // Remove new video
+  const removeNewVideo = (index: number) => {
     const newVideos = [...videos];
     newVideos.splice(index, 1);
     setVideos(newVideos);
 
+    // Adjust index for previews (existing videos come first)
+    const previewIndex = existingVideos.length + index;
     const newPreviews = [...videoPreviews];
-    newPreviews.splice(index, 1);
+    newPreviews.splice(previewIndex, 1);
     setVideoPreviews(newPreviews);
   };
 
@@ -221,6 +344,7 @@ export default function CreateProductPage({
       formData.append("is_featured", isFeatured ? "1" : "0");
       formData.append("is_active", isActive ? "1" : "0");
       formData.append("low_stock_threshold", lowStockThreshold.toString());
+      formData.append("_method", "PUT");
 
       // Append optional fields if they exist
       if (costPrice) formData.append("cost_price", costPrice.toString());
@@ -230,14 +354,22 @@ export default function CreateProductPage({
       // Append specifications as JSON string
       formData.append("specifications", JSON.stringify(specifications));
 
-      // Add images and videos
+      // Add images and videos to delete
+      imagesToDelete.forEach((id) =>
+        formData.append("images_to_delete[]", id.toString())
+      );
+      videosToDelete.forEach((id) =>
+        formData.append("videos_to_delete[]", id.toString())
+      );
+
+      // Add new images and videos
       images.forEach((image) => formData.append("images[]", image));
       videos.forEach((video) => formData.append("videos[]", video));
 
       const token = localStorage.getItem("token");
 
-      const res = await fetch(`${API_BASE_URL}/api/products`, {
-        method: "POST",
+      const res = await fetch(`${API_BASE_URL}/api/products/${slug}`, {
+        method: "POST", // Using POST with _method=PUT for file uploads
         headers: {
           Accept: "application/json",
           Authorization: token ? `Bearer ${token}` : "",
@@ -251,7 +383,7 @@ export default function CreateProductPage({
         const data = JSON.parse(responseText);
 
         if (!res.ok) {
-          let message = "Failed to create product";
+          let message = "Failed to update product";
           if (data?.errors) {
             message = Object.entries(data.errors)
               .map(
@@ -268,7 +400,7 @@ export default function CreateProductPage({
         Swal.fire({
           position: "top-end",
           icon: "success",
-          title: "Product created successfully!",
+          title: "Product updated successfully!",
           showConfirmButton: false,
           timer: 3000,
           toast: true,
@@ -277,14 +409,14 @@ export default function CreateProductPage({
         router.push(`/${currentLocale}/dashboard/products`);
       } catch (err) {
         console.error("Failed to parse JSON:", responseText);
-        throw new Error(responseText || "Failed to create product");
+        throw new Error(responseText || "Failed to update product");
       }
     } catch (err: any) {
       console.error(err);
       Swal.fire({
         position: "top-end",
         icon: "error",
-        title: err.message || "Failed to create product",
+        title: err.message || "Failed to update product",
         showConfirmButton: false,
         timer: 2000,
         toast: true,
@@ -293,6 +425,14 @@ export default function CreateProductPage({
       setLoading(false);
     }
   };
+
+  if (fetching) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-black border-gray-200 dark:border-gray-100"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 px-4 sm:px-6 lg:px-8 py-6">
@@ -309,10 +449,10 @@ export default function CreateProductPage({
         {/* Title */}
         <div className="flex-1">
           <h1 className="text-2xl sm:text-3xl font-bold dark:text-white">
-            {t.createProduct.addNewProduct}
+            {t.createProduct.editProduct}
           </h1>
           <p className="text-muted-foreground text-gray-500 dark:text-gray-300 text-sm sm:text-base">
-            {t.createProduct.createANewProduct}
+            {t.createProduct.editExistingProduct}
           </p>
         </div>
 
@@ -811,34 +951,57 @@ export default function CreateProductPage({
               </label>
 
               <span className="text-sm text-gray-500 dark:text-gray-400">
-                {images.length} / 5 {t.createProduct.imageSelected}
+                {existingImages.length + images.length} / 5{" "}
+                {t.createProduct.imageSelected}
               </span>
             </div>
 
             {/* Image Previews */}
-            {imagePreviews.length > 0 && (
+            {(existingImages.length > 0 || imagePreviews.length > 0) && (
               <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                {imagePreviews.map((preview, index) => (
-                  <div key={index} className="relative group">
+                {/* Existing images */}
+                {existingImages.map((image, index) => (
+                  <div key={`existing-${image.id}`} className="relative group">
                     <img
-                      src={preview}
+                      src={imagePreviews[index]} // Use the preview URL from imagePreviews array
                       alt={`Preview ${index + 1}`}
                       className="w-full h-32 object-cover rounded-md border border-gray-200 dark:border-gray-700"
                     />
                     <button
                       type="button"
-                      onClick={() => removeImage(index)}
+                      onClick={() => removeExistingImage(image.id, index)}
                       className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <MdDelete className="w-4 h-4" />
                     </button>
-                    {index === 0 && (
+                    {image.is_primary && (
                       <span className="absolute bottom-1 left-1 bg-blue-500 text-white text-xs px-2 py-1 rounded">
                         {t.createProduct.primary}
                       </span>
                     )}
                   </div>
                 ))}
+
+                {/* New images */}
+                {images.map((_, index) => {
+                  const previewIndex = existingImages.length + index;
+                  return (
+                    <div key={`new-${index}`} className="relative group">
+                      <img
+                        src={imagePreviews[previewIndex]}
+                        alt={`New preview ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-md border border-gray-200 dark:border-gray-700"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeNewImage(index)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <MdDelete className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -868,29 +1031,52 @@ export default function CreateProductPage({
               </label>
 
               <span className="text-sm text-gray-500 dark:text-gray-400">
-                {videos.length} / 2 {t.createProduct.videoSelected}
+                {existingVideos.length + videos.length} / 2{" "}
+                {t.createProduct.videoSelected}
               </span>
             </div>
 
             {/* Video Previews */}
-            {videoPreviews.length > 0 && (
+            {(existingVideos.length > 0 || videoPreviews.length > 0) && (
               <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {videoPreviews.map((preview, index) => (
-                  <div key={index} className="relative group">
+                {/* Existing videos */}
+                {existingVideos.map((video, index) => (
+                  <div key={`existing-${video.id}`} className="relative group">
                     <video
-                      src={preview}
+                      src={videoPreviews[index]}
                       controls
                       className="w-full h-40 object-cover rounded-md border border-gray-200 dark:border-gray-700"
                     />
                     <button
                       type="button"
-                      onClick={() => removeVideo(index)}
+                      onClick={() => removeExistingVideo(video.id, index)}
                       className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <MdDelete className="w-4 h-4" />
                     </button>
                   </div>
                 ))}
+
+                {/* New videos */}
+                {videos.map((_, index) => {
+                  const previewIndex = existingVideos.length + index;
+                  return (
+                    <div key={`new-${index}`} className="relative group">
+                      <video
+                        src={videoPreviews[previewIndex]}
+                        controls
+                        className="w-full h-40 object-cover rounded-md border border-gray-200 dark:border-gray-700"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeNewVideo(index)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <MdDelete className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -903,10 +1089,8 @@ export default function CreateProductPage({
             disabled={loading}
             className="w-full sm:w-auto bg-black flex items-center justify-center shadow text-white dark:bg-gray-200 dark:text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-300 transition disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            <MdAdd className="mr-2" />
-            {loading
-              ? t.createProduct.creating
-              : t.createProduct.createNewProduct}
+            <GrUpdate className="w-4 h-4 mr-2" />
+            {loading ? t.createProduct.updating : t.createProduct.updateProduct}
           </button>
         </div>
       </form>

@@ -22,16 +22,27 @@ import { Checkbox } from "@/components/ui/Checkbox";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/Select";
 import { Separator } from "@/components/ui/Separator";
+import { useTranslations } from "@/utils/useTranslations";
+import { Inria_Sans, Kantumruy_Pro } from "next/font/google";
 
-export default function RegisterPage() {
+const inriaSans = Inria_Sans({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-combo",
+});
+
+const kantumruyPro = Kantumruy_Pro({
+  subsets: ["latin", "khmer"],
+  weight: ["400", "700"],
+  variable: "--font-kantumruy-pro",
+});
+
+export default function RegisterPage({
+  params,
+}: {
+  params: { locale: "en" | "kh" };
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +54,6 @@ export default function RegisterPage() {
     phone: "",
     password: "",
     password_confirmation: "",
-    accountType: "customer",
     agreeToTerms: false,
   });
 
@@ -51,6 +61,10 @@ export default function RegisterPage() {
 
   // get current locale from url
   const currentLocale = pathname.split("/")[1] || "en";
+
+  // translate
+  const language = params.locale || "en";
+  const t = useTranslations(language);
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -117,7 +131,7 @@ export default function RegisterPage() {
       },
       didOpen: (toast) => {
         toast.style.fontSize = "0.85rem";
-        toast.style.fontFamily = "Inria Sans, sans-serif";
+        toast.style.fontFamily = "Inria Sans, Kantumruy Pro, sans-serif";
         toast.style.minWidth = "200px";
         toast.style.padding = "8px 12px";
         toast.style.borderRadius = "10px";
@@ -144,12 +158,12 @@ export default function RegisterPage() {
         phone: formData.phone,
         password: formData.password,
         password_confirmation: formData.password_confirmation,
-        role: formData.accountType,
+        role: "customer",
       });
 
       Toast.fire({
         icon: "success",
-        title: "Registration Successful",
+        title: t.login.registerSuccess,
         text: "You can now log in with your account.",
       });
 
@@ -159,7 +173,7 @@ export default function RegisterPage() {
     } catch (error: any) {
       Toast.fire({
         icon: "error",
-        title: "Registration Failed",
+        title: t.login.registerFailed,
         text: error.message || "Please try again.",
       });
     } finally {
@@ -168,22 +182,28 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center p-4 relative">
+    <div
+      className={`${inriaSans.variable} ${kantumruyPro.variable} font-combo min-h-screen bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center p-4 relative`}
+    >
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
+        <CardHeader className="text-center font-combo">
           <div className="flex items-center justify-center gap-2 mb-4">
             <img src="/images/logo.png" alt="" className="h-25 w-25" />
           </div>
-          <CardTitle className="text-2xl">Create Account</CardTitle>
-          <CardDescription>
-            Join our electronics management platform
+          <CardTitle className="text-2xl font-combo">
+            {t.login.createAccount}
+          </CardTitle>
+          <CardDescription className="font-combo">
+            {t.login.signUpDescription}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4 ">
             {/* Full Name */}
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name " className="font-combo">
+                {t.login.fullName}
+              </Label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
@@ -202,7 +222,9 @@ export default function RegisterPage() {
 
             {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="font-combo">
+                {t.login.emailAddress}
+              </Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
@@ -222,7 +244,9 @@ export default function RegisterPage() {
 
             {/* Phone */}
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
+              <Label htmlFor="phone" className="font-combo">
+                {t.login.phoneNumber}
+              </Label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
@@ -236,27 +260,11 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Account Type */}
-            <div className="space-y-2">
-              <Label htmlFor="accountType">Account Type</Label>
-              <Select
-                value={formData.accountType}
-                onValueChange={(value) =>
-                  handleInputChange("accountType", value)
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select account type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="customer">Customer</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
             {/* Password */}
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="font-combo">
+                {t.login.password}
+              </Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
@@ -292,7 +300,9 @@ export default function RegisterPage() {
 
             {/* Confirm Password */}
             <div className="space-y-2">
-              <Label htmlFor="password_confirmation">Confirm Password</Label>
+              <Label htmlFor="password_confirmation" className="font-combo">
+                {t.login.confirmPassword}
+              </Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
@@ -329,7 +339,7 @@ export default function RegisterPage() {
             </div>
 
             {/* Terms */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 ">
               <Checkbox
                 id="terms"
                 checked={formData.agreeToTerms}
@@ -339,33 +349,33 @@ export default function RegisterPage() {
               />
               <Label
                 htmlFor="terms"
-                className={`text-sm ${
+                className={`text-sm font-combo ${
                   errors.agreeToTerms ? "text-red-500" : ""
                 }`}
               >
-                I agree to the{" "}
+                {t.login.agree}{" "}
                 <Link
                   href={`/${currentLocale}/terms`}
                   className="text-primary hover:underline"
                 >
-                  Terms of Service
+                  {t.login.termsOfService}
                 </Link>{" "}
-                and{" "}
+                {t.login.and}{" "}
                 <Link
                   href={`/${currentLocale}/privacy-policy`}
                   className="text-primary hover:underline"
                 >
-                  Privacy Policy
+                  {t.login.privacyPolicy}
                 </Link>
               </Label>
             </div>
 
             <Button
               type="submit"
-              className="w-full bg-black text-white hover:bg-gray-900 focus:ring-black font-semibold"
+              className="w-full font-combo bg-black text-white hover:bg-gray-900 focus:ring-black font-semibold"
               disabled={isLoading}
             >
-              {isLoading ? "Creating account..." : "Create Account"}
+              {isLoading ? t.login.creatingAccount : t.login.createAccount}
             </Button>
           </form>
 
@@ -375,8 +385,8 @@ export default function RegisterPage() {
               <div className="absolute inset-0 flex items-center">
                 <Separator className="border-gray-300" />
               </div>
-              <div className="relative flex justify-center text-xs uppercase text-gray-600 font-semibold tracking-wider font-inria-sans">
-                <span className="bg-white px-3">Or continue with</span>
+              <div className="relative flex justify-center text-xs uppercase text-gray-600 font-semibold tracking-wider font-combo">
+                <span className="bg-white px-3">{t.login.orContinueWith}</span>
               </div>
             </div>
 
@@ -426,8 +436,8 @@ export default function RegisterPage() {
           {/* Loading overlay */}
           <LoadingOverlay show={isLoading} />
 
-          <p className="text-sm text-muted-foreground flex items-center justify-center gap-2 relative z-10">
-            Already have an account?
+          <p className="text-sm font-combo text-muted-foreground flex items-center justify-center gap-2 relative z-10">
+            {t.login.alreadyHaveAnAccount}{" "}
             <button
               type="button"
               onClick={() => {
@@ -439,7 +449,7 @@ export default function RegisterPage() {
               className="font-semibold text-black hover:underline hover:text-gray-900"
               disabled={isLoading}
             >
-              Sign in
+              {t.login.signIn}
             </button>
           </p>
         </CardFooter>
