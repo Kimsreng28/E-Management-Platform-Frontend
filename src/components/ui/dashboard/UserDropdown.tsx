@@ -1,6 +1,7 @@
 "use client";
 
 import { getCurrentUser, logoutUser } from "@/lib/api/auth";
+import { API_BASE_URL } from "@/lib/config";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
@@ -62,9 +63,23 @@ export default function UserDropdown() {
         {user ? (
           user.avatar || user.photo_url ? (
             <img
-              src={user.avatar || user.photo_url}
+              src={
+                // If starts with "http", use directly; otherwise prepend API or public path
+                user.avatar?.startsWith("http")
+                  ? user.avatar
+                  : `${API_BASE_URL}/storage/${user.avatar}` // or wherever your local avatars are served
+              }
               alt={user.name || "User"}
               className="h-6 w-6 rounded-full object-cover"
+              onError={(e) => {
+                // fallback to photo_url if avatar fails
+                const target = e.currentTarget as HTMLImageElement;
+                if (user.photo_url && user.photo_url.startsWith("http")) {
+                  target.src = user.photo_url;
+                } else {
+                  target.src = "/default-avatar.png"; // fallback image
+                }
+              }}
             />
           ) : (
             <span className="flex items-center justify-center h-6 w-6 rounded-full bg-blue-500 text-white">

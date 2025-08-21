@@ -374,7 +374,7 @@ export default function ProductsPage({
           {/* Add Category Button (secondary) */}
           <button
             onClick={handleAddCategory}
-            className="flex items-center justify-center shadow-md border border-gray-300 bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 transition-all duration-200 rounded-lg py-2 px-3 sm:py-2 sm:px-4 text-sm sm:text-base"
+            className="flex items-center justify-center cursor-pointer shadow-md border border-gray-300 bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 transition-all duration-200 rounded-lg py-2 px-3 sm:py-2 sm:px-4 text-sm sm:text-base"
           >
             <MdAdd className="mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" />
             <span className="whitespace-nowrap">
@@ -385,7 +385,7 @@ export default function ProductsPage({
           {/* Add Brand Button (outline/tertiary) */}
           <button
             onClick={handleAddBrand}
-            className="flex items-center justify-center shadow-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800 transition-all duration-200 rounded-lg py-2 px-3 sm:py-2 sm:px-4 text-sm sm:text-base"
+            className="flex items-center justify-center cursor-pointer shadow-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800 transition-all duration-200 rounded-lg py-2 px-3 sm:py-2 sm:px-4 text-sm sm:text-base"
           >
             <MdAdd className="mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" />
             <span className="whitespace-nowrap">
@@ -396,7 +396,7 @@ export default function ProductsPage({
           {/* Add Product Button (primary) */}
           <button
             onClick={handleAddProduct}
-            className="flex items-center justify-center shadow-md bg-black text-white hover:bg-gray-800 dark:bg-gray-200 dark:text-gray-800 dark:hover:bg-gray-300 transition-all duration-200 rounded-lg py-2 px-3 sm:py-2 sm:px-4 text-sm sm:text-base"
+            className="flex items-center justify-center cursor-pointer shadow-md bg-black text-white hover:bg-gray-800 dark:bg-gray-200 dark:text-gray-800 dark:hover:bg-gray-300 transition-all duration-200 rounded-lg py-2 px-3 sm:py-2 sm:px-4 text-sm sm:text-base"
           >
             <MdAdd className="mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" />
             <span className="whitespace-nowrap">

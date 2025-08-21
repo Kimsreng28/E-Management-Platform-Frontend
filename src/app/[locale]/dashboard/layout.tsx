@@ -1,6 +1,5 @@
 "use client";
 
-import { LanguageDropdown } from "@/components/ui/customer/LanguageDropdown";
 import UserDropdown from "@/components/ui/dashboard/UserDropdown";
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
 import { navItems } from "@/data/navItems";
@@ -206,13 +205,13 @@ export default function DashboardLayout({
           {/* Desktop controls */}
           <div className="hidden sm:flex items-center gap-4">
             {/* Language switch */}
-            <LanguageDropdown
+            {/* <LanguageDropdown
               language={language}
               onLanguageChange={handleLanguageChange}
-            />
+            /> */}
 
             {/* Dark mode switch */}
-            <button
+            {/* <button
               onClick={toggleDarkMode}
               className="flex items-center justify-center p-2 rounded-full border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 h-10 w-10"
             >
@@ -221,7 +220,7 @@ export default function DashboardLayout({
               ) : (
                 <AiFillSun size={20} />
               )}
-            </button>
+            </button> */}
 
             <UserDropdown />
           </div>
