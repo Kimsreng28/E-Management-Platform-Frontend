@@ -5,7 +5,7 @@ import StatCard from "@/components/ui/dashboard/StatCard";
 import { API_BASE_URL } from "@/lib/config";
 import { useTranslations } from "@/utils/useTranslations";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { FaLocationArrow } from "react-icons/fa";
 import { IoIosArrowDown, IoIosArrowUp, IoIosSearch } from "react-icons/io";
 import { MdMoreVert, MdVisibility } from "react-icons/md";
@@ -51,14 +51,13 @@ const statusOptions = [
   { label: "Pending", value: "pending" },
   { label: "Processing", value: "processing" },
   { label: "Shipped", value: "shipped" },
-  { label: "Delivered", value: "delivered" },
   { label: "Cancelled", value: "cancelled" },
   { label: "Refunded", value: "refunded" },
   { label: "Completed", value: "completed" },
 ];
 
 const paymentOptions = [
-  { label: "Paid", value: "paid" },
+  { label: "Paid", value: "completed" },
   { label: "Pending", value: "pending" },
   { label: "Failed", value: "failed" },
   { label: "Refunded", value: "refunded" },
@@ -67,12 +66,13 @@ const paymentOptions = [
 export default function OrdersPage({
   params,
 }: {
-  params: { locale: "en" | "kh" };
+  params: Promise<{ locale: "en" | "kh" }>;
 }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  const language = params.locale || "en";
+  const unwrappedParams = use(params);
+  const language = unwrappedParams.locale || "en";
   const currentLocale = pathname.split("/")[1] || "en";
   const t = useTranslations(language);
 
@@ -91,6 +91,10 @@ export default function OrdersPage({
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
 
   // Fetch order stats
   const fetchOrderStats = async () => {
@@ -219,20 +223,54 @@ export default function OrdersPage({
     );
   };
 
+  const DROPDOWN_WIDTH = 160; // Tailwind w-40 = 10rem = 160px
+  const DROPDOWN_EST_HEIGHT = 160; // rough height of menu; adjust if needed
+  const PADDING = 8;
+
   const toggleDropdown = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    setDropdownOpen(dropdownOpen === id ? null : id);
+
+    if (dropdownOpen === id) {
+      setDropdownOpen(null);
+      setDropdownPosition(null);
+      return;
+    }
+
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+
+    // Horizontal: right-align to button, clamp to viewport
+    let left = rect.right - DROPDOWN_WIDTH;
+    if (left < PADDING) left = PADDING;
+    if (left + DROPDOWN_WIDTH + PADDING > window.innerWidth) {
+      left = Math.max(window.innerWidth - DROPDOWN_WIDTH - PADDING, PADDING);
+    }
+
+    // Vertical: open below; flip above if not enough space
+    const spaceBelow = window.innerHeight - rect.bottom;
+    let top =
+      spaceBelow >= DROPDOWN_EST_HEIGHT
+        ? rect.bottom
+        : Math.max(rect.top - DROPDOWN_EST_HEIGHT, PADDING);
+
+    setDropdownOpen(id);
+    setDropdownPosition({ top, left });
   };
 
-  // Close dropdown when clicking outside
+  // Close on outside click, scroll, or resize (use capture to catch inner scrollables)
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownOpen !== null) {
-        setDropdownOpen(null);
-      }
+    if (dropdownOpen === null) return;
+    const close = () => {
+      setDropdownOpen(null);
+      setDropdownPosition(null);
     };
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
+    document.addEventListener("click", close);
+    window.addEventListener("resize", close);
+    window.addEventListener("scroll", close, true);
+    return () => {
+      document.removeEventListener("click", close);
+      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", close, true);
+    };
   }, [dropdownOpen]);
 
   // Fetch order stats when the component mounts
@@ -253,7 +291,7 @@ export default function OrdersPage({
   ]);
 
   return (
-    <div className="space-y-6 px-4 sm:px-6 lg:px-8 py-6 sm:space-y-6 md:px-6 sm:py-6">
+    <div className="space-y-6 px-4 sm:px-6 lg:px-1 lg:py-1 py-6 sm:space-y-6 md:px-6 sm:py-6">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6">
         {/* Title Section */}
@@ -371,216 +409,225 @@ export default function OrdersPage({
         />
       </div>
 
-      {/* Search, filter by status and payment, and manage your order */}
-      <div className="bg-white dark:bg-gray-700 shadow rounded-lg p-6 mt-4">
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            Order Management
-          </h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Search, filter, and manage customer orders
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            {/* Search Bar */}
-            <div className="relative flex-1 max-w-sm">
-              <div className="absolute inset-y-0 left-0 flex justify-center items-center pl-2 pointer-events-none">
-                <IoIosSearch className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 dark:text-gray-500" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search orders..."
-                className="w-full text-xs sm:text-sm md:text-base border shadow focus:border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-gray-300 border-gray-300 rounded-lg pl-8 sm:pl-10 py-1.5 sm:py-2 dark:bg-gray-800 dark:text-white dark:border-gray-600"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-
-            {/* Filter by Status (Dropdown) */}
-            <div className="relative w-full md:w-48">
-              <select
-                id="status"
-                value={selectedStatus || ""}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full text-sm sm:text-base border shadow focus:border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-gray-300 border-gray-300 rounded-lg px-3 py-2 pr-8 dark:bg-gray-800 dark:text-white dark:border-gray-600 appearance-none"
-              >
-                {statusOptions.map((option) => (
-                  <option
-                    key={option.value || "all"}
-                    value={option.value || ""}
-                  >
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <IoIosArrowDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none w-4 h-4" />
-            </div>
-
-            {/* Filter by Payment (Dropdown) */}
-            <div className="relative w-full md:w-52">
-              <select
-                id="category"
-                value={selectedPayment || ""}
-                onChange={(e) => {
-                  setCurrentPage(1);
-                  setSelectedPayment(e.target.value);
-                }}
-                className="w-full text-sm sm:text-base border shadow focus:border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-gray-300 border-gray-300 rounded-lg px-2 py-2 pr-8 dark:bg-gray-800 dark:text-white dark:border-gray-600 appearance-none"
-              >
-                <option value="">All Payments</option>
-                {paymentOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <IoIosArrowDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none w-4 h-4" />
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Orders Table */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-        {loading ? (
-          <div className="flex items-center justify-center p-5 flex-row gap-1">
-            <div className="w-2 h-2 rounded-full bg-black animate-bounce dark:bg-white"></div>
-            <div className="w-2 h-2 rounded-full bg-black animate-bounce [animation-delay:-.3s] dark:bg-white"></div>
-            <div className="w-2 h-2 rounded-full bg-black animate-bounce [animation-delay:-.5s] dark:bg-white"></div>
+        {/* Search, filter by status and payment, and manage your order */}
+        <div className=" p-2 m-2 ">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              Order Management
+            </h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Search, filter, and manage customer orders
+            </p>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-700">
+
+          <div className="space-y-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Search Bar */}
+              <div className="relative flex-1 max-w-sm">
+                <div className="absolute inset-y-0 left-0 flex justify-center items-center pl-2 pointer-events-none">
+                  <IoIosSearch className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 dark:text-gray-500" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search orders..."
+                  className="w-full text-xs sm:text-sm md:text-base border shadow focus:border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-gray-300 border-gray-300 rounded-lg pl-8 sm:pl-10 py-1.5 sm:py-2 dark:bg-gray-800 dark:text-white dark:border-gray-600"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+
+              {/* Filter by Status (Dropdown) */}
+              <div className="relative w-full md:w-48">
+                <select
+                  id="status"
+                  value={selectedStatus || ""}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                  className="w-full text-sm sm:text-base border shadow focus:border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-gray-300 border-gray-300 rounded-lg px-3 py-2 pr-8 dark:bg-gray-800 dark:text-white dark:border-gray-600 appearance-none"
+                >
+                  {statusOptions.map((option) => (
+                    <option
+                      key={option.value || "all"}
+                      value={option.value || ""}
+                    >
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <IoIosArrowDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none w-4 h-4" />
+              </div>
+
+              {/* Filter by Payment (Dropdown) */}
+              <div className="relative w-full md:w-52">
+                <select
+                  id="category"
+                  value={selectedPayment || ""}
+                  onChange={(e) => {
+                    setCurrentPage(1);
+                    setSelectedPayment(e.target.value);
+                  }}
+                  className="w-full text-sm sm:text-base border shadow focus:border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-gray-300 border-gray-300 rounded-lg px-2 py-2 pr-8 dark:bg-gray-800 dark:text-white dark:border-gray-600 appearance-none"
+                >
+                  <option value="">All Payments</option>
+                  {paymentOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+                <IoIosArrowDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none w-4 h-4" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider cursor-pointer"
+                  onClick={() => handleSort("order_number")}
+                >
+                  <div className="flex items-center">
+                    Order ID {getSortIndicator("order_number")}
+                  </div>
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider cursor-pointer"
+                  onClick={() => handleSort("user.name")}
+                >
+                  <div className="flex items-center">
+                    Customer {getSortIndicator("user.name")}
+                  </div>
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Products
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider cursor-pointer"
+                  onClick={() => handleSort("total")}
+                >
+                  <div className="flex items-center">
+                    Total {getSortIndicator("total")}
+                  </div>
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider cursor-pointer"
+                  onClick={() => handleSort("status")}
+                >
+                  <div className="flex items-center">
+                    Status {getSortIndicator("status")}
+                  </div>
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider cursor-pointer"
+                  onClick={() => handleSort("payment_status")}
+                >
+                  <div className="flex items-center">
+                    Payment {getSortIndicator("payment_status")}
+                  </div>
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider cursor-pointer"
+                  onClick={() => handleSort("created_at")}
+                >
+                  <div className="flex items-center">
+                    Date {getSortIndicator("created_at")}
+                  </div>
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-right text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider"
+                >
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {loading ? (
                 <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort("order_number")}
-                  >
-                    <div className="flex items-center">
-                      Order ID {getSortIndicator("order_number")}
+                  <td colSpan={8} className="px-5 py-5 text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-black animate-bounce dark:bg-white"></div>
+                      <div className="w-2 h-2 rounded-full bg-black animate-bounce [animation-delay:-.2s] dark:bg-white"></div>
+                      <div className="w-2 h-2 rounded-full bg-black animate-bounce [animation-delay:-.4s] dark:bg-white"></div>
                     </div>
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort("user.name")}
-                  >
-                    <div className="flex items-center">
-                      Customer {getSortIndicator("user.name")}
-                    </div>
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider"
-                  >
-                    Products
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort("total")}
-                  >
-                    <div className="flex items-center">
-                      Total {getSortIndicator("total")}
-                    </div>
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort("status")}
-                  >
-                    <div className="flex items-center">
-                      Status {getSortIndicator("status")}
-                    </div>
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort("payment_status")}
-                  >
-                    <div className="flex items-center">
-                      Payment {getSortIndicator("payment_status")}
-                    </div>
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider cursor-pointer"
-                    onClick={() => handleSort("created_at")}
-                  >
-                    <div className="flex items-center">
-                      Date {getSortIndicator("created_at")}
-                    </div>
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-right text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider"
-                  >
-                    Actions
-                  </th>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {orders.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={8}
-                      className="px-6 py-4 text-center text-gray-500 dark:text-gray-400"
-                    >
-                      No orders found matching your criteria.
+              ) : orders.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={8}
+                    className="px-6 py-4 text-center text-gray-500 dark:text-gray-400"
+                  >
+                    No orders found matching your criteria.
+                  </td>
+                </tr>
+              ) : (
+                orders.map((order) => (
+                  <tr
+                    key={order.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-xs font-semibold text-gray-900 dark:text-white">
+                        #{order.order_number || order.id}
+                      </div>
                     </td>
-                  </tr>
-                ) : (
-                  orders.map((order) => (
-                    <tr
-                      key={order.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          #{order.order_number || order.id}
+                          {order.user?.name || "N/A"}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {order.user?.name || "N/A"}
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
-                            {order.user?.email || "No email"}
-                          </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {order.user?.email || "No email"}
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
+                      </div>
+                    </td>
+                    <td className="px-4 py-2 sm:px-6 sm:py-4 w-full max-w-[200px] md:max-w-[300px]">
+                      <div className="flex flex-col space-y-1">
                         {order.items &&
                           order.items.slice(0, 2).map((item, index) => (
                             <div
                               key={index}
-                              className="text-sm font-semibold text-gray-600 dark:text-gray-300"
+                              className="text-xs font-semibold text-gray-600 dark:text-gray-300 truncate"
+                              title={`${item.product_name} (x${item.quantity})`}
                             >
                               {item.product_name} (x{item.quantity})
                             </div>
                           ))}
+
                         {order.items && order.items.length > 2 && (
-                          <div className="text-xs text-blue-500 dark:text-blue-400 mt-1">
+                          <div className="text-xs text-blue-500 dark:text-blue-400 mt-1 truncate">
                             +{order.items.length - 2} more
                           </div>
                         )}
+
                         {(!order.items || order.items.length === 0) && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
                             No items
                           </div>
                         )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        ${parseFloat(order.total).toFixed(2)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                      </div>
+                    </td>
+
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      ${parseFloat(order.total).toFixed(2)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                             ${
                               order.status === "pending"
                                 ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
@@ -594,11 +641,6 @@ export default function OrdersPage({
                             ${
                               order.status === "shipped"
                                 ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
-                                : ""
-                            }
-                            ${
-                              order.status === "delivered"
-                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                                 : ""
                             }
                             ${
@@ -617,14 +659,14 @@ export default function OrdersPage({
                                 : ""
                             }
                           `}
-                        >
-                          {order.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {order.payments?.length ? (
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                      >
+                        {order.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {order.payments?.length ? (
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                               ${
                                 order.payments[order.payments.length - 1]
                                   .status === "pending"
@@ -633,8 +675,8 @@ export default function OrdersPage({
                               }
                               ${
                                 order.payments[order.payments.length - 1]
-                                  .status === "paid"
-                                  ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                  .status === "completed"
+                                  ? "bg-green-300 text-green-900 dark:bg-green-900 dark:text-green-200"
                                   : ""
                               }
                               ${
@@ -650,179 +692,175 @@ export default function OrdersPage({
                                   : ""
                               }
                             `}
-                          >
-                            {order.payments[order.payments.length - 1].status}
-                          </span>
-                        ) : (
-                          <span className="text-gray-500 text-xs">N/A</span>
-                        )}
-                      </td>
+                        >
+                          {order.payments[order.payments.length - 1].status}
+                        </span>
+                      ) : (
+                        <span className="text-gray-500 text-xs">N/A</span>
+                      )}
+                    </td>
 
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {new Date(order.created_at).toLocaleDateString("en-GB")}{" "}
-                        {new Date(order.created_at).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      {new Date(order.created_at).toLocaleDateString("en-GB")}{" "}
+                      {new Date(order.created_at).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </td>
 
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium relative">
-                        <div className="relative inline-block text-left">
-                          <button
-                            type="button"
-                            className="inline-flex cursor-pointer justify-center w-8 h-8 rounded-full items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 focus:outline-none"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleDropdown(order.id, e);
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium relative">
+                      <div className="relative inline-block text-left">
+                        {/* Trigger button */}
+                        <button
+                          type="button"
+                          className="inline-flex cursor-pointer justify-center w-8 h-8 rounded-full items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 focus:outline-none"
+                          onClick={(e) => toggleDropdown(order.id, e)}
+                        >
+                          <MdMoreVert className="w-5 h-5" />
+                        </button>
+
+                        {/* Dropdown */}
+                        {dropdownOpen === order.id && dropdownPosition && (
+                          <div
+                            className="fixed z-20 w-40 rounded-md shadow-lg bg-white dark:bg-gray-700 
+               border border-gray-200 dark:border-gray-600"
+                            style={{
+                              top: dropdownPosition.top,
+                              left: dropdownPosition.left,
                             }}
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            <MdMoreVert className="w-5 h-5" />
-                          </button>
-
-                          {dropdownOpen === order.id && (
-                            <div
-                              className="origin-top-right absolute right-0 mt-2 w-36 rounded-md shadow-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 z-50 -translate-x-4"
-                              style={{ position: "fixed" }}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div
-                                className="py-1"
-                                role="menu"
-                                aria-orientation="vertical"
-                                aria-labelledby="options-menu"
+                            <div className="py-1">
+                              <button
+                                className="flex items-center cursor-pointer px-4 py-2 text-sm w-full text-left 
+                   text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                onClick={() => {
+                                  handleViewDetails(order);
+                                  setDropdownOpen(null);
+                                }}
                               >
-                                <button
-                                  className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 w-full text-left"
-                                  role="menuitem"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleViewDetails(order);
-                                    setDropdownOpen(null);
-                                  }}
-                                >
-                                  <MdVisibility className="mr-2" />
-                                  View Details
-                                </button>
-                                <button
-                                  className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 w-full text-left"
-                                  role="menuitem"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedOrder(order); // select this order
-                                    setIsModalOpen(true); // open modal
-                                    setDropdownOpen(null);
-                                  }}
-                                >
-                                  <RiEditLine className="mr-2" />
-                                  Update Status
-                                </button>
-                                <button
-                                  className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 w-full text-left"
-                                  role="menuitem"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleTrackShipment(order);
-                                    setDropdownOpen(null);
-                                  }}
-                                >
-                                  <FaLocationArrow className="mr-2" />
-                                  Track Shipment
-                                </button>
-                              </div>
+                                <MdVisibility className="mr-2" />
+                                View Details
+                              </button>
+
+                              <button
+                                className="flex items-center cursor-pointer px-4 py-2 text-sm w-full text-left 
+                   text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                onClick={() => {
+                                  setSelectedOrder(order);
+                                  setIsModalOpen(true);
+                                  setDropdownOpen(null);
+                                }}
+                              >
+                                <RiEditLine className="mr-2" />
+                                Update Status
+                              </button>
+
+                              <button
+                                className="flex items-center cursor-pointer px-4 py-2 text-sm w-full text-left 
+                   text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                onClick={() => {
+                                  handleTrackShipment(order);
+                                  setDropdownOpen(null);
+                                }}
+                              >
+                                <FaLocationArrow className="mr-2" />
+                                Track Shipment
+                              </button>
                             </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
 
-            {/* Render modal here at top level */}
-            {selectedOrder && (
-              <UpdateStatusModal
-                order={selectedOrder}
-                isOpen={isModalOpen}
-                onClose={() => {
-                  setIsModalOpen(false);
-                  setSelectedOrder(null);
-                }}
-                statusOptions={statusOptions}
-                onSave={function (): void {
-                  throw new Error("Function not implemented.");
-                }}
-              />
-            )}
-          </div>
-        )}
+          {/* Pagination */}
+          {orders.length > 0 && (
+            <div className="px-3 sm:px-5 py-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0">
+                {/* Rows per page selector */}
+                <div className="flex items-center">
+                  <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 mr-2">
+                    {t.viewCategory.rowsPerPage}:
+                  </span>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                    className="border border-gray-300 dark:border-gray-600 rounded text-xs sm:text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-1 sm:px-2 py-1"
+                  >
+                    {[5, 10, 25, 50].map((size) => (
+                      <option key={size} value={size}>
+                        {size}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-        {/* Pagination */}
-        {orders.length > 0 && (
-          <div className="px-3 sm:px-5 py-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0">
-              {/* Rows per page selector */}
-              <div className="flex items-center">
-                <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 mr-2">
-                  {t.viewCategory.rowsPerPage}:
-                </span>
-                <select
-                  value={itemsPerPage}
-                  onChange={(e) => setItemsPerPage(Number(e.target.value))}
-                  className="border border-gray-300 dark:border-gray-600 rounded text-xs sm:text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-1 sm:px-2 py-1"
-                >
-                  {[5, 10, 25, 50].map((size) => (
-                    <option key={size} value={size}>
-                      {size}
-                    </option>
-                  ))}
-                </select>
-              </div>
+                {/* Pagination controls */}
+                <div className="flex items-center space-x-1">
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    className="px-2 sm:px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-xs sm:text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50"
+                  >
+                    {t.viewCategory.first}
+                  </button>
+                  <button
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(1, prev - 1))
+                    }
+                    disabled={currentPage === 1}
+                    className="px-2 sm:px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-xs sm:text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50"
+                  >
+                    {t.viewCategory.previous}
+                  </button>
 
-              {/* Pagination controls */}
-              <div className="flex items-center space-x-1">
-                <button
-                  onClick={() => setCurrentPage(1)}
-                  disabled={currentPage === 1}
-                  className="px-2 sm:px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-xs sm:text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50"
-                >
-                  {t.viewCategory.first}
-                </button>
-                <button
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.max(1, prev - 1))
-                  }
-                  disabled={currentPage === 1}
-                  className="px-2 sm:px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-xs sm:text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50"
-                >
-                  {t.viewCategory.previous}
-                </button>
+                  <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 px-1 sm:px-2">
+                    {t.viewCategory.page} {currentPage} {t.viewCategory.of}{" "}
+                    {totalPages}
+                  </span>
 
-                <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 px-1 sm:px-2">
-                  {t.viewCategory.page} {currentPage} {t.viewCategory.of}{" "}
-                  {totalPages}
-                </span>
-
-                <button
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                  }
-                  disabled={currentPage === totalPages}
-                  className="px-2 sm:px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-xs sm:text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50"
-                >
-                  {t.viewCategory.next}
-                </button>
-                <button
-                  onClick={() => setCurrentPage(totalPages)}
-                  disabled={currentPage === totalPages}
-                  className="px-2 sm:px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-xs sm:text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50"
-                >
-                  {t.viewCategory.last}
-                </button>
+                  <button
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                    }
+                    disabled={currentPage === totalPages}
+                    className="px-2 sm:px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-xs sm:text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50"
+                  >
+                    {t.viewCategory.next}
+                  </button>
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="px-2 sm:px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-xs sm:text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50"
+                  >
+                    {t.viewCategory.last}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Render modal here at top level */}
+          {selectedOrder && (
+            <UpdateStatusModal
+              order={selectedOrder}
+              isOpen={isModalOpen}
+              onClose={() => {
+                setIsModalOpen(false);
+                setSelectedOrder(null);
+              }}
+              statusOptions={statusOptions}
+              onSave={function (): void {
+                throw new Error("Function not implemented.");
+              }}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

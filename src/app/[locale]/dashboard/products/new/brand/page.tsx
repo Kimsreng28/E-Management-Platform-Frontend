@@ -4,22 +4,28 @@ import RichTextEditor from "@/components/ui/dashboard/RichTextEditor";
 import { API_BASE_URL } from "@/lib/config";
 import { useTranslations } from "@/utils/useTranslations";
 import { usePathname, useRouter } from "next/navigation";
-import { ChangeEvent, useRef, useState } from "react";
+import { ChangeEvent, use, useRef, useState } from "react";
 import { IoIosArrowBack } from "react-icons/io";
 import { MdAdd } from "react-icons/md";
 import Swal from "sweetalert2";
 
+interface CreateBrandPageProps {
+  params: Promise<{ locale: "en" | "kh" }>;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
 export default function CreateBrandPage({
   params,
-}: {
-  params: { locale: "en" | "kh" };
-}) {
+  onClose,
+  onSuccess,
+}: CreateBrandPageProps) {
+  const { locale } = use(params);
   const pathname = usePathname();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const currentLocale = pathname.split("/")[1] || "en";
-  const language = params.locale || "en";
-
+  const language = locale || "en";
   const t = useTranslations(language);
 
   const [name, setName] = useState("");
@@ -88,7 +94,7 @@ export default function CreateBrandPage({
         toast: true,
       });
 
-      router.push(`/${currentLocale}/dashboard/products`);
+      onSuccess();
     } catch (err: any) {
       Swal.fire({
         position: "top-end",
@@ -108,8 +114,8 @@ export default function CreateBrandPage({
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <button
-          onClick={() => router.push(`/${currentLocale}/dashboard/products`)}
-          className="bg-gray-100 border border-gray-300 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-lg shadow px-2 py-2 transition flex-shrink-0"
+          onClick={onClose}
+          className="bg-gray-100 cursor-pointer border border-gray-300 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-lg shadow px-2 py-2 transition flex-shrink-0"
         >
           <IoIosArrowBack className="w-5 h-5" />
         </button>

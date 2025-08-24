@@ -1,13 +1,16 @@
 "use client";
 
+import { LanguageDropdown } from "@/components/ui/customer/LanguageDropdown";
+import NotificationBell from "@/components/ui/dashboard/NotificationBell";
+import SearchResults from "@/components/ui/dashboard/SearchResults";
 import UserDropdown from "@/components/ui/dashboard/UserDropdown";
-import LoadingOverlay from "@/components/ui/LoadingOverlay";
 import { navItems } from "@/data/navItems";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/utils/useTranslations";
 import { Inria_Sans, Kantumruy_Pro } from "next/font/google";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { AiFillSun, AiOutlineClose, AiOutlineMenu } from "react-icons/ai";
 import { MdNightlightRound } from "react-icons/md";
 
@@ -35,10 +38,12 @@ export default function DashboardLayout({
   const router = useRouter();
 
   const [search, setSearch] = useState("");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [language, setLanguage] = useState<"en" | "kh">(locale as "en" | "kh");
   const [darkMode, setDarkMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   const t = useTranslations(language);
 
@@ -47,6 +52,19 @@ export default function DashboardLayout({
     ...item,
     href: `/${language}${item.href}`,
   }));
+
+  // Check if a route is active
+  const getActiveNav = () => {
+    // Sort by href length descending to prioritize deeper routes
+    const sortedNav = [...localizedNavItems].sort(
+      (a, b) => b.href.length - a.href.length
+    );
+    return sortedNav.find(
+      (item) => pathname === item.href || pathname.startsWith(item.href + "/")
+    );
+  };
+
+  const activeNav = getActiveNav();
 
   // Load dark mode from localStorage
   useEffect(() => {
@@ -72,10 +90,44 @@ export default function DashboardLayout({
 
   const handleNavClick = (href: string) => {
     if (pathname !== href) {
-      setIsLoading(true);
       router.push(href);
       setMobileMenuOpen(false); // Close mobile menu on navigation
     }
+  };
+
+  // Close search when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
+        setIsSearchOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Close search when route changes
+  useEffect(() => {
+    setIsSearchOpen(false);
+  }, [pathname]);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setIsSearchOpen(true);
+  };
+
+  const handleSearchFocus = () => {
+    if (search.trim()) {
+      setIsSearchOpen(true);
+    }
+  };
+
+  const closeSearch = () => {
+    setIsSearchOpen(false);
   };
 
   useEffect(() => {
@@ -129,18 +181,22 @@ export default function DashboardLayout({
           {/* Navigation */}
           <nav className="flex-1 space-y-2">
             {localizedNavItems.map((item) => (
-              <button
+              <Link
                 key={item.name}
-                onClick={() => handleNavClick(item.href)}
+                href={item.href}
+                prefetch={true}
                 className={cn(
-                  "flex font-combo cursor-pointer items-center gap-3 w-full text-left dark:bg-gray-800 dark:text-white dark:border-gray-700 dark:hover:bg-gray-700 bg-gray-100 border border-gray-200 rounded-lg px-4 py-2 hover:bg-gray-600 hover:text-white transition text-sm sm:text-base",
-                  pathname === item.href &&
-                    "bg-gray-900 text-white dark:bg-white dark:text-black"
+                  "flex items-center gap-3 w-full text-left text-sm sm:text-base px-4 py-2 rounded-lg border transition-colors font-combo",
+                  // Default styles
+                  "bg-gray-100 border-gray-200 text-black hover:bg-green-700 hover:text-white dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:bg-gray-700",
+                  // Active styles
+                  activeNav?.href === item.href &&
+                    "bg-red-800 text-white dark:bg-white dark:text-black"
                 )}
               >
                 {item.icon}
                 {t[item.name]}
-              </button>
+              </Link>
             ))}
           </nav>
         </div>
@@ -175,7 +231,10 @@ export default function DashboardLayout({
           </div>
 
           {/* Search bar */}
-          <div className="w-full sm:flex-1 sm:max-w-lg mx-0 sm:mx-8 relative">
+          <div
+            ref={searchRef}
+            className="w-full sm:flex-1 sm:max-w-lg mx-0 sm:mx-8 relative"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -194,40 +253,51 @@ export default function DashboardLayout({
               placeholder={
                 language === "en"
                   ? "Search products, orders, customers..."
-                  : "ស្វែងរកផលិតផល..."
+                  : "ស្វែងរកផលិតផល, ការកម្មង់, អតិថិជន..."
               }
               className="w-full rounded-lg border border-gray-300 dark:border-gray-700 pl-10 pr-3 py-2 sm:py-2.5 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm sm:text-base"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={handleSearchChange}
+              onFocus={handleSearchFocus}
+            />
+
+            {/* Search Results Dropdown */}
+            <SearchResults
+              query={search}
+              isOpen={isSearchOpen}
+              onClose={closeSearch}
+              language={language}
             />
           </div>
 
           {/* Desktop controls */}
           <div className="hidden sm:flex items-center gap-4">
             {/* Language switch */}
-            {/* <LanguageDropdown
+            <LanguageDropdown
               language={language}
               onLanguageChange={handleLanguageChange}
-            /> */}
+            />
 
             {/* Dark mode switch */}
-            {/* <button
+            <button
               onClick={toggleDarkMode}
-              className="flex items-center justify-center p-2 rounded-full border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 h-10 w-10"
+              className="flex items-center cursor-pointer justify-center p-2 rounded-full border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 h-10 w-10"
             >
               {darkMode ? (
                 <MdNightlightRound size={20} />
               ) : (
                 <AiFillSun size={20} />
               )}
-            </button> */}
+            </button>
+
+            {/* Notifications */}
+            <NotificationBell language={language} />
 
             <UserDropdown />
           </div>
         </header>
 
         <main className="relative p-4 sm:p-6 flex-1 overflow-x-hidden">
-          <LoadingOverlay show={isLoading} />
           {children}
         </main>
       </div>

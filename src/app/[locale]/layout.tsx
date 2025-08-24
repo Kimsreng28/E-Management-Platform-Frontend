@@ -11,14 +11,22 @@ const inriaSans = Inria_Sans({
   variable: "--font-inria-sans",
 });
 
+interface LocaleLayoutProps {
+  children: React.ReactNode;
+  params: { locale: string };
+}
+
 export default async function LocaleLayout({
   children,
   params,
-}: {
-  children: React.ReactNode;
-  params: { locale: string };
-}) {
-  if (!["en", "kh"].includes(params.locale)) notFound();
+}: LocaleLayoutProps) {
+  // Await params if the framework requires it
+  const awaitedParams = await Promise.resolve(params); // Next 15 fix
+  const locale = awaitedParams.locale;
+
+  if (!locale || !["en", "kh"].includes(locale)) {
+    notFound();
+  }
 
   return (
     <div

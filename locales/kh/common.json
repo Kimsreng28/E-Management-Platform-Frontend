@@ -79,6 +79,7 @@
   "customers": "អតិថិជន",
   "reports": "របាយការណ៍",
   "settings": "ការកំណត់",
+  "stocks": "ស្តុកផលិតផល",
 
   "productDashboard": {
     "products": "ផលិតផល",
@@ -130,6 +131,7 @@
     "viewProducts": "មើលផលិតផលទាំងអស់",
     "name": "ឈ្មោះផលិតផល",
     "description": "ពិពណ៌នាអំពីផលិតផល",
+    "discount": "ការបញ្ចុះតម្លៃ",
     "imageUrl": "តំណររូបភាព",
     "uploadImage": "ផ្ទុករូបភាពឡើង",
     "category": "ប្រភេទផលិតផល",

@@ -33,17 +33,23 @@ interface ProductVideo {
   url: string;
 }
 
+interface EditProductPageProps {
+  params: { locale: "en" | "kh"; slug: string };
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
 export default function EditProductPage({
   params,
-}: {
-  params: { locale: "en" | "kh"; slug: string };
-}) {
+  onClose,
+  onSuccess,
+}: EditProductPageProps) {
+  const { locale, slug } = params;
   const pathname = usePathname();
   const router = useRouter();
   const currentLocale = pathname.split("/")[1] || "en";
-  const language = params.locale || "en";
+  const language = locale || "en";
   const t = useTranslations(language);
-  const { slug } = params;
 
   // Form states
   const [loading, setLoading] = useState(false);
@@ -54,6 +60,7 @@ export default function EditProductPage({
   const [modelCode, setModelCode] = useState("");
   const [stock, setStock] = useState(0);
   const [price, setPrice] = useState(0);
+  const [discount, setDiscount] = useState(0);
   const [costPrice, setCostPrice] = useState<number | null>(null);
   const [shortDescription, setShortDescription] = useState("");
   const [description, setDescription] = useState("");
@@ -100,6 +107,7 @@ export default function EditProductPage({
         setModelCode(product.model_code);
         setStock(product.stock);
         setPrice(product.price);
+        setDiscount(product.discount);
         setCostPrice(product.cost_price);
         setShortDescription(product.short_description);
         setDescription(product.description);
@@ -337,6 +345,7 @@ export default function EditProductPage({
       formData.append("model_code", modelCode);
       formData.append("stock", stock.toString());
       formData.append("price", price.toString());
+      formData.append("discount", discount.toString());
       formData.append("short_description", shortDescription);
       formData.append("description", description);
       formData.append("category_id", categoryId?.toString() || "");
@@ -406,7 +415,7 @@ export default function EditProductPage({
           toast: true,
         });
 
-        router.push(`/${currentLocale}/dashboard/products`);
+        onSuccess();
       } catch (err) {
         console.error("Failed to parse JSON:", responseText);
         throw new Error(responseText || "Failed to update product");
@@ -435,13 +444,13 @@ export default function EditProductPage({
   }
 
   return (
-    <div className="space-y-6 px-4 sm:px-6 lg:px-8 py-6">
+    <div className="space-y-6 px-4 sm:px-6 lg:px-1 lg:py-1 py-6">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         {/* Back Button */}
         <button
-          onClick={() => router.push(`/${currentLocale}/dashboard/products`)}
-          className="bg-gray-100 border border-gray-300 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-lg shadow px-2 py-2 transition flex-shrink-0"
+          onClick={onClose}
+          className="bg-gray-100 cursor-pointer border border-gray-300 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-lg shadow px-2 py-2 transition flex-shrink-0"
         >
           <IoIosArrowBack className="w-5 h-5" />
         </button>
@@ -595,6 +604,26 @@ export default function EditProductPage({
                 placeholder="e.g. 1000"
                 className="w-full text-sm sm:text-base border shadow focus:border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-gray-300 border-gray-300 rounded-lg px-3 py-2 dark:bg-gray-800 dark:text-white dark:border-gray-600"
                 required
+              />
+            </div>
+
+            {/* Discount */}
+            <div>
+              <label
+                htmlFor="discount"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                {t.createProduct.discount} (%) {/* or "Discount" */}
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={discount}
+                onChange={(e) => setDiscount(Number(e.target.value))}
+                placeholder="e.g. 10"
+                className="w-full text-sm sm:text-base border shadow focus:border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-gray-300 border-gray-300 rounded-lg px-3 py-2 dark:bg-gray-800 dark:text-white dark:border-gray-600"
               />
             </div>
 

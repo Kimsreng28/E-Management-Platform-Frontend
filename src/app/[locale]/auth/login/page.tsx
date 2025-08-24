@@ -263,7 +263,7 @@ export default function LoginPage({
 
             <Button
               type="submit"
-              className="w-full bg-black text-white hover:bg-gray-900 focus:ring-black font-combo font-semibold"
+              className="w-full cursor-pointer bg-black text-white hover:bg-gray-900 focus:ring-black font-combo font-semibold"
               disabled={isLoading}
             >
               {isLoading ? t.login.signingIn : t.login.signIn}

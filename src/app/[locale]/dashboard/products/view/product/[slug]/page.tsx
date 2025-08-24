@@ -1,9 +1,10 @@
 "use client";
 
+import QrCodeDisplay from "@/components/ui/dashboard/products/QrCodeDisplay";
 import { API_BASE_URL } from "@/lib/config";
 import { useTranslations } from "@/utils/useTranslations";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { IoIosArrowBack } from "react-icons/io";
 import { MdDelete, MdEdit } from "react-icons/md";
 import Swal from "sweetalert2";
@@ -49,14 +50,16 @@ interface Product {
 export default function ProductViewPage({
   params,
 }: {
-  params: { locale: "en" | "kh"; slug: string };
+  params: Promise<{ locale: "en" | "kh"; slug: string }>;
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const unwrappedParams = use(params);
+  const { slug, locale } = unwrappedParams;
+
+  const language = locale || "en";
   const currentLocale = pathname.split("/")[1] || "en";
-  const language = params.locale || "en";
   const t = useTranslations(language);
-  const { slug } = params;
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -217,13 +220,13 @@ export default function ProductViewPage({
   }
 
   return (
-    <div className="space-y-6 px-4 sm:px-6 lg:px-8 py-6">
+    <div className="space-y-6 px-4 sm:px-6 lg:px-1 lg:py-1 py-6">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         {/* Back Button */}
         <button
           onClick={() => router.push(`/${currentLocale}/dashboard/products`)}
-          className="bg-gray-100 border border-gray-300 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-lg shadow px-2 py-2 transition flex-shrink-0"
+          className="bg-gray-100 border cursor-pointer border-gray-300 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-lg shadow px-2 py-2 transition flex-shrink-0"
         >
           <IoIosArrowBack className="w-5 h-5" />
         </button>
@@ -324,6 +327,12 @@ export default function ProductViewPage({
               </div>
             </div>
           )}
+
+          <QrCodeDisplay
+            params={params}
+            productSlug={product.slug}
+            productName={product.name}
+          />
         </div>
 
         {/* Right Column - Details */}

@@ -6,6 +6,7 @@ import GeneralSettings from "@/components/ui/dashboard/settings/GeneralSettings"
 import NotificationsSettings from "@/components/ui/dashboard/settings/NotificationsSettings";
 import SecuritySettings from "@/components/ui/dashboard/settings/SecuritySettings";
 import SettingsTabs from "@/components/ui/dashboard/settings/SettingsTabs";
+import TopCouponsPage from "@/components/ui/dashboard/settings/TopCouponsPage";
 import { getToken } from "@/lib/api/auth";
 import { API_BASE_URL } from "@/lib/config";
 import { useTranslations } from "@/utils/useTranslations";
@@ -48,14 +49,10 @@ interface FormDataState {
   address: AddressData;
 }
 
-export default function SettingsPage({
-  params,
-}: {
-  params: { locale: "en" | "kh" };
-}) {
+export default function SettingsPage({ locale }: { locale: "en" | "kh" }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [language, setLanguage] = useState<"en" | "kh">(params.locale);
+  const [language, setLanguage] = useState<"en" | "kh">(locale);
   const t = useTranslations(language);
 
   const [activeTab, setActiveTab] = useState("general");
@@ -74,6 +71,13 @@ export default function SettingsPage({
       country: "Cambodia",
     },
   });
+
+  useEffect(() => {
+    const match = pathname.match(/^\/(en|kh)/);
+    if (match && match[1] !== language) {
+      setLanguage(match[1] as "en" | "kh");
+    }
+  }, [pathname]);
 
   // Dark mode initialization
   useEffect(() => {
@@ -284,20 +288,13 @@ export default function SettingsPage({
     { id: "security", label: t.settingSession.security },
     { id: "appearance", label: t.settingSession.appearance },
     { id: "business", label: t.settingSession.business },
+    { id: "coupons", label: "Coupons" },
   ];
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-black border-gray-200 dark:border-gray-100"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-1 space-y-1">
       {/* Header */}
-      <div className="flex justify-between items-center text-black dark:text-white">
+      <div className="flex justify-between items-center mb-4 text-black dark:text-white">
         <div>
           <h1 className="text-3xl font-bold mb-2">
             {t.settingSession.setting}
@@ -351,6 +348,8 @@ export default function SettingsPage({
         {activeTab === "business" && (
           <BusinessSettings currentLanguage={language} />
         )}
+
+        {activeTab === "coupons" && <TopCouponsPage locale={language} />}
       </div>
     </div>
   );

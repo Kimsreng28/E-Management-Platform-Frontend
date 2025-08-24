@@ -205,7 +205,7 @@ export default function ProductListPage({
   }
 
   return (
-    <div className="space-y-6 px-4 sm:px-6 lg:px-8 py-6">
+    <div className="space-y-6 px-4 sm:px-6 lg:px-1 lg:py-1 py-6">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         {/* Back Button */}

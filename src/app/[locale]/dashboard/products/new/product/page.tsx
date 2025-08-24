@@ -4,7 +4,7 @@ import RichTextEditor from "@/components/ui/dashboard/RichTextEditor";
 import { API_BASE_URL } from "@/lib/config";
 import { useTranslations } from "@/utils/useTranslations";
 import { usePathname, useRouter } from "next/navigation";
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, use, useEffect, useState } from "react";
 import { BiSolidImageAdd } from "react-icons/bi";
 import { FaFileUpload } from "react-icons/fa";
 import { IoIosArrowBack, IoIosArrowDown } from "react-icons/io";
@@ -21,15 +21,23 @@ interface Brand {
   name: string;
 }
 
+interface CreateProductPageProps {
+  params: Promise<{ locale: "en" | "kh" }>;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
 export default function CreateProductPage({
   params,
-}: {
-  params: { locale: "en" | "kh" };
-}) {
+  onClose,
+  onSuccess,
+}: CreateProductPageProps) {
+  const { locale } = use(params);
   const pathname = usePathname();
   const router = useRouter();
+
   const currentLocale = pathname.split("/")[1] || "en";
-  const language = params.locale || "en";
+  const language = locale || "en";
   const t = useTranslations(language);
 
   // Form states
@@ -40,6 +48,7 @@ export default function CreateProductPage({
   const [modelCode, setModelCode] = useState("");
   const [stock, setStock] = useState(0);
   const [price, setPrice] = useState(0);
+  const [discount, setDiscount] = useState(0);
   const [costPrice, setCostPrice] = useState<number | null>(null);
   const [shortDescription, setShortDescription] = useState("");
   const [description, setDescription] = useState("");
@@ -58,6 +67,28 @@ export default function CreateProductPage({
   const [specKey, setSpecKey] = useState("");
   const [specValue, setSpecValue] = useState("");
   const [lowStockThreshold, setLowStockThreshold] = useState<number>(10);
+
+  useEffect(() => {
+    const fetchBusinessSettings = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_BASE_URL}/api/business-settings`, {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : "",
+            Accept: "application/json",
+          },
+        });
+        const data = await res.json();
+        if (res.ok && data.settings) {
+          setLowStockThreshold(data.settings.low_stock_threshold || 10);
+        }
+      } catch (error) {
+        console.error("Failed to fetch business settings:", error);
+      }
+    };
+
+    fetchBusinessSettings();
+  }, []);
 
   // Fetch categories and brands on mount
   useEffect(() => {
@@ -214,6 +245,7 @@ export default function CreateProductPage({
       formData.append("model_code", modelCode);
       formData.append("stock", stock.toString());
       formData.append("price", price.toString());
+      formData.append("discount", discount.toString());
       formData.append("short_description", shortDescription);
       formData.append("description", description);
       formData.append("category_id", categoryId?.toString() || "");
@@ -274,7 +306,7 @@ export default function CreateProductPage({
           toast: true,
         });
 
-        router.push(`/${currentLocale}/dashboard/products`);
+        onSuccess();
       } catch (err) {
         console.error("Failed to parse JSON:", responseText);
         throw new Error(responseText || "Failed to create product");
@@ -300,8 +332,8 @@ export default function CreateProductPage({
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         {/* Back Button */}
         <button
-          onClick={() => router.push(`/${currentLocale}/dashboard/products`)}
-          className="bg-gray-100 border border-gray-300 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-lg shadow px-2 py-2 transition flex-shrink-0"
+          onClick={onClose}
+          className="bg-gray-100 cursor-pointer border border-gray-300 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-lg shadow px-2 py-2 transition flex-shrink-0"
         >
           <IoIosArrowBack className="w-5 h-5" />
         </button>
@@ -322,7 +354,7 @@ export default function CreateProductPage({
             onClick={() =>
               router.push(`/${currentLocale}/dashboard/products/view/product`)
             }
-            className="bg-gray-100 flex items-center border border-gray-300 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-lg shadow px-4 py-2 text-sm sm:text-base transition"
+            className="bg-gray-100 cursor-pointer flex items-center border border-gray-300 dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-lg shadow px-4 py-2 text-sm sm:text-base transition"
           >
             <MdOutlineViewInAr className="mr-2 w-5 h-5" />
             {t.createProduct.viewProducts}
@@ -455,6 +487,26 @@ export default function CreateProductPage({
                 placeholder="e.g. 1000"
                 className="w-full text-sm sm:text-base border shadow focus:border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-gray-300 border-gray-300 rounded-lg px-3 py-2 dark:bg-gray-800 dark:text-white dark:border-gray-600"
                 required
+              />
+            </div>
+
+            {/* Discount */}
+            <div>
+              <label
+                htmlFor="discount"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                {t.createProduct.discount} (%) {/* or "Discount" */}
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={discount}
+                onChange={(e) => setDiscount(Number(e.target.value))}
+                placeholder="e.g. 10"
+                className="w-full text-sm sm:text-base border shadow focus:border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-gray-300 border-gray-300 rounded-lg px-3 py-2 dark:bg-gray-800 dark:text-white dark:border-gray-600"
               />
             </div>
 

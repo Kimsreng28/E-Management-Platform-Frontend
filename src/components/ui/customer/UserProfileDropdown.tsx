@@ -98,7 +98,7 @@ export function UserProfileDropdown() {
         aria-label="User account"
         title="User account"
         onClick={() => setOpen(!open)}
-        className="bg-gray-200 p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-black"
+        className="bg-gray-200 p-2 cursor-pointer rounded-full focus:outline-none focus:ring-2 focus:ring-black"
       >
         {user ? (
           user.avatar || user.photo_url ? (
@@ -206,7 +206,7 @@ export function UserProfileDropdown() {
 
                 <button
                   onClick={() => handleClick(`/${currentLocale}/dashboard`)}
-                  className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100 w-full text-left"
+                  className="flex cursor-pointer items-center px-4 py-2 text-gray-700 hover:bg-gray-100 w-full text-left"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -223,7 +223,7 @@ export function UserProfileDropdown() {
               </div>
               <button
                 onClick={handleLogout}
-                className="w-full text-left flex items-center px-4 py-2 text-red-500 hover:bg-gray-100"
+                className="w-full cursor-pointer text-left flex items-center px-4 py-2 text-red-500 hover:bg-gray-100"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"

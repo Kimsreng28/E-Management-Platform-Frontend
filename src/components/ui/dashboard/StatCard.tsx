@@ -27,7 +27,7 @@ export default function StatCard({
         <div className="flex items-center">{icon}</div>
       </div>
       <div className="mt-8">
-        <p className="text-2xl font-bold">{value}</p>
+        <p className="text-4xl font-bold">{value}</p>
         <p className="text-xs opacity-80">{change}</p>
       </div>
     </div>

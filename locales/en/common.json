@@ -79,6 +79,7 @@
   "customers": "Customers",
   "reports": "Reports",
   "settings": "Settings",
+  "stocks": "Stocks",
 
   "productDashboard": {
     "products": "Products",
@@ -132,6 +133,7 @@
     "description": "Description",
     "quantity": "Quantity",
     "category": "Category",
+    "discount": "Discount",
     "imageUrl": "Image URL",
     "uploadImage": "Upload Image",
     "featured": "Featured",

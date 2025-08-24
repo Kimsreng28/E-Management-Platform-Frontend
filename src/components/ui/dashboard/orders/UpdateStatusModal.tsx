@@ -1,5 +1,8 @@
 import { API_BASE_URL } from "@/lib/config";
 import { useEffect, useState } from "react";
+import { FiSave } from "react-icons/fi";
+import { MdOutlineCancel } from "react-icons/md";
+import Swal from "sweetalert2";
 
 interface UpdateStatusModalProps {
   order: Order;
@@ -79,22 +82,40 @@ const UpdateStatusModal = ({
       const data = await response.json();
       console.log("Updated order:", data);
 
+      Swal.fire({
+        icon: "success",
+        title: "The order has been updated successfully!",
+        position: "top-end",
+        showConfirmButton: false,
+        timer: 2000,
+        toast: true,
+      });
+
       // Close modal
       onClose();
 
-      // Optionally: refresh your order list in parent
-      window.location.reload(); // or call a fetchOrders() function
+      // Refresh your order list in parent
+      setTimeout(() => {
+        window.location.reload(); // or call fetchOrders()
+      }, 2000);
     } catch (err) {
       console.error(err);
-      alert("Failed to update order. Please try again.");
+      Swal.fire({
+        icon: "error",
+        title: "Failed to update order. Please try again.",
+        position: "top-end",
+        showConfirmButton: false,
+        timer: 2000,
+        toast: true,
+      });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center  bg-opacity-10 backdrop-blur-xs">
-      <div className="bg-white dark:bg-gray-800 rounded-lg w-96 p-6 shadow-lg">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-md mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 relative">
         <h2 className="text-lg font-semibold mb-2">Update Order Status</h2>
         <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
           Update the status and tracking information for order{" "}
@@ -132,16 +153,18 @@ const UpdateStatusModal = ({
         <div className="flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200"
+            className="px-4 py-2 flex items-center cursor-pointer rounded bg-gray-200 dark:bg-gray-600 text-red-500 dark:text-red-200"
             disabled={loading}
           >
+            <MdOutlineCancel className="mr-2" />
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+            className="px-4 py-2 flex items-center cursor-pointer rounded bg-blue-600 text-white hover:bg-blue-700"
             disabled={loading}
           >
+            <FiSave className="mr-2" />
             {loading ? "Saving..." : "Save Change"}
           </button>
         </div>
