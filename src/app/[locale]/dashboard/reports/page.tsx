@@ -163,27 +163,24 @@ export default function ReportsPage({ locale }: { locale: "en" | "kh" }) {
       if (!token) throw new Error("No authentication token found");
 
       const response = await fetch(
-        `${API_BASE_URL}/api/reports/${reportType}?${params.toString()}`,
+        `${API_BASE_URL}/api/reports/export/${type}?${params.toString()}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
           },
         }
       );
 
+      if (!response.ok) throw new Error("Failed to export report");
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-
-      if (type === "csv") {
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${reportType}_report.${type}`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      } else window.open(url, "_blank");
-
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${reportType}_report.${type}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Export error:", error);

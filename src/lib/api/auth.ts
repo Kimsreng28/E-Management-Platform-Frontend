@@ -8,6 +8,14 @@ export const getToken = () => {
   return null;
 };
 
+export const getUser = () => {
+  if (typeof window !== "undefined") {
+    const user = localStorage.getItem("user") || sessionStorage.getItem("user");
+    return user ? JSON.parse(user) : null;
+  }
+  return null;
+};
+
 export const registerUser = async (data: {
   name: string;
   email: string;
@@ -42,6 +50,10 @@ export const registerUser = async (data: {
     localStorage.setItem("token", responseData.token);
   }
 
+  if (responseData.user) {
+    localStorage.setItem("user", JSON.stringify(responseData.user));
+  }
+
   return responseData;
 };
 
@@ -71,9 +83,19 @@ export const loginUser = async (data: {
     throw new Error(errorMessage);
   }
 
-  // Store token after successful login
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("user");
+
+  // Save new token and user in both storages
   if (responseData.token) {
     localStorage.setItem("token", responseData.token);
+    sessionStorage.setItem("token", responseData.token);
+  }
+  if (responseData.user) {
+    localStorage.setItem("user", JSON.stringify(responseData.user));
+    sessionStorage.setItem("user", JSON.stringify(responseData.user));
   }
 
   return responseData;
@@ -84,6 +106,9 @@ export const logoutUser = async (): Promise<{ message: string }> => {
 
   // First remove token from localStorage to prevent infinite loops
   localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("user");
 
   // Create abort controller for request timeout
   const controller = new AbortController();

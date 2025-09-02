@@ -18,24 +18,26 @@ export function UserProfileDropdown() {
   const currentLocale = pathname.split("/")[1] || "en";
 
   // Fetch user data on component mount
-  useEffect(() => {
-    async function fetchUser() {
-      try {
+  const fetchUser = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
         const userData = await getCurrentUser();
         setUser(userData);
-      } catch (error) {
+      } else {
         setUser(null);
-      } finally {
-        setLoading(false);
       }
-    }
-
-    // Only try to fetch user if we have a token
-    if (typeof window !== "undefined" && localStorage.getItem("token")) {
-      fetchUser();
-    } else {
+    } catch (error) {
+      setUser(null);
+    } finally {
       setLoading(false);
     }
+  };
+
+  // Fetch user on component mount
+  useEffect(() => {
+    fetchUser();
   }, []);
 
   // Close dropdown if clicking outside
@@ -57,6 +59,12 @@ export function UserProfileDropdown() {
       await logoutUser();
       setUser(null);
       setOpen(false);
+      // remove token
+      localStorage.removeItem("token");
+
+      // refetch user data
+      await fetchUser();
+
       router.push(`/${currentLocale}/customer`);
     } catch (error) {
       console.error("Logout failed:", error);

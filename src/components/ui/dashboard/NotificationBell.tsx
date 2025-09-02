@@ -3,8 +3,12 @@
 import { API_BASE_URL } from "@/lib/config";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "@/utils/useTranslations";
+import Echo from "laravel-echo";
 import { Bell, Check, Trash2 } from "lucide-react";
+import Pusher from "pusher-js";
 import { useEffect, useState } from "react";
+
+let echo: Echo<any> | null = null;
 
 interface Notification {
   id: string;
@@ -38,9 +42,83 @@ export default function NotificationBell({
   const [isLoading, setIsLoading] = useState(false);
   const t = useTranslations(language);
 
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
+ useEffect(() => {
+  console.log("[NotificationBell] useEffect triggered");
+
+  fetchNotifications();
+
+  const token = localStorage.getItem("token");
+  console.log("[NotificationBell] token from localStorage:", token);
+  if (!token) return;
+
+  const userId = getUserId();
+  console.log("[NotificationBell] userId:", userId);
+  if (!userId) return;
+
+  (window as any).Pusher = Pusher;
+
+  echo = new Echo({
+    broadcaster: "reverb",
+    key: process.env.NEXT_PUBLIC_REVERB_APP_KEY!,
+    wsHost: process.env.NEXT_PUBLIC_REVERB_HOST!,
+    wsPort: Number(process.env.NEXT_PUBLIC_REVERB_PORT!),
+    wssPort: Number(process.env.NEXT_PUBLIC_REVERB_PORT!),
+    forceTLS: process.env.NEXT_PUBLIC_REVERB_SCHEME === "https",
+    disableStats: true,
+    enabledTransports: ["ws", "wss"],
+    authEndpoint: `${process.env.NEXT_PUBLIC_API_BASE_URL}/broadcasting/auth`,
+    auth: {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    },
+  });
+
+  console.log("[NotificationBell] Echo instance created:", echo);
+
+  const channel = echo.private(`user.notifications.${userId}`);
+  console.log("[NotificationBell] Joined channel:", channel);
+
+  // Listen to event
+  channel.listen(".NotificationCreated", (payload: any) => {
+    console.log("[NotificationBell] Realtime Notification Received:", payload);
+
+    const notification: Notification = {
+        id: payload.id,
+        type: payload.type,
+        data: typeof payload.data === "string" ? JSON.parse(payload.data) : payload.data,
+        read_at: payload.read_at,
+        created_at: payload.created_at,
+      };
+
+
+    console.log("[NotificationBell] Parsed notification:", notification);
+
+    setNotifications((prev) => [notification, ...prev]);
+    if (!notification.read_at) {
+      setUnreadCount((prev) => prev + 1);
+    }
+  });
+
+  // Log connection state every 2 seconds
+  // const interval = setInterval(() => {
+  //   console.log("[NotificationBell] Echo connection state:", echo?.connector.pusher.connection.state);
+  // }, 2000);
+
+  return () => {
+    // clearInterval(interval);
+    echo?.leave(`user.notifications.${userId}`);
+    echo = null;
+  };
+
+}, []);
+
+
+  const getUserId = () => {
+    const user = localStorage.getItem("user");
+    if (!user) return "guest";
+    return JSON.parse(user).id;
+  };
 
   const fetchNotifications = async () => {
     try {
@@ -48,7 +126,7 @@ export default function NotificationBell({
 
       const token = localStorage.getItem("token");
       if (!token) {
-        console.error("No authentication token found");
+        console.error("[API] No authentication token found");
         return;
       }
 
@@ -61,13 +139,14 @@ export default function NotificationBell({
 
       if (response.ok) {
         const data = await response.json();
+        console.log("[API] Notifications fetched:", data);
         setNotifications(data);
         setUnreadCount(data.filter((n: Notification) => !n.read_at).length);
       } else {
-        console.error("Failed to fetch notifications:", response.status);
+        console.error("[API] Failed to fetch notifications:", response.status);
       }
     } catch (error) {
-      console.error("Error fetching notifications:", error);
+      console.error("[API] Error fetching notifications:", error);
     } finally {
       setIsLoading(false);
     }
@@ -209,6 +288,7 @@ export default function NotificationBell({
         );
       case "low_stock":
       case "out_of_stock":
+      case "stock_alert":
         return (
           <svg
             xmlns="http://www.w3.org/2000/svg"

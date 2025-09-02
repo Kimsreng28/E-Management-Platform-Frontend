@@ -1,11 +1,16 @@
 "use client";
 
+import { useCart } from "@/contexts/CartContext";
+import { useWishlist } from "@/contexts/WishlistContext";
 import { navLinks } from "@/data/navLinks";
+import { API_BASE_URL } from "@/lib/config";
+import { Product } from "@/types/product";
 import { useTranslations } from "@/utils/useTranslations";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { LanguageDropdown } from "./LanguageDropdown";
+import { SearchResults } from "./SearchResults";
 import { UserProfileDropdown } from "./UserProfileDropdown";
 
 export function CustomerNavbar({
@@ -18,8 +23,13 @@ export function CustomerNavbar({
   const pathname = usePathname();
   const [hydrated, setHydrated] = useState(false);
   const [search, setSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [showResults, setShowResults] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const { wishlist } = useWishlist();
+  const { cart } = useCart();
 
   const t = useTranslations(language);
 
@@ -34,6 +44,50 @@ export function CustomerNavbar({
       document.documentElement.classList.add("dark");
     }
   }, []);
+
+  // search
+  useEffect(() => {
+    // Debounce search
+    const handler = setTimeout(() => {
+      if (search.trim().length > 2) {
+        performSearch(search);
+      } else {
+        setSearchResults([]);
+        setShowResults(false);
+      }
+    }, 300);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [search]);
+
+  async function performSearch(query: string) {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/search-products?q=${encodeURIComponent(
+          query
+        )}&type=products`
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("search results:", data.data.products);
+        setSearchResults(data.data.products || []);
+        setShowResults(true);
+      }
+    } catch (error) {
+      console.error("Search error:", error);
+      setSearchResults([]);
+    }
+  }
+
+  function handleSearchBlur() {
+    // Hide results after a short delay to allow clicks
+    setTimeout(() => {
+      setShowResults(false);
+    }, 200);
+  }
 
   function toggleDarkMode() {
     setDarkMode((prev) => {
@@ -61,6 +115,7 @@ export function CustomerNavbar({
       {/* Logo & Hamburger */}
       <div className="flex items-center justify-between w-full md:w-auto">
         <Link
+          prefetch={true}
           href={getLocalizedHref("/customer")}
           className="flex items-center space-x-2 font-bold text-xl text-gray-900 dark:text-white"
         >
@@ -119,6 +174,7 @@ export function CustomerNavbar({
             return (
               <Link
                 key={href}
+                prefetch={true}
                 href={localizedHref}
                 className={`py-2 md:py-0 font-semibold hover:text-black dark:hover:text-white ${
                   isActive
@@ -155,7 +211,17 @@ export function CustomerNavbar({
           className="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-10 py-2 focus:outline-none focus:ring-2 focus:ring-black dark:focus:ring-white bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          onFocus={() => search.length > 2 && setShowResults(true)}
+          onBlur={handleSearchBlur}
         />
+
+        {showResults && (
+          <SearchResults
+            results={searchResults}
+            language={language}
+            onClose={() => setShowResults(false)}
+          />
+        )}
       </div>
 
       {/* Right Controls */}
@@ -168,7 +234,7 @@ export function CustomerNavbar({
         {/* Dark mode toggle */}
         <button
           onClick={toggleDarkMode}
-          className="p-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+          className="p-2 cursor-pointer rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
         >
           {darkMode ? (
             <svg
@@ -203,8 +269,40 @@ export function CustomerNavbar({
           )}
         </button>
 
+        {/* Wishlist */}
+        <Link
+          href={`/${language}/customer/wishlist`}
+          className="relative cursor-pointer text-gray-700 dark:text-gray-300 hover:text-red-700 dark:hover:text-red-700"
+          aria-label="Wishlist"
+          prefetch={true}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-6 w-6"
+            viewBox="0 0 24 24"
+            strokeWidth="1.5"
+            stroke="currentColor"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+            <path d="M19.5 13.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6a5 5 0 1 1 7.5 6l-7.5 7.428l-7.5 -7.428" />
+          </svg>
+          {wishlist.length > 0 && (
+            <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+              {wishlist.length}
+            </span>
+          )}
+        </Link>
+
         {/* Cart */}
-        <button className="relative text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white">
+        <Link
+          href={`/${language}/customer/cart`}
+          className="relative cursor-pointer text-gray-700 dark:text-gray-300 hover:text-blue-700 dark:hover:text-blue-700"
+          aria-label="Shopping cart"
+          prefetch={true}
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="h-6 w-6"
@@ -221,8 +319,12 @@ export function CustomerNavbar({
               <path d="M5 6h3m-2.5 7h10.522c.96 0 1.439 0 1.815-.248s.564-.688.942-1.57l.429-1c.81-1.89 1.214-2.833.77-3.508C19.533 6 18.505 6 16.45 6H12" />
             </g>
           </svg>
-          <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full px-1" />
-        </button>
+          {cart && cart.items.length > 0 && (
+            <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+              {cart.items.length}
+            </span>
+          )}
+        </Link>
 
         <UserProfileDropdown />
       </div>

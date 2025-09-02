@@ -1,7 +1,10 @@
+import "leaflet/dist/leaflet.css";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inria_Sans } from "next/font/google";
 import "./globals.css";
 
+import { CartProvider } from "@/contexts/CartContext";
+import { WishlistProvider } from "@/contexts/WishlistContext";
 import "flag-icons/css/flag-icons.min.css";
 
 const geistSans = Geist({
@@ -50,7 +53,9 @@ export default function RootLayout({
       <body
         className={`${inriaSans.variable} font-sans antialiased bg-white text-gray-900`}
       >
-        {children}
+        <CartProvider>
+          <WishlistProvider>{children}</WishlistProvider>
+        </CartProvider>
       </body>
     </html>
   );

@@ -174,7 +174,7 @@ export default function UserDropdown() {
           <ul className="py-1">
             <li>
               <button
-                className="w-full flex items-center text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                className="w-full flex cursor-pointer items-center text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
                 onClick={() => {
                   router.push(`/${currentLocale}/customer`);
                   setOpen(false);
@@ -198,7 +198,7 @@ export default function UserDropdown() {
                     <path d="M9.002 7c.012-2.175.109-3.353.877-4.121C10.758 2 12.172 2 15 2h1c2.829 0 4.243 0 5.122.879C22 3.757 22 5.172 22 8v8c0 2.828 0 4.243-.878 5.121c-.769.769-1.947.865-4.122.877M9.002 17c.012 2.175.109 3.353.877 4.121c.641.642 1.568.815 3.121.862" />
                   </g>
                 </svg>
-                Logout
+                Back to website
               </button>
             </li>
           </ul>

@@ -133,12 +133,6 @@ export default function LoginPage({
           title: t.login.loginSuccess,
         });
 
-        if (rememberMe) {
-          localStorage.setItem("token", response.token);
-        } else {
-          sessionStorage.setItem("token", response.token);
-        }
-
         setTimeout(() => {
           router.replace("/");
         }, 2500); // wait until toast closes

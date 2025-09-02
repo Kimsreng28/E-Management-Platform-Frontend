@@ -332,6 +332,9 @@ export default function ProductViewPage({
             params={params}
             productSlug={product.slug}
             productName={product.name}
+            onClose={function (): void {
+              throw new Error("Function not implemented.");
+            }}
           />
         </div>
 

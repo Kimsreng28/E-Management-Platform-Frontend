@@ -79,10 +79,14 @@ export default function CustomerLayout({
     <div
       className={`${inriaSans.variable} ${kantumruyPro.variable} font-combo relative`}
     >
-      <CustomerNavbar
-        language={language}
-        onLanguageChange={handleLanguageChange}
-      />
+      {/* Sticky navbar wrapper */}
+      <div className="sticky top-0 z-40">
+        <CustomerNavbar
+          language={language}
+          onLanguageChange={handleLanguageChange}
+        />
+      </div>
+
       <LoadingOverlay show={loading} />
       <main
         className={`antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-[calc(100vh-60px)] transition-opacity duration-500 ${
@@ -90,8 +94,8 @@ export default function CustomerLayout({
         }`}
       >
         {children}
+        <Footer language={language} />
       </main>
-      <Footer language={language} />
     </div>
   );
 }
