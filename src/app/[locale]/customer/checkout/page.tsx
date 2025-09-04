@@ -13,7 +13,9 @@ import {
   useStripe,
 } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
+import { MessageSquare } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
 import { use, useEffect, useState } from "react";
@@ -687,20 +689,18 @@ export default function CheckoutPage({
                       {addresses.map((address) => (
                         <div
                           key={address.id}
-                          className={`p-4 border rounded-lg cursor-pointer ${
-                            selectedAddress?.id === address.id
-                              ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                              : "border-gray-200 dark:border-gray-700"
-                          }`}
+                          className={`p-4 border rounded-lg cursor-pointer ${selectedAddress?.id === address.id
+                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                            : "border-gray-200 dark:border-gray-700"
+                            }`}
                           onClick={() => setSelectedAddress(address)}
                         >
                           <div className="flex items-center">
                             <div
-                              className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${
-                                selectedAddress?.id === address.id
-                                  ? "border-blue-500 bg-blue-500"
-                                  : "border-gray-300"
-                              }`}
+                              className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${selectedAddress?.id === address.id
+                                ? "border-blue-500 bg-blue-500"
+                                : "border-gray-300"
+                                }`}
                             >
                               {selectedAddress?.id === address.id && (
                                 <svg
@@ -951,11 +951,10 @@ export default function CheckoutPage({
                     <button
                       onClick={() => setStep(2)}
                       disabled={!selectedAddress}
-                      className={`px-6 flex items-center cursor-pointer py-3 rounded-lg text-white font-medium transition-all duration-300 justify-center gap-2 ${
-                        !selectedAddress
-                          ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
-                          : "bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black shadow-md hover:shadow-lg"
-                      }`}
+                      className={`px-6 flex items-center cursor-pointer py-3 rounded-lg text-white font-medium transition-all duration-300 justify-center gap-2 ${!selectedAddress
+                        ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
+                        : "bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black shadow-md hover:shadow-lg"
+                        }`}
                     >
                       Continue to Payment
                       <VscDebugContinue className="ml-2" />
@@ -972,20 +971,18 @@ export default function CheckoutPage({
                     </h3>
                     <div className="grid gap-4">
                       <button
-                        className={`p-4 border rounded-lg cursor-pointer ${
-                          paymentMethod === "stripe"
-                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                            : "border-gray-200 dark:border-gray-700"
-                        }`}
+                        className={`p-4 border rounded-lg cursor-pointer ${paymentMethod === "stripe"
+                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                          : "border-gray-200 dark:border-gray-700"
+                          }`}
                         onClick={() => setPaymentMethod("stripe")}
                       >
                         <div className="flex items-center">
                           <div
-                            className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${
-                              paymentMethod === "stripe"
-                                ? "border-blue-500 bg-blue-500"
-                                : "border-gray-300"
-                            }`}
+                            className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${paymentMethod === "stripe"
+                              ? "border-blue-500 bg-blue-500"
+                              : "border-gray-300"
+                              }`}
                           >
                             {paymentMethod === "stripe" && (
                               <svg
@@ -1022,20 +1019,18 @@ export default function CheckoutPage({
                       </button>
 
                       <button
-                        className={`p-4 border rounded-lg cursor-pointer ${
-                          paymentMethod === "khqr"
-                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                            : "border-gray-200 dark:border-gray-700"
-                        }`}
+                        className={`p-4 border rounded-lg cursor-pointer ${paymentMethod === "khqr"
+                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                          : "border-gray-200 dark:border-gray-700"
+                          }`}
                         onClick={() => setPaymentMethod("khqr")}
                       >
                         <div className="flex items-center">
                           <div
-                            className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${
-                              paymentMethod === "khqr"
-                                ? "border-blue-500 bg-blue-500"
-                                : "border-gray-300"
-                            }`}
+                            className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${paymentMethod === "khqr"
+                              ? "border-blue-500 bg-blue-500"
+                              : "border-gray-300"
+                              }`}
                           >
                             {paymentMethod === "khqr" && (
                               <svg
@@ -1070,20 +1065,18 @@ export default function CheckoutPage({
                       </button>
 
                       <button
-                        className={`p-4 border rounded-lg cursor-pointer ${
-                          paymentMethod === "cod"
-                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                            : "border-gray-200 dark:border-gray-700"
-                        }`}
+                        className={`p-4 border rounded-lg cursor-pointer ${paymentMethod === "cod"
+                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                          : "border-gray-200 dark:border-gray-700"
+                          }`}
                         onClick={() => setPaymentMethod("cod")}
                       >
                         <div className="flex items-center">
                           <div
-                            className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${
-                              paymentMethod === "cod"
-                                ? "border-blue-500 bg-blue-500"
-                                : "border-gray-300"
-                            }`}
+                            className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${paymentMethod === "cod"
+                              ? "border-blue-500 bg-blue-500"
+                              : "border-gray-300"
+                              }`}
                           >
                             {paymentMethod === "cod" && (
                               <svg
@@ -1128,11 +1121,10 @@ export default function CheckoutPage({
                     <button
                       onClick={handleCheckout}
                       disabled={loading}
-                      className={`px-6 flex cursor-pointer items-center justify-center gap-2 py-3 rounded-lg font-medium text-white transition-all duration-300 ${
-                        loading
-                          ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
-                          : "bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black shadow-md hover:shadow-lg"
-                      }`}
+                      className={`px-6 flex cursor-pointer items-center justify-center gap-2 py-3 rounded-lg font-medium text-white transition-all duration-300 ${loading
+                        ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
+                        : "bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black shadow-md hover:shadow-lg"
+                        }`}
                     >
                       {loading ? (
                         "Processing..."
@@ -1240,13 +1232,12 @@ export default function CheckoutPage({
                               Status:
                             </span>
                             <span
-                              className={`font-medium capitalize ${
-                                orderSummary.status === "completed"
-                                  ? "text-green-600 dark:text-green-400"
-                                  : orderSummary.status === "pending"
+                              className={`font-medium capitalize ${orderSummary.status === "completed"
+                                ? "text-green-600 dark:text-green-400"
+                                : orderSummary.status === "pending"
                                   ? "text-yellow-600 dark:text-yellow-400"
                                   : "text-gray-600 dark:text-gray-300"
-                              }`}
+                                }`}
                             >
                               {orderSummary.status}
                             </span>
@@ -1463,6 +1454,10 @@ export default function CheckoutPage({
                         +1 (234) 567-890
                       </a>
                     </p>
+
+                    <Link href={`/${language}/customer/chat`} className="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                      <MessageSquare className="w-5 h-5 mr-3" />
+                    </Link>
                   </div>
                 </div>
               )}
@@ -1484,9 +1479,8 @@ export default function CheckoutPage({
                   const imageSrc = item.product?.images?.find(
                     (img) => img.is_primary
                   )?.path
-                    ? `${API_BASE_URL}/${
-                        item.product.images.find((img) => img.is_primary)?.path
-                      }`
+                    ? `${API_BASE_URL}/${item.product.images.find((img) => img.is_primary)?.path
+                    }`
                     : "/placeholder.png";
 
                   return (

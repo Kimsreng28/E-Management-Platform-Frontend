@@ -6,6 +6,7 @@ import "./globals.css";
 import { CartProvider } from "@/contexts/CartContext";
 import { WishlistProvider } from "@/contexts/WishlistContext";
 import "flag-icons/css/flag-icons.min.css";
+import { ChatProvider } from "@/contexts/ChatContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -54,7 +55,11 @@ export default function RootLayout({
         className={`${inriaSans.variable} font-sans antialiased bg-white text-gray-900`}
       >
         <CartProvider>
-          <WishlistProvider>{children}</WishlistProvider>
+          <WishlistProvider>
+            <ChatProvider>
+              {children}
+            </ChatProvider>
+          </WishlistProvider>
         </CartProvider>
       </body>
     </html>

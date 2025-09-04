@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { LanguageDropdown } from "./LanguageDropdown";
 import { SearchResults } from "./SearchResults";
 import { UserProfileDropdown } from "./UserProfileDropdown";
+import { MessageSquare } from "lucide-react";
 
 export function CustomerNavbar({
   language,
@@ -105,9 +106,8 @@ export function CustomerNavbar({
 
   const getLocalizedHref = (href: string) => {
     const cleanHref = href.replace(/^\/(en|kh)/, "");
-    return `/${language}${
-      cleanHref.startsWith("/") ? cleanHref : `/${cleanHref}`
-    }`;
+    return `/${language}${cleanHref.startsWith("/") ? cleanHref : `/${cleanHref}`
+      }`;
   };
 
   return (
@@ -162,9 +162,8 @@ export function CustomerNavbar({
 
       {/* Navigation Links */}
       <div
-        className={`${
-          menuOpen ? "block" : "hidden"
-        } w-full md:flex md:items-center md:w-auto mt-4 md:mt-0`}
+        className={`${menuOpen ? "block" : "hidden"
+          } w-full md:flex md:items-center md:w-auto mt-4 md:mt-0`}
       >
         <div className="flex flex-col md:flex-row md:space-x-6">
           {navLinks.map(({ href, label }) => {
@@ -176,11 +175,10 @@ export function CustomerNavbar({
                 key={href}
                 prefetch={true}
                 href={localizedHref}
-                className={`py-2 md:py-0 font-semibold hover:text-black dark:hover:text-white ${
-                  isActive
-                    ? "text-black underline dark:text-white"
-                    : "text-gray-700 dark:text-gray-300"
-                }`}
+                className={`py-2 md:py-0 font-semibold hover:text-black dark:hover:text-white ${isActive
+                  ? "text-black underline dark:text-white"
+                  : "text-gray-700 dark:text-gray-300"
+                  }`}
               >
                 {t[label] ?? label}
               </Link>
@@ -324,6 +322,10 @@ export function CustomerNavbar({
               {cart.items.length}
             </span>
           )}
+        </Link>
+
+        <Link href={`/${language}/customer/chat`} className="relative cursor-pointer text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white">
+          <MessageSquare className="w-5 h-5 mr-3" />
         </Link>
 
         <UserProfileDropdown />
