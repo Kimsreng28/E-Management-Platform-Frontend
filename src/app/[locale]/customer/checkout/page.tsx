@@ -1,6 +1,8 @@
 // app/[locale]/customer/checkout/page.tsx
 "use client";
 
+import DeliveryTrackingModal from "@/components/ui/customer/DeliveryTracking";
+import DeliveryTracking from "@/components/ui/customer/DeliveryTracking";
 import OrderDetailModal from "@/components/ui/customer/OrderDetailModal";
 import { useCart } from "@/contexts/CartContext";
 import { API_BASE_URL } from "@/lib/config";
@@ -116,15 +118,17 @@ function StripePaymentForm({
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg"
+            className="px-4 py-2 flex items-center cursor-pointer bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg"
           >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-2" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5" d="m14.5 9.5l-5 5m0-5l5 5M7 3.338A9.95 9.95 0 0 1 12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12c0-1.821.487-3.53 1.338-5" /></svg>
             Cancel
           </button>
           <button
             type="submit"
             disabled={!stripe || processing}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50"
+            className="px-4 py-2 flex items-center cursor-pointer bg-blue-600 text-white rounded-lg disabled:opacity-50"
           >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-2" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7H9a5 5 0 0 0 0 10M20 7l-3-3m3 3l-3 3m-1 7h-3" /></svg>
             {processing ? "Processing..." : "Pay Now"}
           </button>
         </div>
@@ -257,6 +261,8 @@ export default function CheckoutPage({
     country: "",
     is_default: false,
   });
+  const [delivery, setDelivery] = useState<any>(null);
+  const [showDeliveryTracking, setShowDeliveryTracking] = useState(false);
 
   const handleViewOrderDetails = (order: Order) => {
     setSelectedOrder(order);
@@ -324,6 +330,59 @@ export default function CheckoutPage({
       }
     } catch (error) {
       console.error("Failed to fetch addresses:", error);
+    }
+  };
+
+  const fetchDeliveryInfo = async (orderId: number) => {
+    try {
+      // Fetch delivery information
+      const deliveryRes = await fetch(`${API_BASE_URL}/api/orders/${orderId}/delivery`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (deliveryRes.ok) {
+        const deliveryData = await deliveryRes.json();
+        if (deliveryData.success && deliveryData.delivery) {
+          setDelivery(deliveryData.delivery);
+
+          // If delivery exists but no agent is assigned, try to assign one
+          if (!deliveryData.delivery.delivery_agent_id) {
+            await assignDeliveryAgent(orderId);
+          } else {
+            setShowDeliveryTracking(true);
+          }
+          return;
+        }
+      }
+
+      // If no delivery exists, try to assign one
+      await assignDeliveryAgent(orderId);
+
+    } catch (error) {
+      console.error("Failed to fetch/assign delivery info:", error);
+    }
+  };
+
+  const assignDeliveryAgent = async (orderId: number) => {
+    try {
+      const assignRes = await fetch(`${API_BASE_URL}/api/orders/${orderId}/assign-delivery`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ auto_assign: true }),
+      });
+
+      if (assignRes.ok) {
+        const assignData = await assignRes.json();
+        setDelivery(assignData.delivery);
+        setShowDeliveryTracking(true);
+      }
+    } catch (error) {
+      console.error("Failed to assign delivery agent:", error);
     }
   };
 
@@ -469,6 +528,7 @@ export default function CheckoutPage({
         if (paymentMethod === "cod") {
           // For COD, mark as paid and show success immediately
           await completeOrder(result.order.id);
+          await fetchDeliveryInfo(result.order.id);
         } else {
           // For online payments, process payment
           await processPayment(result.order.id, result.order.total);
@@ -519,8 +579,30 @@ export default function CheckoutPage({
 
   const completeOrder = async (orderId: number, paymentId?: number) => {
     try {
-      // 1. Update payment status (only if provided)
-      if (paymentId) {
+      // 1. Update payment status for COD (create a payment record if needed)
+      if (paymentMethod === "cod" && !paymentId) {
+        // Create a COD payment record
+        const codPaymentData = {
+          order_id: orderId,
+          payment_method: "cod",
+          amount: total,
+          currency: "USD",
+          status: "pending", // COD is pending until delivered
+        };
+
+        const paymentRes = await fetch(`${API_BASE_URL}/api/payments`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify(codPaymentData),
+        });
+
+        if (!paymentRes.ok) throw new Error("Failed to create COD payment");
+      }
+      // If payment ID was provided, update existing payment
+      else if (paymentId) {
         const paymentRes = await fetch(
           `${API_BASE_URL}/api/payments/${paymentId}`,
           {
@@ -551,6 +633,23 @@ export default function CheckoutPage({
       //     }),
       //   });
 
+      const deliveryRes = await fetch(`${API_BASE_URL}/api/orders/${orderId}/assign-delivery`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ auto_assign: true }),
+      });
+
+      // Show delivery tracking modal
+      setShowDeliveryTracking(true);
+
+      if (deliveryRes.ok) {
+        const deliveryData = await deliveryRes.json();
+        setDelivery(deliveryData.delivery);
+      }
+
       // 3. Clear cart and show success
       await clearCart();
       setStep(3);
@@ -566,6 +665,8 @@ export default function CheckoutPage({
 
     if (orderId && paymentData?.payment?.id) {
       await completeOrder(orderId, paymentData.payment.id);
+
+      await fetchDeliveryInfo(orderId);
     }
 
     try {
@@ -1143,19 +1244,7 @@ export default function CheckoutPage({
                 <div className="space-y-6">
                   <div className="text-center">
                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/20 mb-6">
-                      <svg
-                        className="w-8 h-8 text-green-600 dark:text-green-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-green-600 dark:text-green-400" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path d="M21 7v-.63c0-1.193 0-1.79-.158-2.27a3.05 3.05 0 0 0-1.881-1.937C18.493 2 17.914 2 16.755 2h-9.51c-1.159 0-1.738 0-2.206.163a3.05 3.05 0 0 0-1.881 1.936C3 4.581 3 5.177 3 6.37V15m18-4v9.374c0 .858-.985 1.314-1.608.744a.946.946 0 0 0-1.284 0l-.483.442a1.657 1.657 0 0 1-2.25 0a1.657 1.657 0 0 0-2.25 0a1.657 1.657 0 0 1-2.25 0a1.657 1.657 0 0 0-2.25 0a1.657 1.657 0 0 1-2.25 0l-.483-.442a.946.946 0 0 0-1.284 0c-.623.57-1.608.114-1.608-.744V19" /><path stroke-linejoin="round" d="m9.5 10.4l1.429 1.6L14.5 8" /><path d="M7.5 15.5H9m7.5 0H12" /></g></svg>
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                       Order Placed Successfully!
@@ -1434,30 +1523,55 @@ export default function CheckoutPage({
                       <HiOutlineDownload className="mr-2 w-5 h-5" />
                       Download Invoice
                     </button>
+
+                    {delivery && delivery.status !== 'completed' && (
+                      <button
+                        onClick={() => setShowDeliveryTracking(true)}
+                        className={`px-6 flex items-center cursor-pointer justify-center gap-2 py-3 rounded-lg font-medium text-white transition-all duration-300 bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black shadow-md hover:shadow-lg`}
+                      >
+                        <MdOutlineDeliveryDining className="mr-2" />
+                        Track Delivery
+                      </button>
+                    )}
                   </div>
 
                   {/* Support Information */}
-                  <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Need help? Contact our support team at{" "}
-                      <a
-                        href="mailto:support@example.com"
-                        className="text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        support@example.com
-                      </a>{" "}
-                      or call us at{" "}
-                      <a
-                        href="tel:+1234567890"
-                        className="text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        +1 (234) 567-890
-                      </a>
+                  <div className="p-6 bg-blue-50 dark:bg-blue-900/20 rounded-2xl shadow-sm">
+                    <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 text-center">
+                      Need Help?
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-4">
+                      Our support team is here for you. Reach out by email, phone, or chat.
                     </p>
 
-                    <Link href={`/${language}/customer/chat`} className="flex items-center px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                      <MessageSquare className="w-5 h-5 mr-3" />
-                    </Link>
+                    <div className="space-y-3">
+                      {/* Email */}
+                      <a
+                        href="mailto:support@example.com"
+                        className="flex items-center justify-center px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-2  text-gray-800 dark:text-gray-200" viewBox="0 0 24 24"><g fill="none"><path stroke="currentColor" stroke-linecap="round" stroke-width="1.5" d="M10.5 22v-2m4 2v-2" /><path fill="currentColor" d="M11 20v.75h.75V20zm-9.75-8a.75.75 0 0 0 1.5 0zm1.5 4a.75.75 0 0 0-1.5 0zM14 19.25a.75.75 0 0 0 0 1.5zm7.25-8a.75.75 0 0 0 1.5 0zm-3.75-6a.75.75 0 0 0 0 1.5zM22.75 15a.75.75 0 0 0-1.5 0zM7 5.25a.75.75 0 0 0 0 1.5zm2 14a.75.75 0 0 0 0 1.5zm6 1.5a.75.75 0 0 0 0-1.5zm-4-1.5H4.233v1.5H11zm-6.767 0c-.715 0-1.483-.718-1.483-1.855h-1.5c0 1.74 1.231 3.355 2.983 3.355zM6.5 6.75c1.967 0 3.75 1.902 3.75 4.5h1.5c0-3.201-2.246-6-5.25-6zm0-1.5c-3.004 0-5.25 2.799-5.25 6h1.5c0-2.598 1.783-4.5 3.75-4.5zM10.25 17v3h1.5v-3zm0-5.75V17h1.5v-5.75zm-7.5.75v-.75h-1.5V12zm0 5.395V16h-1.5v1.395zm17.043 1.855H14v1.5h5.793zm1.457-1.825c0 1.12-.757 1.825-1.457 1.825v1.5c1.738 0 2.957-1.601 2.957-3.325zm1.5-6.175c0-3.201-2.246-6-5.25-6v1.5c1.967 0 3.75 1.902 3.75 4.5zM21.25 15v2.425h1.5V15zM7 6.75h11v-1.5H7zm2 14h6v-1.5H9z" /><path stroke="currentColor" stroke-linecap="round" stroke-width="1.5" d="M5 16h3m8-6.116V5.411m0 0V2.635c0-.236.168-.439.4-.484l.486-.093a3.2 3.2 0 0 1 1.755.156l.08.03c.554.214 1.16.254 1.737.115a.44.44 0 0 1 .542.427v2.221a.51.51 0 0 1-.393.499l-.066.016a3.2 3.2 0 0 1-1.9-.125a3.2 3.2 0 0 0-1.755-.156z" /></g></svg>
+                        support@emp-platform.com
+                      </a>
+
+                      {/* Phone */}
+                      <a
+                        href="tel:+1234567890"
+                        className="flex items-center justify-center px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-2 text-gray-800 dark:text-gray-200" viewBox="0 0 24 24"><g fill="none"><path stroke="currentColor" stroke-linecap="round" stroke-width="1.5" d="M13.5 2s2.334.212 5.303 3.182c2.97 2.97 3.182 5.303 3.182 5.303m-7.778-4.949s.99.282 2.475 1.767s1.768 2.475 1.768 2.475" /><path fill="currentColor" d="m15.1 15.027l.545.517zm.456-.48l-.544-.516zm2.417-.335l-.374.65zm1.91 1.1l-.374.65zm.539 3.446l.543.517zm-1.42 1.496l-.545-.517zm-1.326.71l.074.745zm-9.86-4.489l.543-.516zm-4.064-9.55a.75.75 0 1 0-1.498.081zm5.439 1.88l.544.517zm.287-.302l.543.517zm.156-2.81l.613-.433zM8.374 3.91l-.613.433zm-3.656-.818a.75.75 0 0 0 1.087 1.033zm6.345 9.964l.544-.517zm-.399 6.756a.75.75 0 1 0 .798-1.27zm4.449.246a.75.75 0 0 0-.307 1.469zm.532-4.514l.455-.48l-1.088-1.033l-.455.48zm1.954-.682l1.91 1.1l.749-1.3l-1.911-1.1zm2.279 3.38l-1.42 1.495l1.087 1.034l1.42-1.496zM8.359 15.959c-3.876-4.081-4.526-7.523-4.607-9.033l-1.498.08c.1 1.85.884 5.634 5.018 9.986zm1.376-6.637l.286-.302l-1.087-1.033l-.287.302zm.512-4.062L8.986 3.477l-1.225.866l1.26 1.783zM9.19 8.805a38 38 0 0 0-.545-.515l-.002.002l-.003.003l-.05.058a1.6 1.6 0 0 0-.23.427c-.098.275-.15.639-.084 1.093c.13.892.715 2.091 2.242 3.7l1.088-1.034c-1.428-1.503-1.78-2.428-1.846-2.884c-.032-.22 0-.335.013-.372l.008-.019l-.028.037l-.018.02zm1.328 4.767c1.523 1.604 2.673 2.234 3.55 2.377c.451.073.816.014 1.092-.095a1.5 1.5 0 0 0 .422-.25l.035-.034l.014-.014l.007-.006l.003-.003l.001-.002s.002-.001-.542-.518c-.544-.516-.543-.517-.543-.518l.002-.001l.002-.003l.006-.005l.047-.042q.014-.008-.005.001c-.02.008-.11.04-.3.009c-.402-.066-1.27-.42-2.703-1.929zM8.986 3.477C7.972 2.043 5.944 1.8 4.718 3.092l1.087 1.033c.523-.55 1.444-.507 1.956.218zm9.471 16.26c-.279.294-.57.452-.854.48l.147 1.492c.747-.073 1.352-.472 1.795-.939zM10.021 9.02c.968-1.019 1.036-2.613.226-3.76l-1.225.866c.422.597.357 1.392-.088 1.86zm9.488 6.942c.821.473.982 1.635.369 2.28l1.087 1.033c1.305-1.374.925-3.673-.707-4.613zm-3.409-.898c.385-.406.986-.497 1.499-.202l.748-1.3c-1.099-.632-2.46-.45-3.335.47zm-4.638 3.478c-.983-.618-2.03-1.454-3.103-2.583l-1.087 1.033c1.154 1.215 2.297 2.132 3.392 2.82zm6.14 1.675a8.3 8.3 0 0 1-2.489-.159l-.307 1.469a9.8 9.8 0 0 0 2.944.182z" /></g></svg>
+                        +855 12 345 678
+                      </a>
+
+                      {/* Chat */}
+                      <Link
+                        href={`/${language}/customer/chat`}
+                        className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5" d="M8 10.5h8M8 14h5.5M17 3.338A9.95 9.95 0 0 0 12 2C6.477 2 2 6.477 2 12c0 1.6.376 3.112 1.043 4.453c.178.356.237.763.134 1.148l-.595 2.226a1.3 1.3 0 0 0 1.591 1.592l2.226-.596a1.63 1.63 0 0 1 1.149.133A9.96 9.96 0 0 0 12 22c5.523 0 10-4.477 10-10c0-1.821-.487-3.53-1.338-5" /></svg>
+                        Live Chat
+                      </Link>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1621,6 +1735,14 @@ export default function CheckoutPage({
             </div>
           </div>
         </div>
+      )}
+
+      {showDeliveryTracking && orderId && (
+        <DeliveryTrackingModal
+          isOpen={showDeliveryTracking}
+          onClose={() => setShowDeliveryTracking(false)}
+          orderId={orderId}
+        />
       )}
     </div>
   );

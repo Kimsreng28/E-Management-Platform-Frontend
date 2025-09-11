@@ -4,6 +4,7 @@ import { API_BASE_URL } from "@/lib/config";
 import { debounce } from "lodash";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { MdOutlineViewInAr } from "react-icons/md";
 
 interface Category {
   id: number;
@@ -280,7 +281,7 @@ export default function CategoriesPage({
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
           Product Categories
         </h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
@@ -512,9 +513,8 @@ export default function CategoriesPage({
                 onClick={() => {
                   setViewMode("grid");
                 }}
-                className={`p-2 rounded-md cursor-pointer ${
-                  viewMode === "grid" ? "bg-white shadow-sm" : ""
-                }`}
+                className={`p-2 rounded-md cursor-pointer ${viewMode === "grid" ? "bg-white shadow-sm" : ""
+                  }`}
               >
                 <svg
                   className="w-5 h-5"
@@ -534,9 +534,8 @@ export default function CategoriesPage({
                 onClick={() => {
                   setViewMode("list");
                 }}
-                className={`p-2 rounded-md cursor-pointer ${
-                  viewMode === "list" ? "bg-white shadow-sm" : ""
-                }`}
+                className={`p-2 rounded-md cursor-pointer ${viewMode === "list" ? "bg-white shadow-sm" : ""
+                  }`}
               >
                 <svg
                   className="w-5 h-5"
@@ -932,8 +931,10 @@ export default function CategoriesPage({
                           setShowProductsModal(true);
                         }
                       }}
-                      className="px-4 py-2 cursor-pointer bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                    >
+                      className="cursor-pointer py-2 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 text-sm sm:text-base
+                                   bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black text-white shadow-md transform hover:shadow-lg 
+                                   dark:bg-gray-800 dark:hover:bg-gray-700">
+                      <MdOutlineViewInAr className="text-lg" />
                       View All Products
                     </button>
                   </div>
@@ -984,10 +985,9 @@ export default function CategoriesPage({
                         <Image
                           src={
                             product.images.length > 0
-                              ? `${API_BASE_URL}/${
-                                  product.images.find((img) => img.is_primary)
-                                    ?.path
-                                }`
+                              ? `${API_BASE_URL}/${product.images.find((img) => img.is_primary)
+                                ?.path
+                              }`
                               : "/placeholder.png"
                           }
                           alt={product.name}
@@ -1009,11 +1009,10 @@ export default function CategoriesPage({
 
                         {product.stock > 0 ? (
                           <span
-                            className={`inline-block text-xs font-semibold px-3 py-1 rounded-full ${
-                              product.stock <= product.low_stock_threshold
-                                ? "bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100"
-                                : "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100"
-                            }`}
+                            className={`inline-block text-xs font-semibold px-3 py-1 rounded-full ${product.stock <= product.low_stock_threshold
+                              ? "bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100"
+                              : "bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100"
+                              }`}
                           >
                             {product.stock <= product.low_stock_threshold
                               ? "Low Stock"

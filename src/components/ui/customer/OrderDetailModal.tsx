@@ -166,7 +166,7 @@ export default function OrderDetailModal({
           </div>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            className="text-gray-500 cursor-pointer hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
             <svg
               className="w-6 h-6"
@@ -190,15 +190,14 @@ export default function OrderDetailModal({
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <span
-                className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  order.status === "completed"
+                className={`px-3 py-1 rounded-full text-sm font-medium ${order.status === "completed"
                     ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
                     : order.status === "processing"
-                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-                    : order.status === "shipped"
-                    ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400"
-                    : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-                }`}
+                      ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                      : order.status === "shipped"
+                        ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400"
+                        : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                  }`}
               >
                 {order.status.toUpperCase()}
               </span>
@@ -339,13 +338,12 @@ export default function OrderDetailModal({
                         {payment.payment_method}
                       </span>
                       <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          payment.status === "completed"
+                        className={`px-2 py-1 rounded text-xs font-medium ${payment.status === "completed"
                             ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
                             : payment.status === "pending"
-                            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-                            : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                        }`}
+                              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                              : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                          }`}
                       >
                         {payment.status.toUpperCase()}
                       </span>

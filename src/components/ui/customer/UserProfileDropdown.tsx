@@ -2,14 +2,18 @@ import { getCurrentUser, logoutUser } from "@/lib/api/auth";
 import { API_BASE_URL } from "@/lib/config";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import LoadingOverlay from "../LoadingOverlay";
+import initializeEcho from "@/lib/echo";
+import _ from "lodash";
 
 export function UserProfileDropdown() {
   const [open, setOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeDeliveries, setActiveDeliveries] = useState<any[]>([]);
+  const echoRef = useRef<any>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const pathname = usePathname();
@@ -35,10 +39,88 @@ export function UserProfileDropdown() {
     }
   };
 
-  // Fetch user on component mount
+  const fetchActiveDeliveries = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const response = await fetch(`${API_BASE_URL}/api/deliveries/active`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setActiveDeliveries(data.deliveries || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch active deliveries:", error);
+      setActiveDeliveries([]);
+    }
+  };
+
+  const debouncedFetchActiveDeliveries = useCallback(
+    _.debounce(fetchActiveDeliveries, 2000),
+    []
+  );
+
+  // Initialize Echo only once and manage it with ref
+  const initializeRealTimeUpdates = useCallback(() => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token || !user) return;
+
+      // Clean up existing Echo instance
+      if (echoRef.current) {
+        echoRef.current.disconnect();
+        echoRef.current = null;
+      }
+
+      const echoInstance = initializeEcho(token);
+      if (!echoInstance) return;
+
+      echoRef.current = echoInstance;
+
+      const channelName = `user.${user.id}`;
+      const channel = echoInstance.channel(channelName);
+
+      const handler = (e: any) => {
+        debouncedFetchActiveDeliveries();
+      };
+
+      // Attach only once
+      channel.listen(".active-deliveries.updated", handler);
+
+      return () => {
+        channel.stopListening(".active-deliveries.updated", handler);
+        echoInstance.leave(channelName);
+      };
+    } catch (error) {
+      console.error("Error initializing real-time updates:", error);
+    }
+  }, [user, debouncedFetchActiveDeliveries]);
+
+  // Fetch user + deliveries on mount
   useEffect(() => {
     fetchUser();
+    fetchActiveDeliveries();
   }, []);
+
+  // Subscribe to real-time updates when user is ready
+  useEffect(() => {
+    if (!user) return;
+
+    const cleanup = initializeRealTimeUpdates();
+
+    return () => {
+      if (cleanup) cleanup();
+      if (echoRef.current) {
+        echoRef.current.disconnect();
+        echoRef.current = null;
+      }
+    };
+  }, [user, initializeRealTimeUpdates]);
 
   // Close dropdown if clicking outside
   useEffect(() => {
@@ -76,6 +158,13 @@ export function UserProfileDropdown() {
     setTimeout(() => {
       router.push(href);
     }, 300);
+  };
+
+  const handleTrackDelivery = (deliveryId: number) => {
+    setIsLoading(true);
+    setOpen(false);
+    // Navigate to delivery tracking page or open modal
+    router.push(`/${currentLocale}/customer/delivery-tracking/${deliveryId}`);
   };
 
   if (loading) {
@@ -256,8 +345,48 @@ export function UserProfileDropdown() {
             </>
           ) : (
             <>
+
+              {/* Active Deliveries Section Only show if there are active deliveries */}
+              {/* Active Deliveries Section */}
+              {activeDeliveries.length > 0 && (
+                <div className="border-b border-gray-200">
+                  <div className="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Active Deliveries
+                  </div>
+                  {activeDeliveries.map((delivery) => (
+                    <button
+                      key={delivery.id}
+                      onClick={() => handleTrackDelivery(delivery.id)}
+                      className="flex items-center cursor-pointer px-4 py-2 text-blue-600 hover:bg-gray-100 w-full text-left"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5 mr-2"
+                        viewBox="0 0 24 24"
+                      >
+                        <g fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <path d="M2 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H2V3Z" />
+                          <path d="M22 3h-4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4V3Z" />
+                          <path d="M10 7h4m-4 4h4m-4 4h4" />
+                        </g>
+                      </svg>
+                      Track Order #{delivery.order?.order_number || delivery.id}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <Link
-                href="/customer/profile"
+                href={`/${currentLocale}/customer/order`}
+                className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
+                onClick={() => setOpen(false)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7.5 18a1.5 1.5 0 1 1 0 3a1.5 1.5 0 0 1 0-3Zm9 0a1.5 1.5 0 1 1 0 3a1.5 1.5 0 0 1 0-3Z" /><path stroke-linecap="round" stroke-linejoin="round" d="m11 10.8l1.143 1.2L15 9" /><path stroke-linecap="round" d="m2 3l.261.092c1.302.457 1.953.686 2.325 1.231s.372 1.268.372 2.715V9.76c0 2.942.063 3.912.93 4.826c.866.914 2.26.914 5.05.914H12m4.24 0c1.561 0 2.342 0 2.894-.45c.551-.45.709-1.214 1.024-2.743l.5-2.424c.347-1.74.52-2.609.076-3.186c-.443-.577-1.96-.577-3.645-.577h-6.065m-6.066 0H7" /></g></svg>
+                Orders History
+              </Link>
+
+              <Link
+                href={`/${currentLocale}/customer/profile`}
                 className="flex items-center px-4 py-2 text-gray-700 hover:bg-gray-100"
                 onClick={() => setOpen(false)}
               >
@@ -276,9 +405,10 @@ export function UserProfileDropdown() {
                 </svg>
                 Profile
               </Link>
+
               <button
                 onClick={handleLogout}
-                className="w-full text-left flex items-center px-4 py-2 text-red-500 hover:bg-gray-100"
+                className="w-full cursor-pointer text-left flex items-center px-4 py-2 text-red-500 hover:bg-gray-100"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -306,4 +436,14 @@ export function UserProfileDropdown() {
       )}
     </div>
   );
+}
+
+function getDeliveryStatusColor(status: string) {
+  switch (status) {
+    case 'assigned': return 'bg-blue-100 text-blue-800';
+    case 'picked_up': return 'bg-yellow-100 text-yellow-800';
+    case 'out_for_delivery': return 'bg-purple-100 text-purple-800';
+    case 'delivered': return 'bg-green-100 text-green-800';
+    default: return 'bg-gray-100 text-gray-800';
+  }
 }

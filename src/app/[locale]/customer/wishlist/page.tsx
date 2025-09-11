@@ -70,19 +70,7 @@ export default function WishlistPage({
             href={`/${language}/customer/products`}
             className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
           >
-            <svg
-              className="w-5 h-5 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-2" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5" d="M9 11.5h2.5m0 0H14m-2.5 0V14m0-2.5V9M20 20l2 2M6.75 3.27a9.5 9.5 0 1 1-3.48 3.48" /></svg>
             Browse Products
           </Link>
         </div>
@@ -119,9 +107,8 @@ export default function WishlistPage({
           {validWishlist.map((item) => {
             const product = item.product!;
             const imageSrc = product.images?.find((img) => img.is_primary)?.path
-              ? `${API_BASE_URL}/${
-                  product.images.find((img) => img.is_primary)?.path
-                }`
+              ? `${API_BASE_URL}/${product.images.find((img) => img.is_primary)?.path
+              }`
               : "/placeholder.png";
             const isOutOfStock = (product?.stock ?? 0) <= 0;
 
@@ -188,11 +175,10 @@ export default function WishlistPage({
                   <button
                     onClick={() => handleMoveToCart(item.product_id)}
                     disabled={isOutOfStock || movingToCart === item.product_id}
-                    className={`w-full cursor-pointer py-3 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center ${
-                      isOutOfStock
+                    className={`w-full cursor-pointer py-3 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center ${isOutOfStock
                         ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
                         : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-md hover:shadow-lg"
-                    }`}
+                      }`}
                   >
                     {movingToCart === item.product_id ? (
                       <>

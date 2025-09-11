@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 
 import ProductCard from "@/components/ui/customer/ProductCard";
 import { API_BASE_URL } from "@/lib/config";
+import { MdOutlineViewInAr } from "react-icons/md";
+import { usePathname, useRouter } from "next/navigation";
 
 interface Product {
   id: number;
@@ -56,8 +58,10 @@ export default function ProductsPage({
   );
   const [isGridView, setIsGridView] = useState(true);
 
-  // Get the locale from params
-  const locale = "en"; // You'll need to properly await the params if they're async
+  const router = useRouter();
+  const pathname = usePathname();
+  const currentLocale = pathname.split("/")[1] || "en";
+  const locale = "en";
 
   useEffect(() => {
     fetchProducts();
@@ -167,11 +171,16 @@ export default function ProductsPage({
     setIsGridView((prev) => !prev);
   };
 
+  // Navigate to product detail page
+  const handleProductClick = (product: Product) => {
+    router.push(`/${currentLocale}/customer/products/${product.slug}`);
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-black border-gray-200 dark:border-gray-700 mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-300">
             Loading products...
           </p>
@@ -247,7 +256,7 @@ export default function ProductsPage({
             {/* Category Filter */}
             <div className="w-full sm:w-1/3">
               <select
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full cursor-pointer px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
               >
@@ -263,7 +272,7 @@ export default function ProductsPage({
             {/* Status Filter */}
             <div className="w-full sm:w-1/3">
               <select
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full cursor-pointer px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
@@ -277,7 +286,7 @@ export default function ProductsPage({
             {/* Sort Options */}
             <div className="w-full sm:w-1/3">
               <select
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full cursor-pointer px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
@@ -291,11 +300,10 @@ export default function ProductsPage({
             <div className="flex items-center">
               <button
                 onClick={toggleViewMode}
-                className={`p-2 rounded-lg border ${
-                  isGridView
-                    ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-700"
-                    : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600"
-                } transition-colors`}
+                className={`p-2 cursor-pointer rounded-lg border ${isGridView
+                  ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-700"
+                  : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600"
+                  } transition-colors`}
                 aria-label={
                   isGridView ? "Switch to list view" : "Switch to grid view"
                 }
@@ -348,9 +356,8 @@ export default function ProductsPage({
         >
           {sortOrder === "asc" ? "Ascending" : "Descending"}
           <svg
-            className={`ml-1 h-4 w-4 ${
-              sortOrder === "asc" ? "rotate-180" : ""
-            }`}
+            className={`ml-1 h-4 w-4 ${sortOrder === "asc" ? "rotate-180" : ""
+              }`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -410,10 +417,9 @@ export default function ProductsPage({
                       <img
                         src={
                           product.images.length > 0
-                            ? `${API_BASE_URL}/${
-                                product.images.find((img) => img.is_primary)
-                                  ?.path || product.images[0].path
-                              }`
+                            ? `${API_BASE_URL}/${product.images.find((img) => img.is_primary)
+                              ?.path || product.images[0].path
+                            }`
                             : "/placeholder.png"
                         }
                         alt={product.name}
@@ -456,13 +462,12 @@ export default function ProductsPage({
                     <div className="flex items-center justify-between mt-4">
                       <div className="flex items-center">
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            product.stock > 0
-                              ? product.stock <= product.low_stock_threshold
-                                ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
-                                : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-                              : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
-                          }`}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${product.stock > 0
+                            ? product.stock <= product.low_stock_threshold
+                              ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+                              : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                            : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+                            }`}
                         >
                           {product.stock > 0
                             ? product.stock <= product.low_stock_threshold
@@ -475,7 +480,12 @@ export default function ProductsPage({
                         </span>
                       </div>
 
-                      <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm">
+                      <button
+                        onClick={() => handleProductClick(product)}
+                        className="cursor-pointer py-2 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 text-sm sm:text-base
+             bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black text-white shadow-md transform hover:shadow-lg 
+             dark:bg-gray-800 dark:hover:bg-gray-700">
+                        <MdOutlineViewInAr className="text-lg" />
                         View Details
                       </button>
                     </div>

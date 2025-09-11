@@ -1,4 +1,5 @@
 "use client";
+import OrderDetailModal from "@/components/ui/dashboard/orders/OrderDetailModal";
 import StatCard from "@/components/ui/dashboard/StatCard";
 import { API_BASE_URL } from "@/lib/config";
 import { useTranslations } from "@/utils/useTranslations";
@@ -117,6 +118,10 @@ export default function CustomersPage({
     left: number;
   } | null>(null);
 
+  // Order detail
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [selectedOrderIds, setSelectedOrderIds] = useState<number[]>([]);
+
   // filter and Search
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
@@ -224,12 +229,10 @@ export default function CustomersPage({
   };
 
   // handle view order
-  const handleViewOrders = (customers: Customer) => {
-    router.push(
-      `/${currentLocale}/dashboard/orders/${customers.orders.map(
-        (o: any) => o.id
-      )}`
-    );
+  const handleViewOrders = (customer: Customer) => {
+    const orderIds = customer.orders.map((o: any) => o.id);
+    setSelectedOrderIds(orderIds);
+    setIsOrderModalOpen(true);
   };
 
   // handle sort
@@ -246,18 +249,16 @@ export default function CustomersPage({
     return (
       <span className="inline-flex flex-col ml-1">
         <IoIosArrowUp
-          className={`w-3 h-3 ${
-            sortField === field && sortDirection === "asc"
-              ? "text-gray-900 dark:text-gray-200"
-              : "text-gray-400 dark:text-gray-200"
-          }`}
+          className={`w-3 h-3 ${sortField === field && sortDirection === "asc"
+            ? "text-gray-900 dark:text-gray-200"
+            : "text-gray-400 dark:text-gray-200"
+            }`}
         />
         <IoIosArrowDown
-          className={`w-3 h-3 ${
-            sortField === field && sortDirection === "desc"
-              ? "text-gray-900 dark:text-gray-200"
-              : "text-gray-400 dark:text-gray-200"
-          }`}
+          className={`w-3 h-3 ${sortField === field && sortDirection === "desc"
+            ? "text-gray-900 dark:text-gray-200"
+            : "text-gray-400 dark:text-gray-200"
+            }`}
         />
       </span>
     );
@@ -599,15 +600,15 @@ export default function CustomersPage({
                   const lastOrder =
                     customer.orders && customer.orders.length > 0
                       ? new Date(
-                          customer.orders.reduce(
-                            (latest, order) =>
-                              new Date(order.created_at) >
+                        customer.orders.reduce(
+                          (latest, order) =>
+                            new Date(order.created_at) >
                               new Date(latest.created_at)
-                                ? order
-                                : latest,
-                            customer.orders[0]
-                          ).created_at
-                        )
+                              ? order
+                              : latest,
+                          customer.orders[0]
+                        ).created_at
+                      )
                       : null;
 
                   return (
@@ -640,7 +641,7 @@ export default function CustomersPage({
                             </div>
                             <div className="text-xs text-gray-500 dark:text-gray-400">
                               {customer.addresses &&
-                              customer.addresses.length > 0
+                                customer.addresses.length > 0
                                 ? `${customer.addresses[0].city}, ${customer.addresses[0].state}`
                                 : "No address"}
                             </div>
@@ -678,11 +679,10 @@ export default function CustomersPage({
                       {/* Status Column */}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
-                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            customer.is_active
-                              ? "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100"
-                              : "bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100"
-                          }`}
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${customer.is_active
+                            ? "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100"
+                            : "bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100"
+                            }`}
                         >
                           {customer.is_active ? "Active" : "Inactive"}
                         </span>
@@ -734,6 +734,8 @@ export default function CustomersPage({
                                   <MdVisibility className="mr-2" />
                                   View Orders
                                 </button>
+
+
                               </div>
                             </div>
                           )}
@@ -812,6 +814,12 @@ export default function CustomersPage({
               </div>
             </div>
           )}
+
+          <OrderDetailModal
+            isOpen={isOrderModalOpen}
+            onClose={() => setIsOrderModalOpen(false)}
+            orderIds={selectedOrderIds}
+          />
         </div>
       </div>
     </div>

@@ -327,15 +327,6 @@ export default function ProductViewPage({
               </div>
             </div>
           )}
-
-          <QrCodeDisplay
-            params={params}
-            productSlug={product.slug}
-            productName={product.name}
-            onClose={function (): void {
-              throw new Error("Function not implemented.");
-            }}
-          />
         </div>
 
         {/* Right Column - Details */}
@@ -367,11 +358,10 @@ export default function ProductViewPage({
                 </p>
                 <p className="text-lg font-medium dark:text-white">
                   {product.cost_price
-                    ? `$${
-                        typeof product.cost_price === "string"
-                          ? parseFloat(product.cost_price).toFixed(2)
-                          : product.cost_price.toFixed(2)
-                      }`
+                    ? `$${typeof product.cost_price === "string"
+                      ? parseFloat(product.cost_price).toFixed(2)
+                      : product.cost_price.toFixed(2)
+                    }`
                     : "-"}
                 </p>
               </div>
@@ -392,13 +382,12 @@ export default function ProductViewPage({
                   {t.createProduct.stockStatus}
                 </p>
                 <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    product.stock_status === "Active"
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${product.stock_status === "Active"
                       ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                       : product.stock_status === "Inactive"
-                      ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                      : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                  }`}
+                        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                        : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                    }`}
                 >
                   {product.stock_status === "Active"
                     ? t.createProduct.active
@@ -444,11 +433,10 @@ export default function ProductViewPage({
                   {t.createProduct.featured}
                 </p>
                 <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    product.is_featured
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${product.is_featured
                       ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                       : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                  }`}
+                    }`}
                 >
                   {product.is_featured ? "Yes" : "No"}
                 </span>
@@ -460,11 +448,10 @@ export default function ProductViewPage({
                   {t.createProduct.active}
                 </p>
                 <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                    product.is_featured
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${product.is_featured
                       ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                       : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                  }`}
+                    }`}
                 >
                   {product.is_active ? "Yes" : "No"}
                 </span>

@@ -1,7 +1,750 @@
-export default function ProfilePage() {
+"use client";
+
+import { API_BASE_URL } from "@/lib/config";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  IoIosArrowBack,
+  IoIosSave,
+  IoIosCamera,
+  IoIosPerson,
+  IoIosMail,
+  IoIosCall,
+  IoIosCalendar,
+  IoIosLink,
+  IoIosLock,
+  IoIosEye,
+  IoIosEyeOff
+} from "react-icons/io";
+import { FaTransgender, FaGlobe } from "react-icons/fa";
+
+interface UserProfile {
+  user: {
+    name: string;
+    email: string;
+    phone: string;
+    avatar: string | null;
+  };
+  profile: {
+    bio: string | null;
+    birth_date: string | null;
+    gender: string | null;
+    website: string | null;
+    social_links: string | null;
+  };
+  address: {
+    label: string;
+    recipient_name: string;
+    phone: string;
+    address_line_1: string;
+    address_line_2: string;
+    city: string;
+    state: string;
+    postal_code: string;
+    country: string;
+  } | null;
+}
+
+interface PasswordForm {
+  current_password: string;
+  new_password: string;
+  new_password_confirmation: string;
+}
+
+export default function ProfilePage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
+
+  const [formData, setFormData] = useState({
+    user: {
+      name: "",
+      email: "",
+      phone: "",
+    },
+    profile: {
+      bio: "",
+      birth_date: "",
+      gender: "",
+      website: "",
+      social_links: "",
+    },
+    address: {
+      label: "",
+      recipient_name: "",
+      phone: "",
+      address_line_1: "",
+      address_line_2: "",
+      city: "",
+      state: "",
+      postal_code: "",
+      country: "",
+    }
+  });
+
+  const [passwordForm, setPasswordForm] = useState<PasswordForm>({
+    current_password: "",
+    new_password: "",
+    new_password_confirmation: ""
+  });
+
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        router.push("/auth/login");
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/profile`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data: UserProfile = await response.json();
+        setProfile(data);
+        setFormData({
+          user: {
+            name: data.user.name || "",
+            email: data.user.email || "",
+            phone: data.user.phone || "",
+          },
+          profile: {
+            bio: data.profile?.bio || "",
+            birth_date: data.profile?.birth_date || "",
+            gender: data.profile?.gender || "",
+            website: data.profile?.website || "",
+            social_links: data.profile?.social_links || "",
+          },
+          address: data.address || {
+            label: "",
+            recipient_name: "",
+            phone: "",
+            address_line_1: "",
+            address_line_2: "",
+            city: "",
+            state: "",
+            postal_code: "",
+            country: "",
+          }
+        });
+      } else {
+        setError("Failed to fetch profile");
+      }
+    } catch (error) {
+      setError("An error occurred while fetching profile");
+      console.error("Profile fetch error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const handleInputChange = (section: string, field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [section]: {
+        ...prev[section as keyof typeof prev],
+        [field]: value
+      }
+    }));
+  };
+
+  const handleAddressChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      address: {
+        ...prev.address,
+        [field]: value
+      }
+    }));
+  };
+
+  const handlePasswordChange = (field: keyof PasswordForm, value: string) => {
+    setPasswordForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("avatar", file);
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/profile`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (response.ok) {
+
+        fetchProfile();
+      } else {
+
+      }
+    } catch (error) {
+
+      console.error("Avatar upload error:", error);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/profile`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...formData.user,
+          ...formData.profile,
+          address: formData.address
+        }),
+      });
+
+      if (response.ok) {
+
+        fetchProfile();
+      } else {
+        const errorData = await response.json();
+
+      }
+    } catch (error) {
+
+      console.error("Profile update error:", error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setChangingPassword(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/security/change-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(passwordForm),
+      });
+
+      if (response.ok) {
+
+        setShowPasswordModal(false);
+        setPasswordForm({
+          current_password: "",
+          new_password: "",
+          new_password_confirmation: ""
+        });
+      } else {
+        const errorData = await response.json();
+
+      }
+    } catch (error) {
+
+      console.error("Password change error:", error);
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 mx-auto mb-4 border-t-black border-gray-200 dark:border-gray-700"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <section>
-      <h1 className="text-3xl font-bold mb-4">Profile</h1>
-    </section>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <div className="container mx-auto px-4 max-w-4xl">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Profile Settings
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Manage your account information and preferences
+          </p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Avatar Section */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              Profile Photo
+            </h2>
+
+            <div className="flex items-center space-x-6">
+              <div className="relative">
+                <div className="w-20 h-20 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                  {profile?.user.avatar ? (
+                    <img
+                      src={`${API_BASE_URL}/storage/${profile.user.avatar}`}
+                      alt="Profile"
+                      className="w-20 h-20 rounded-full object-cover"
+                    />
+                  ) : (
+                    <IoIosPerson className="w-10 h-10 text-gray-400" />
+                  )}
+                </div>
+
+                <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full cursor-pointer hover:bg-blue-700">
+                  <IoIosCamera className="w-4 h-4" />
+                  <input
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Upload a new photo. Maximum file size: 5MB.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Personal Information */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+              Personal Information
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Full Name
+                </label>
+                <div className="relative">
+                  <IoIosPerson className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={formData.user.name}
+                    onChange={(e) => handleInputChange("user", "name", e.target.value)}
+                    className="pl-10 w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter your full name"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <IoIosMail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="email"
+                    value={formData.user.email}
+                    onChange={(e) => handleInputChange("user", "email", e.target.value)}
+                    className="pl-10 w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter your email"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Phone Number
+                </label>
+                <div className="relative">
+                  <IoIosCall className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="tel"
+                    value={formData.user.phone}
+                    onChange={(e) => handleInputChange("user", "phone", e.target.value)}
+                    className="pl-10 w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter your phone number"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Birth Date
+                </label>
+                <div className="relative">
+                  <IoIosCalendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="date"
+                    value={formData.profile.birth_date}
+                    onChange={(e) => handleInputChange("profile", "birth_date", e.target.value)}
+                    className="pl-10 w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Gender
+                </label>
+                <div className="relative">
+                  <FaTransgender className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <select
+                    value={formData.profile.gender}
+                    onChange={(e) => handleInputChange("profile", "gender", e.target.value)}
+                    className="pl-10 w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">Select gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Website
+                </label>
+                <div className="relative">
+                  <IoIosLink className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="url"
+                    value={formData.profile.website}
+                    onChange={(e) => handleInputChange("profile", "website", e.target.value)}
+                    className="pl-10 w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="https://example.com"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Bio
+              </label>
+              <textarea
+                value={formData.profile.bio}
+                onChange={(e) => handleInputChange("profile", "bio", e.target.value)}
+                rows={3}
+                className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                placeholder="Tell us about yourself..."
+              />
+            </div>
+          </div>
+
+          {/* Address Information */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+              Address Information
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Address Label
+                </label>
+                <input
+                  type="text"
+                  value={formData.address.label}
+                  onChange={(e) => handleAddressChange("label", e.target.value)}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="Home, Office, etc."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Recipient Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.address.recipient_name}
+                  onChange={(e) => handleAddressChange("recipient_name", e.target.value)}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="Full name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  value={formData.address.phone}
+                  onChange={(e) => handleAddressChange("phone", e.target.value)}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="Phone number for delivery"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Address Line 1
+                </label>
+                <input
+                  type="text"
+                  value={formData.address.address_line_1}
+                  onChange={(e) => handleAddressChange("address_line_1", e.target.value)}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="Street address, P.O. box"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Address Line 2
+                </label>
+                <input
+                  type="text"
+                  value={formData.address.address_line_2}
+                  onChange={(e) => handleAddressChange("address_line_2", e.target.value)}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="Apartment, suite, unit, building, floor, etc."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  City
+                </label>
+                <input
+                  type="text"
+                  value={formData.address.city}
+                  onChange={(e) => handleAddressChange("city", e.target.value)}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="City"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  State/Province
+                </label>
+                <input
+                  type="text"
+                  value={formData.address.state}
+                  onChange={(e) => handleAddressChange("state", e.target.value)}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="State or province"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Postal Code
+                </label>
+                <input
+                  type="text"
+                  value={formData.address.postal_code}
+                  onChange={(e) => handleAddressChange("postal_code", e.target.value)}
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="ZIP or postal code"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Country
+                </label>
+                <div className="relative">
+                  <FaGlobe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    value={formData.address.country}
+                    onChange={(e) => handleAddressChange("country", e.target.value)}
+                    className="pl-10 w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    placeholder="Country"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Security Section */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+              Security
+            </h2>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium text-gray-900 dark:text-white">Change Password</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Update your password to keep your account secure
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordModal(true)}
+                  title="Change Password"
+                  className={`px-2 w-fit flex items-center cursor-pointer justify-center gap-2 py-2 rounded-full font-medium text-white transition-all duration-300 bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black shadow-md hover:shadow-lg`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 24 24"><path fill="currentColor" d="M12.079 2.25c-4.794 0-8.734 3.663-9.118 8.333H2a.75.75 0 0 0-.528 1.283l1.68 1.666a.75.75 0 0 0 1.056 0l1.68-1.666a.75.75 0 0 0-.528-1.283h-.893c.38-3.831 3.638-6.833 7.612-6.833a7.66 7.66 0 0 1 6.537 3.643a.75.75 0 1 0 1.277-.786A9.16 9.16 0 0 0 12.08 2.25m8.761 8.217a.75.75 0 0 0-1.054 0L18.1 12.133a.75.75 0 0 0 .527 1.284h.899c-.382 3.83-3.651 6.833-7.644 6.833a7.7 7.7 0 0 1-6.565-3.644a.75.75 0 1 0-1.277.788a9.2 9.2 0 0 0 7.842 4.356c4.808 0 8.765-3.66 9.15-8.333H22a.75.75 0 0 0 .527-1.284z" /></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={saving}
+              className={`px-4 w-fit flex items-center cursor-pointer justify-center gap-2 py-2 rounded-lg font-medium text-white transition-all duration-300 bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black shadow-md hover:shadow-lg`}
+            >
+              {saving ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <IoIosSave className="mr-2" />
+                  Save Changes
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+
+        {/* Password Change Modal */}
+        {showPasswordModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 w-full max-w-md">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
+                Change Password
+              </h2>
+
+              <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Current Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showCurrentPassword ? "text" : "password"}
+                      value={passwordForm.current_password}
+                      onChange={(e) => handlePasswordChange("current_password", e.target.value)}
+                      className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                      placeholder="Enter current password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="absolute cursor-pointer right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                    >
+                      {showCurrentPassword ? <IoIosEyeOff /> : <IoIosEye />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    New Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      value={passwordForm.new_password}
+                      onChange={(e) => handlePasswordChange("new_password", e.target.value)}
+                      className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                      placeholder="Enter new password"
+                      required
+                      minLength={8}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute cursor-pointer right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                    >
+                      {showNewPassword ? <IoIosEyeOff /> : <IoIosEye />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={passwordForm.new_password_confirmation}
+                      onChange={(e) => handlePasswordChange("new_password_confirmation", e.target.value)}
+                      className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                      placeholder="Confirm new password"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute cursor-pointer right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                    >
+                      {showConfirmPassword ? <IoIosEyeOff /> : <IoIosEye />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex justify-end space-x-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordModal(false)}
+                    className="px-4 py-2 cursor-pointer bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={changingPassword}
+                    className={`px-4 w-fit  flex items-center cursor-pointer justify-center gap-2 py-2 rounded-lg font-medium text-white transition-all duration-300 bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black shadow-md hover:shadow-lg`}
+                  >
+                    {changingPassword ? "Changing..." : "Change Password"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
