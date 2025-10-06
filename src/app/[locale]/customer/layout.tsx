@@ -87,11 +87,11 @@ export default function CustomerLayout({
         />
       </div>
 
-      <LoadingOverlay show={loading} />
+      {/* <LoadingOverlay show={loading} /> */}
+
       <main
-        className={`antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-[calc(100vh-60px)] transition-opacity duration-500 ${
-          loading ? "opacity-0" : "opacity-100"
-        }`}
+        className={`antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-[calc(100vh-60px)] transition-opacity duration-500 ${loading ? "opacity-0" : "opacity-100"
+          }`}
       >
         {children}
         <Footer language={language} />

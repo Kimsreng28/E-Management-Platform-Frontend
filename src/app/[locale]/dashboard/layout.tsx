@@ -43,6 +43,7 @@ export default function DashboardLayout({
   const [language, setLanguage] = useState<"en" | "kh">(locale as "en" | "kh");
   const [darkMode, setDarkMode] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
   const t = useTranslations(language);
@@ -85,11 +86,13 @@ export default function DashboardLayout({
   const handleLanguageChange = (newLang: "en" | "kh") => {
     setLanguage(newLang);
     const newPath = pathname.replace(/^\/(en|kh)/, `/${newLang}`);
+    setIsNavigating(true);
     router.push(newPath);
   };
 
   const handleNavClick = (href: string) => {
     if (pathname !== href) {
+      setIsNavigating(true);
       router.push(href);
       setMobileMenuOpen(false); // Close mobile menu on navigation
     }
@@ -130,18 +133,28 @@ export default function DashboardLayout({
     setIsSearchOpen(false);
   };
 
+  // Reset navigation loading state when route changes
   useEffect(() => {
-    setIsLoading(false);
+    setIsNavigating(false);
   }, [pathname]);
 
   return (
     <div
       className={`flex min-h-screen ${inriaSans.variable} ${kantumruyPro.variable} font-combo antialiased`}
     >
+      {/* Loading Overlay */}
+      {isNavigating && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center pointer-events-none">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-black border-gray-200 dark:border-gray-700 mx-auto mb-4"></div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile menu button */}
       <button
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        className="fixed z-50 bottom-4 right-4 sm:hidden bg-gray-900 dark:bg-white text-white dark:text-gray-900 p-3 rounded-full shadow-lg"
+        className="fixed z-40 bottom-4 right-4 sm:hidden bg-gray-900 dark:bg-white text-white dark:text-gray-900 p-3 rounded-full shadow-lg"
       >
         {mobileMenuOpen ? (
           <AiOutlineClose size={24} />
@@ -153,7 +166,7 @@ export default function DashboardLayout({
       {/* Sidebar - Mobile */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black bg-opacity-50 sm:hidden"
+          className="fixed inset-0 z-30 bg-black bg-opacity-50 sm:hidden"
           onClick={() => setMobileMenuOpen(false)}
         ></div>
       )}
@@ -181,22 +194,21 @@ export default function DashboardLayout({
           {/* Navigation */}
           <nav className="flex-1 space-y-2">
             {localizedNavItems.map((item) => (
-              <Link
+              <button
                 key={item.name}
-                href={item.href}
-                prefetch={true}
+                onClick={() => handleNavClick(item.href)}
                 className={cn(
-                  "flex items-center gap-3 w-full text-left text-sm sm:text-base px-4 py-2 rounded-lg border transition-colors font-combo",
+                  "flex items-center cursor-pointer gap-3 w-full text-left text-sm sm:text-base px-4 py-2 rounded-lg border transition-colors font-combo",
                   // Default styles
                   "bg-gray-100 border-gray-200 text-black hover:bg-green-700 hover:text-white dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:bg-gray-700",
                   // Active styles
                   activeNav?.href === item.href &&
-                    "bg-red-800 text-white dark:bg-white dark:text-black"
+                  "bg-red-800 text-white dark:bg-white dark:text-black"
                 )}
               >
                 {item.icon}
                 {t[item.name]}
-              </Link>
+              </button>
             ))}
           </nav>
         </div>

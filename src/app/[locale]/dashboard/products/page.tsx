@@ -8,7 +8,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import { IoIosArrowDown, IoIosArrowUp, IoIosSearch } from "react-icons/io";
 import { IoQrCodeOutline } from "react-icons/io5";
-import { MdAdd, MdDelete, MdMoreVert, MdVisibility } from "react-icons/md";
+import { MdAdd, MdClose, MdDelete, MdFileUpload, MdMoreVert, MdVisibility } from "react-icons/md";
 import { RiEditLine } from "react-icons/ri";
 import Swal from "sweetalert2";
 import EditProductPage from "./[slug]/edit/product/page";
@@ -61,6 +61,24 @@ interface Category {
   updated_at: string;
 }
 
+// Import Preview Types
+interface ImportPreviewData {
+  imported: number;
+  skipped: number;
+  errors: string[];
+  previewData?: Array<{
+    name: string;
+    model_code: string;
+    category: string;
+    brand: string;
+    price: number;
+    stock: number;
+    status: string;
+  }>;
+  totalRows?: number;
+}
+
+
 export default function ProductsPage({
   params,
 }: {
@@ -102,6 +120,12 @@ export default function ProductsPage({
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showQrCodeModal, setShowQrCodeModal] = useState(false);
 
+  // Import Preview State
+  const [showImportPreviewModal, setShowImportPreviewModal] = useState(false);
+  const [importPreviewData, setImportPreviewData] = useState<ImportPreviewData | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
   // Status options
   const statusOptions = [
     { value: null, label: t.createProduct.allStatuses },
@@ -110,7 +134,7 @@ export default function ProductsPage({
     { value: "Out of Stock", label: t.createProduct.outOfStock },
   ];
 
-  // Fetch categories from API (add this useEffect)
+  // Fetch categories from API
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -144,52 +168,52 @@ export default function ProductsPage({
   }, []);
 
   // Fetch products from API
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+
+      const queryParams = new URLSearchParams({
+        page: currentPage.toString(),
+        per_page: itemsPerPage.toString(),
+        sort_by: sortField,
+        sort_order: sortOrder,
+        ...(searchTerm && { search: searchTerm }),
+        ...(selectedStatus && { status: selectedStatus }),
+        ...(selectedCategory && { category_id: selectedCategory.toString() }),
+      });
+
+      const res = await fetch(
+        `${API_BASE_URL}/api/products?${queryParams.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
+
+      if (!res.ok) throw new Error("Failed to fetch products");
+
+      const data = await res.json();
+      setProducts(data.data || data.items || []);
+      setTotalItems(data.total || data.meta?.total || 0);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      Swal.fire({
+        position: "top-end",
+        icon: "error",
+        title: "Failed to load products",
+        showConfirmButton: false,
+        timer: 2000,
+        toast: true,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        const token = localStorage.getItem("token");
-
-        const queryParams = new URLSearchParams({
-          page: currentPage.toString(),
-          per_page: itemsPerPage.toString(),
-          sort_by: sortField,
-          sort_order: sortOrder,
-          ...(searchTerm && { search: searchTerm }),
-          ...(selectedStatus && { status: selectedStatus }),
-          ...(selectedCategory && { category_id: selectedCategory.toString() }),
-        });
-
-        const res = await fetch(
-          `${API_BASE_URL}/api/products?${queryParams.toString()}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              Accept: "application/json",
-            },
-          }
-        );
-
-        if (!res.ok) throw new Error("Failed to fetch products");
-
-        const data = await res.json();
-        setProducts(data.data || data.items || []);
-        setTotalItems(data.total || data.meta?.total || 0);
-      } catch (error) {
-        console.error("Error fetching products:", error);
-        Swal.fire({
-          position: "top-end",
-          icon: "error",
-          title: "Failed to load products",
-          showConfirmButton: false,
-          timer: 2000,
-          toast: true,
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchProducts();
   }, [
     currentPage,
@@ -202,7 +226,7 @@ export default function ProductsPage({
   ]);
 
   // Handle delete product
-  const handleDelete = async (productId: number, productName: string) => {
+  const handleDelete = async (productId: number, productSlug: string, productName: string) => {
     try {
       const result = await Swal.fire({
         title: "Are you sure?",
@@ -216,7 +240,7 @@ export default function ProductsPage({
 
       if (result.isConfirmed) {
         const token = localStorage.getItem("token");
-        const res = await fetch(`${API_BASE_URL}/api/products/${productId}`, {
+        const res = await fetch(`${API_BASE_URL}/api/products/${productSlug}`, {
           method: "DELETE",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -266,25 +290,23 @@ export default function ProductsPage({
     return (
       <span className="inline-flex flex-col ml-1">
         <IoIosArrowUp
-          className={`w-3 h-3 ${
-            sortField === field && sortOrder === "asc"
-              ? "text-gray-900 dark:text-gray-200"
-              : "text-gray-400 dark:text-gray-200"
-          }`}
+          className={`w-3 h-3 ${sortField === field && sortOrder === "asc"
+            ? "text-gray-900 dark:text-gray-200"
+            : "text-gray-400 dark:text-gray-200"
+            }`}
         />
         <IoIosArrowDown
-          className={`w-3 h-3 ${
-            sortField === field && sortOrder === "desc"
-              ? "text-gray-900 dark:text-gray-200"
-              : "text-gray-400 dark:text-gray-200"
-          }`}
+          className={`w-3 h-3 ${sortField === field && sortOrder === "desc"
+            ? "text-gray-900 dark:text-gray-200"
+            : "text-gray-400 dark:text-gray-200"
+            }`}
         />
       </span>
     );
   };
 
-  const DROPDOWN_WIDTH = 160; // Tailwind w-40 = 10rem = 160px
-  const DROPDOWN_EST_HEIGHT = 160; // rough height of menu; adjust if needed
+  const DROPDOWN_WIDTH = 160;
+  const DROPDOWN_EST_HEIGHT = 160;
   const PADDING = 8;
 
   const toggleDropdown = (id: number, e: React.MouseEvent) => {
@@ -298,14 +320,12 @@ export default function ProductsPage({
 
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
 
-    // Horizontal: right-align to button, clamp to viewport
     let left = rect.right - DROPDOWN_WIDTH;
     if (left < PADDING) left = PADDING;
     if (left + DROPDOWN_WIDTH + PADDING > window.innerWidth) {
       left = Math.max(window.innerWidth - DROPDOWN_WIDTH - PADDING, PADDING);
     }
 
-    // Vertical: open below; flip above if not enough space
     const spaceBelow = window.innerHeight - rect.bottom;
     let top =
       spaceBelow >= DROPDOWN_EST_HEIGHT
@@ -316,7 +336,7 @@ export default function ProductsPage({
     setDropdownPosition({ top, left });
   };
 
-  // Close on outside click, scroll, or resize (use capture to catch inner scrollables)
+  // Close on outside click, scroll, or resize
   useEffect(() => {
     if (dropdownOpen === null) return;
     const close = () => {
@@ -341,11 +361,10 @@ export default function ProductsPage({
       <button
         key={i}
         onClick={() => setCurrentPage(i)}
-        className={`px-3 py-1 rounded ${
-          currentPage === i
-            ? "bg-indigo-600 text-white"
-            : "bg-gray-200 hover:bg-gray-300"
-        }`}
+        className={`px-3 py-1 rounded ${currentPage === i
+          ? "bg-indigo-600 text-white"
+          : "bg-gray-200 hover:bg-gray-300"
+          }`}
       >
         {i}
       </button>
@@ -388,6 +407,193 @@ export default function ProductsPage({
     fetchStats();
   }, []);
 
+  const handleExportProducts = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const queryParams = new URLSearchParams();
+      if (selectedStatus) queryParams.append('status', selectedStatus);
+      if (selectedCategory) queryParams.append('category_id', selectedCategory.toString());
+      if (searchTerm) queryParams.append('search', searchTerm);
+
+      const res = await fetch(
+        `${API_BASE_URL}/api/products/export/csv?${queryParams.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!res.ok) throw new Error("Failed to export products");
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `products_export_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      Swal.fire({
+        position: "top-end",
+        icon: "success",
+        title: "Products exported successfully!",
+        showConfirmButton: false,
+        timer: 2000,
+        toast: true,
+      });
+    } catch (error) {
+      console.error("Error exporting products:", error);
+      Swal.fire({
+        position: "top-end",
+        icon: "error",
+        title: "Failed to export products",
+        showConfirmButton: false,
+        timer: 2000,
+        toast: true,
+      });
+    }
+  };
+
+  // Preview CSV file before import
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSelectedFile(file);
+
+    try {
+      // Read CSV file for preview
+      const text = await file.text();
+      const lines = text.split('\n').filter(line => line.trim());
+
+      if (lines.length <= 1) {
+        throw new Error('CSV file is empty or has only headers');
+      }
+
+      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+
+      // Parse ALL rows (skip header)
+      const previewData = lines.slice(1).map((line, index) => {
+        const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+        const row: any = {};
+        headers.forEach((header, index) => {
+          row[header.toLowerCase()] = values[index] || '';
+        });
+
+        return {
+          name: row.name || 'N/A',
+          model_code: row.model_code || row['model code'] || 'N/A',
+          category: row.category || 'N/A',
+          brand: row.brand || 'N/A',
+          price: parseFloat(row.price) || 0,
+          stock: parseInt(row.stock) || 0,
+          status: row.status || 'Active'
+        };
+      }).filter(row => row.name !== 'N/A'); // Filter out empty rows
+
+      setImportPreviewData({
+        imported: 0,
+        skipped: 0,
+        errors: [],
+        previewData,
+        totalRows: previewData.length
+      });
+      setShowImportPreviewModal(true);
+
+    } catch (error) {
+      console.error("Error reading CSV file:", error);
+      Swal.fire({
+        position: "top-end",
+        icon: "error",
+        title: "Failed to read CSV file",
+        text: error instanceof Error ? error.message : 'Invalid CSV format',
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true,
+      });
+    }
+  };
+
+  // Confirm and execute import
+  const handleConfirmImport = async () => {
+    if (!selectedFile) return;
+
+    try {
+      setImportLoading(true);
+      const token = localStorage.getItem("token");
+      const formData = new FormData();
+      formData.append('csv_file', selectedFile);
+
+      const res = await fetch(`${API_BASE_URL}/api/products/import`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("Failed to import products");
+
+      const result = await res.json();
+
+      // Update preview data with actual results
+      setImportPreviewData(result);
+
+      if (result.errors && result.errors.length > 0) {
+        // Show detailed results in modal
+        setImportPreviewData(result);
+      } else {
+        // Close modal and show success
+        setShowImportPreviewModal(false);
+        Swal.fire({
+          position: "top-end",
+          icon: "success",
+          title: `Successfully imported ${result.imported} products!`,
+          showConfirmButton: false,
+          timer: 2000,
+          toast: true,
+        });
+
+        // Refresh the page data
+        await fetchProducts();
+
+        // Also refresh stats
+        const token = localStorage.getItem("token");
+        const statsResponse = await fetch(`${API_BASE_URL}/api/products/stats`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        });
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          setStats(statsData);
+        }
+
+        // Reset file input
+        const fileInput = document.getElementById('import-file') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
+        setSelectedFile(null);
+      }
+    } catch (error) {
+      console.error("Error importing products:", error);
+      Swal.fire({
+        position: "top-end",
+        icon: "error",
+        title: "Failed to import products",
+        showConfirmButton: false,
+        timer: 2000,
+        toast: true,
+      });
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
   const handleAddCategory = () => {
     setShowAddCategoryModal(true);
   };
@@ -395,6 +601,7 @@ export default function ProductsPage({
   const handleAddBrand = () => {
     setShowAddBrandModal(true);
   };
+
   const handleAddProduct = () => {
     setShowAddProductModal(true);
   };
@@ -415,11 +622,13 @@ export default function ProductsPage({
     setShowAddProductModal(false);
     setShowEditProductModal(false);
     setShowQrCodeModal(false);
+    setShowImportPreviewModal(false);
+    setImportPreviewData(null);
+    setSelectedFile(null);
   };
 
   const handleSuccess = () => {
     handleModalClose();
-
     window.location.reload();
   };
 
@@ -447,6 +656,35 @@ export default function ProductsPage({
 
         {/* Buttons Section */}
         <div className="flex xs:flex-row items-stretch xs:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+          {/* Import Button */}
+          <button
+            onClick={() => document.getElementById('import-file')?.click()}
+            className="flex items-center justify-center cursor-pointer shadow-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800 transition-all duration-200 rounded-lg py-2 px-3 sm:py-2 sm:px-4 text-sm sm:text-base"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M11 16V7.85l-2.6 2.6L7 9l5-5l5 5l-1.4 1.45l-2.6-2.6V16h-2Zm-7 4v-5h2v3h12v-3h2v5H4Z" />
+            </svg>
+            <span className="whitespace-nowrap">Import</span>
+          </button>
+          <input
+            type="file"
+            id="import-file"
+            accept=".csv"
+            className="hidden"
+            onChange={handleFileSelect}
+          />
+
+          {/* Export Button */}
+          <button
+            onClick={handleExportProducts}
+            className="flex items-center justify-center cursor-pointer shadow-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800 transition-all duration-200 rounded-lg py-2 px-3 sm:py-2 sm:px-4 text-sm sm:text-base"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M6 20q-.825 0-1.413-.588T4 18v-3h2v3h12v-3h2v3q0 .825-.588 1.413T18 20H6Zm6-4l-5-5l1.4-1.45l2.6 2.6V4h2v8.15l2.6-2.6L17 11l-5 5Z" />
+            </svg>
+            <span className="whitespace-nowrap">Export</span>
+          </button>
+
           {/* Add Category Button (secondary) */}
           <button
             onClick={handleAddCategory}
@@ -481,6 +719,217 @@ export default function ProductsPage({
           </button>
         </div>
       </div>
+
+      {/* Import Preview Modal */}
+      {showImportPreviewModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Import Preview
+                  </h3>
+                  {importPreviewData?.totalRows && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      Total products to import: {importPreviewData.totalRows}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={handleModalClose}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {importPreviewData?.previewData ? (
+                <>
+                  <div className="mb-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        All Products in CSV ({importPreviewData.previewData.length} items):
+                      </h4>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        Scroll to see all products
+                      </span>
+                    </div>
+                    <div className="overflow-x-auto max-h-96 border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                              #
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                              Name
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                              Model Code
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                              Category
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                              Brand
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                              Price
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                              Stock
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                              Status
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                          {importPreviewData.previewData.map((row, index) => (
+                            <tr
+                              key={index}
+                              className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                            >
+                              <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 font-mono">
+                                {index + 1}
+                              </td>
+                              <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">
+                                {row.name}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-white font-mono">
+                                {row.model_code}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                                {row.category}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                                {row.brand}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                                ${row.price.toFixed(2)}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                                {row.stock}
+                              </td>
+                              <td className="px-4 py-3 text-sm">
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${row.status === 'Active'
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                  : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                  }`}>
+                                  {row.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4 mb-4">
+                    <div className="flex">
+                      <div className="flex-shrink-0">
+                        <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                          Import Information
+                        </h3>
+                        <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                          <p>• All {importPreviewData.previewData.length} products will be processed</p>
+                          <p>• Products with existing model codes will be skipped</p>
+                          <p>• Missing categories or brands will cause import errors</p>
+                          <p>• Review the data above before confirming import</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-3 mt-6">
+                    <button
+                      onClick={handleModalClose}
+                      className="flex items-center cursor-pointer px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+                    >
+                      <MdClose className="w-4 h-4 mr-2" />
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleConfirmImport}
+                      disabled={importLoading}
+                      className="flex items-center cursor-pointer px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors"
+                    >
+                      {importLoading ? (
+                        <span className="flex items-center">
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Importing...
+                        </span>
+                      ) : (
+                        <>
+                          <MdFileUpload className="w-4 h-4 mr-2" />
+                          Import All {importPreviewData?.previewData?.length} Products
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </>
+              ) : importPreviewData?.errors && importPreviewData.errors.length > 0 ? (
+                <>
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Import Results:
+                    </h4>
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-4">
+                      <div className="flex">
+                        <div className="flex-shrink-0">
+                          <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <div className="ml-3">
+                          <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                            Import completed with {importPreviewData.errors.length} error(s)
+                          </h3>
+                          <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+                            <p><strong>Imported:</strong> {importPreviewData.imported} products</p>
+                            <p><strong>Skipped:</strong> {importPreviewData.skipped} products</p>
+                            <div className="mt-3">
+                              <p className="font-medium">Errors:</p>
+                              <div className="mt-2 max-h-40 overflow-y-auto">
+                                <ul className="list-disc list-inside space-y-1">
+                                  {importPreviewData.errors.map((error, index) => (
+                                    <li key={index} className="text-xs font-mono">{error}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-3 mt-6">
+                    <button
+                      onClick={handleModalClose}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats Section */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -743,21 +1192,22 @@ export default function ProductsPage({
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-15 w-15 rounded-md overflow-hidden shadow shadow-gray-400 dark:shadow-gray-200">
+                        <div className="flex-shrink-0 h-15 w-15 rounded-md overflow-hidden shadow shadow-gray-400 dark:shadow-gray-200 flex items-center justify-center bg-gray-100 dark:bg-gray-700">
                           {product.images.length > 0 ? (
                             <img
-                              className="h-15 w-15 object-cover"
+                              className="w-full h-full object-cover"
                               src={`${API_BASE_URL}/${product.images[0].path}`}
                               alt={product.name}
                             />
                           ) : (
-                            <div className="h-10 w-10 rounded-md bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
-                              <span className="text-xs text-gray-500 dark:text-gray-300">
-                                No Image
-                              </span>
-                            </div>
+                            <img
+                              className="w-3/6 h-3/6 object-contain"
+                              src="/images/placeholder.png"
+                              alt="Placeholder"
+                            />
                           )}
                         </div>
+
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900 dark:text-white">
                             {product.name}
@@ -792,13 +1242,12 @@ export default function ProductsPage({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          product.stock_status === "Active"
-                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                            : product.stock_status === "Inactive"
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${product.stock_status === "Active"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                          : product.stock_status === "Inactive"
                             ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
                             : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                        }`}
+                          }`}
                       >
                         {product.stock_status === "Active"
                           ? t.createProduct.active
@@ -871,7 +1320,7 @@ export default function ProductsPage({
                                 role="menuitem"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleDelete(product.id, product.name);
+                                  handleDelete(product.id, product.slug, product.name);
                                   setDropdownOpen(null);
                                 }}
                               >

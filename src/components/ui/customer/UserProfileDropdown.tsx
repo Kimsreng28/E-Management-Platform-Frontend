@@ -2,7 +2,7 @@ import { getCurrentUser, logoutUser } from "@/lib/api/auth";
 import { API_BASE_URL } from "@/lib/config";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import LoadingOverlay from "../LoadingOverlay";
 import initializeEcho from "@/lib/echo";
 import _ from "lodash";
@@ -17,6 +17,8 @@ export function UserProfileDropdown() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const pathname = usePathname();
+
+  const [isNavigating, startTransition] = useTransition();
 
   // get current locale from url
   const currentLocale = pathname.split("/")[1] || "en";
@@ -154,17 +156,17 @@ export function UserProfileDropdown() {
   };
 
   const handleClick = (href: string) => {
-    setIsLoading(true);
-    setTimeout(() => {
+    setOpen(false);
+    startTransition(() => {
       router.push(href);
-    }, 300);
+    });
   };
 
   const handleTrackDelivery = (deliveryId: number) => {
-    setIsLoading(true);
     setOpen(false);
-    // Navigate to delivery tracking page or open modal
-    router.push(`/${currentLocale}/customer/delivery-tracking/${deliveryId}`);
+    startTransition(() => {
+      router.push(`/${currentLocale}/customer/delivery-tracking/${deliveryId}`);
+    });
   };
 
   if (loading) {
@@ -191,6 +193,16 @@ export function UserProfileDropdown() {
 
   return (
     <div className="relative" ref={dropdownRef}>
+
+      {/* Loading Overlay */}
+      {isNavigating && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center pointer-events-none">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-black border-gray-200 dark:border-gray-700 mx-auto mb-4"></div>
+          </div>
+        </div>
+      )}
+
       <button
         aria-label="User account"
         title="User account"
@@ -298,9 +310,6 @@ export function UserProfileDropdown() {
           ) : user.role?.name === "admin" ? (
             <>
               <div className="relative">
-                {/* Loading overlay */}
-                <LoadingOverlay show={isLoading} />
-
                 <button
                   onClick={() => handleClick(`/${currentLocale}/dashboard`)}
                   className="flex cursor-pointer items-center px-4 py-2 text-gray-700 hover:bg-gray-100 w-full text-left"
@@ -345,8 +354,6 @@ export function UserProfileDropdown() {
             </>
           ) : (
             <>
-
-              {/* Active Deliveries Section Only show if there are active deliveries */}
               {/* Active Deliveries Section */}
               {activeDeliveries.length > 0 && (
                 <div className="border-b border-gray-200">

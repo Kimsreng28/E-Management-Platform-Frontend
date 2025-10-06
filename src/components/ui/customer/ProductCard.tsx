@@ -63,7 +63,7 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
   const [token, setToken] = useState<string | null>(null);
 
   const mainImage =
-    product.images.find((img) => img.is_primary)?.path || "/placeholder.png";
+    product.images.find((img) => img.is_primary)?.path || "";
   const [imageLoaded, setImageLoaded] = useState(false);
 
   const { addToCart } = useCart();
@@ -72,6 +72,8 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
   const [showQuickView, setShowQuickView] = useState(false);
   const [showQr, setShowQr] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState("");
+
+  const [isNavigating, setIsNavigating] = useState(false);
 
   // Calculate discounted price if applicable
   const originalPrice = Number(product.price);
@@ -132,7 +134,7 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
   const handleImageError = (
     e: React.SyntheticEvent<HTMLImageElement, Event>
   ) => {
-    e.currentTarget.src = "/placeholder.png";
+    e.currentTarget.src = "";
   };
 
   // Handle quick view
@@ -148,6 +150,7 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
 
   // Navigate to product detail page
   const handleProductClick = () => {
+    setIsNavigating(true);
     router.push(`/${currentLocale}/customer/products/${product.slug}`);
   };
 
@@ -249,6 +252,7 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
 
   return (
     <div className="group bg-white dark:bg-gray-700 rounded-lg sm:rounded-xl md:rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 p-3 sm:p-4 flex flex-col relative overflow-hidden border border-gray-100 dark:border-gray-700 h-full">
+
       {/* Image Container */}
       <div className="relative w-full h-40 xs:h-48 sm:h-52 md:h-56 lg:h-60 overflow-hidden rounded-lg sm:rounded-xl mb-3 sm:mb-4">
         {/* Main Product Image */}
@@ -256,13 +260,12 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
           src={
             product.images.length > 0
               ? `${API_BASE_URL}/${mainImage}`
-              : "/placeholder.png"
+              : "/images/placeholder.png"
           }
           alt={product.name}
           fill
-          className={`object-contain transition-opacity duration-300 ${
-            imageLoaded ? "opacity-100" : "opacity-0"
-          }`}
+          className={`object-contain transition-opacity duration-300 ${imageLoaded ? "opacity-100" : "opacity-0"
+            }`}
           sizes="(max-width: 320px) 280px, (max-width: 425px) 380px, (max-width: 640px) 580px, (max-width: 768px) 340px, (max-width: 1024px) 300px, (max-width: 1280px) 340px, 380px"
           onLoad={handleImageLoad}
           onError={handleImageError}
@@ -278,11 +281,10 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
         <div className="absolute top-2 right-2 sm:top-3 sm:right-3 flex flex-col gap-1 sm:gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           <button
             onClick={handleWishlistToggle}
-            className={`w-8 h-8 cursor-pointer sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full shadow-md transition-colors ${
-              isWishlisted
-                ? "bg-red-50 dark:bg-red-900/20 text-red-500"
-                : "bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500"
-            }`}
+            className={`w-8 h-8 cursor-pointer sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center rounded-full shadow-md transition-colors ${isWishlisted
+              ? "bg-red-50 dark:bg-red-900/20 text-red-500"
+              : "bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500"
+              }`}
             aria-label={
               isWishlisted ? "Remove from wishlist" : "Add to wishlist"
             }
@@ -404,11 +406,10 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
         <div className="absolute bottom-2 left-2 sm:bottom-3 sm:left-3">
           {product.stock > 0 ? (
             <span
-              className={`inline-flex items-center px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs font-medium ${
-                product.stock <= product.low_stock_threshold
-                  ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
-                  : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-              }`}
+              className={`inline-flex items-center px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs font-medium ${product.stock <= product.low_stock_threshold
+                ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+                : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                }`}
             >
               {product.stock <= product.low_stock_threshold ? (
                 <>
@@ -441,11 +442,10 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
           {Array.from({ length: 5 }, (_, i) => (
             <svg
               key={i}
-              className={`w-4 h-4 ${
-                i < Math.round(product.average_rating || 0)
-                  ? "text-yellow-400"
-                  : "text-gray-300"
-              }`}
+              className={`w-4 h-4 ${i < Math.round(product.average_rating || 0)
+                ? "text-yellow-400"
+                : "text-gray-300"
+                }`}
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -490,11 +490,10 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
         <button
           onClick={handleAddToCart}
           disabled={product.stock <= 0}
-          className={`w-full cursor-pointer py-2 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base ${
-            product.stock <= 0
-              ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
-              : "bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black text-white shadow-md transform hover:-translate-y-0.5"
-          }`}
+          className={`w-full cursor-pointer py-2 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base ${product.stock <= 0
+            ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
+            : "bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black text-white shadow-md transform hover:-translate-y-0.5"
+            }`}
         >
           {product.stock > 0 ? (
             <>
@@ -510,6 +509,16 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
       {/* Quick View Modal */}
       {showQuickView && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+
+          {/* Loading Overlay */}
+          {isNavigating && (
+            <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center pointer-events-none">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-black border-gray-200 dark:border-gray-700 mx-auto mb-4"></div>
+              </div>
+            </div>
+          )}
+
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto transition-all duration-300">
             <div className="p-6">
               {/* Header */}
@@ -545,7 +554,7 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
                     src={
                       product.images.length > 0
                         ? `${API_BASE_URL}/${mainImage}`
-                        : "/placeholder.png"
+                        : "/images/placeholder.png"
                     }
                     alt={product.name}
                     fill
@@ -561,11 +570,10 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
                     {Array.from({ length: 5 }, (_, i) => (
                       <svg
                         key={i}
-                        className={`w-5 h-5 ${
-                          i < Math.round(product.average_rating || 0)
-                            ? "text-yellow-400"
-                            : "text-gray-300 dark:text-gray-600"
-                        }`}
+                        className={`w-5 h-5 ${i < Math.round(product.average_rating || 0)
+                          ? "text-yellow-400"
+                          : "text-gray-300 dark:text-gray-600"
+                          }`}
                         fill="currentColor"
                         viewBox="0 0 20 20"
                       >
@@ -607,11 +615,10 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
                   <div>
                     {product.stock > 0 ? (
                       <span
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                          product.stock <= product.low_stock_threshold
-                            ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
-                            : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                        }`}
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${product.stock <= product.low_stock_threshold
+                          ? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+                          : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                          }`}
                       >
                         {product.stock <= product.low_stock_threshold
                           ? "Low Stock"
@@ -629,11 +636,10 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
                     <button
                       onClick={handleAddToCart}
                       disabled={product.stock <= 0}
-                      className={`w-full cursor-pointer py-2 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base ${
-                        product.stock <= 0
-                          ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
-                          : "bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black text-white shadow-md transform hover:shadow-lg dark:bg-gray-800 dark:hover:bg-gray-700"
-                      }`}
+                      className={`w-full cursor-pointer py-2 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 text-sm sm:text-base ${product.stock <= 0
+                        ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
+                        : "bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black text-white shadow-md transform hover:shadow-lg dark:bg-gray-800 dark:hover:bg-gray-700"
+                        }`}
                     >
                       {product.stock > 0 ? (
                         <MdAddShoppingCart className="text-lg" />
@@ -645,11 +651,10 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
 
                     <button
                       onClick={handleWishlistToggle}
-                      className={`p-3 rounded-lg cursor-pointer border transition ${
-                        isWishlisted
-                          ? "bg-red-100 text-red-500 border-red-200 dark:bg-red-900 dark:border-red-800 dark:text-red-300"
-                          : "bg-white dark:bg-gray-800 text-gray-600 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      }`}
+                      className={`p-3 rounded-lg cursor-pointer border transition ${isWishlisted
+                        ? "bg-red-100 text-red-500 border-red-200 dark:bg-red-900 dark:border-red-800 dark:text-red-300"
+                        : "bg-white dark:bg-gray-800 text-gray-600 border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        }`}
                     >
                       <svg
                         className="w-6 h-6"
@@ -670,6 +675,7 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
                   {/* View Details */}
                   <button
                     onClick={handleProductClick}
+                    disabled={isNavigating}
                     className="w-full mt-4 cursor-pointer py-2 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 text-sm sm:text-base
              bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black text-white shadow-md transform hover:shadow-lg 
              dark:bg-gray-800 dark:hover:bg-gray-700"

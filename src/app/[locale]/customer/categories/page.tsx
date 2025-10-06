@@ -988,7 +988,7 @@ export default function CategoriesPage({
                               ? `${API_BASE_URL}/${product.images.find((img) => img.is_primary)
                                 ?.path
                               }`
-                              : "/placeholder.png"
+                              : "/images/placeholder.png"
                           }
                           alt={product.name}
                           fill

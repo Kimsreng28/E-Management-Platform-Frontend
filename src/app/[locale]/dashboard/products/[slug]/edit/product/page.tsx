@@ -357,8 +357,7 @@ export default function EditProductPage({
 
       // Append optional fields if they exist
       if (costPrice) formData.append("cost_price", costPrice.toString());
-      if (warrantyMonths)
-        formData.append("warranty_months", warrantyMonths.toString());
+      if (warrantyMonths) formData.append("warranty_months", warrantyMonths.toString());
 
       // Append specifications as JSON string
       formData.append("specifications", JSON.stringify(specifications));
@@ -377,57 +376,74 @@ export default function EditProductPage({
 
       const token = localStorage.getItem("token");
 
+      // Debug: Log form data contents
+      console.log("FormData contents:");
+      for (let [key, value] of formData.entries()) {
+        if (key.includes('image') || key.includes('video')) {
+          console.log(key, value instanceof File ? `File: ${value.name}` : value);
+        } else {
+          console.log(key, value);
+        }
+      }
+
       const res = await fetch(`${API_BASE_URL}/api/products/${slug}`, {
-        method: "POST", // Using POST with _method=PUT for file uploads
+        method: "POST",
         headers: {
           Accept: "application/json",
           Authorization: token ? `Bearer ${token}` : "",
+          // Don't set Content-Type for FormData - let browser set it with boundary
         },
         body: formData,
       });
 
+      console.log("Response status:", res.status);
+
       const responseText = await res.text();
+      console.log("Response text:", responseText);
 
+      let data;
       try {
-        const data = JSON.parse(responseText);
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (parseError) {
+        console.error("Failed to parse response as JSON:", parseError);
+        throw new Error("Server returned invalid JSON response");
+      }
 
-        if (!res.ok) {
-          let message = "Failed to update product";
-          if (data?.errors) {
-            message = Object.entries(data.errors)
-              .map(
-                ([field, errors]) =>
-                  `${field}: ${(errors as string[]).join(", ")}`
-              )
-              .join("\n");
-          } else if (data?.message) {
-            message = data.message;
-          }
-          throw new Error(message);
+      if (!res.ok) {
+        console.error("Server error response:", data);
+        let message = "Failed to update product";
+
+        if (data?.errors) {
+          message = Object.entries(data.errors)
+            .map(([field, errors]) => `${field}: ${(errors as string[]).join(", ")}`)
+            .join("\n");
+        } else if (data?.message) {
+          message = data.message;
+        } else if (responseText) {
+          message = `Server error: ${res.status} ${res.statusText}`;
         }
 
-        Swal.fire({
-          position: "top-end",
-          icon: "success",
-          title: "Product updated successfully!",
-          showConfirmButton: false,
-          timer: 3000,
-          toast: true,
-        });
-
-        onSuccess();
-      } catch (err) {
-        console.error("Failed to parse JSON:", responseText);
-        throw new Error(responseText || "Failed to update product");
+        throw new Error(message);
       }
+
+      Swal.fire({
+        position: "top-end",
+        icon: "success",
+        title: "Product updated successfully!",
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true,
+      });
+
+      onSuccess();
     } catch (err: any) {
-      console.error(err);
+      console.error("Update error details:", err);
       Swal.fire({
         position: "top-end",
         icon: "error",
         title: err.message || "Failed to update product",
         showConfirmButton: false,
-        timer: 2000,
+        timer: 5000, // Increased timer to read longer messages
         toast: true,
       });
     } finally {
@@ -683,16 +699,14 @@ export default function EditProductPage({
                 <button
                   type="button"
                   onClick={() => setIsFeatured(!isFeatured)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${
-                    isFeatured
-                      ? "bg-indigo-600"
-                      : "bg-gray-300 dark:bg-gray-600"
-                  }`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${isFeatured
+                    ? "bg-indigo-600"
+                    : "bg-gray-300 dark:bg-gray-600"
+                    }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-300 ${
-                      isFeatured ? "translate-x-6" : "translate-x-1"
-                    }`}
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-300 ${isFeatured ? "translate-x-6" : "translate-x-1"
+                      }`}
                   />
                 </button>
               </div>
@@ -708,14 +722,12 @@ export default function EditProductPage({
                 <button
                   type="button"
                   onClick={() => setIsActive(!isActive)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${
-                    isActive ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"
-                  }`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${isActive ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"
+                    }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-300 ${
-                      isActive ? "translate-x-6" : "translate-x-1"
-                    }`}
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-300 ${isActive ? "translate-x-6" : "translate-x-1"
+                      }`}
                   />
                 </button>
               </div>
@@ -801,8 +813,8 @@ export default function EditProductPage({
                   {stock <= 0
                     ? t.createProduct.markOutOfStock
                     : stock <= (lowStockThreshold || 10)
-                    ? `${t.createProduct.markLowOfStock}: ${stock} ${t.createProduct.remaining}`
-                    : `${t.createProduct.markInStock}: ${stock} ${t.createProduct.available}`}
+                      ? `${t.createProduct.markLowOfStock}: ${stock} ${t.createProduct.remaining}`
+                      : `${t.createProduct.markInStock}: ${stock} ${t.createProduct.available}`}
                 </p>
               </div>
             </div>

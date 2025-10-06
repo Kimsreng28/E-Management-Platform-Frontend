@@ -109,7 +109,7 @@ export default function WishlistPage({
             const imageSrc = product.images?.find((img) => img.is_primary)?.path
               ? `${API_BASE_URL}/${product.images.find((img) => img.is_primary)?.path
               }`
-              : "/placeholder.png";
+              : "";
             const isOutOfStock = (product?.stock ?? 0) <= 0;
 
             return (
@@ -124,7 +124,7 @@ export default function WishlistPage({
                     fill
                     className="object-contain transition-all duration-300 "
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = "/placeholder.png";
+                      (e.target as HTMLImageElement).src = "/images/placeholder.png";
                     }}
                   />
 
@@ -176,8 +176,8 @@ export default function WishlistPage({
                     onClick={() => handleMoveToCart(item.product_id)}
                     disabled={isOutOfStock || movingToCart === item.product_id}
                     className={`w-full cursor-pointer py-3 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center ${isOutOfStock
-                        ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
-                        : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-md hover:shadow-lg"
+                      ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
+                      : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-md hover:shadow-lg"
                       }`}
                   >
                     {movingToCart === item.product_id ? (

@@ -5,7 +5,7 @@ import { Product } from "@/types/product";
 import { useTranslations } from "@/utils/useTranslations";
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FiChevronRight, FiHome } from "react-icons/fi";
 
@@ -31,6 +31,7 @@ interface CategoryDetail extends Category {
 
 export default function CategoryDetailPage() {
     const params = useParams();
+    const router = useRouter();
     const locale = params.locale as "en" | "kh";
     const slug = params.slug as string;
 
@@ -40,6 +41,8 @@ export default function CategoryDetailPage() {
     const [error, setError] = useState<string | null>(null);
     const [sortBy, setSortBy] = useState("name");
     const [sortOrder, setSortOrder] = useState("asc");
+
+    const [isNavigating, setIsNavigating] = useState(false);
 
     const t = useTranslations(locale);
 
@@ -120,31 +123,50 @@ export default function CategoryDetailPage() {
         <div className="container mx-auto px-4 py-8">
             {/* Breadcrumb */}
             <nav className="flex mb-6" aria-label="Breadcrumb">
+
+                {/* Loading Overlay */}
+                {isNavigating && (
+                    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center pointer-events-none">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-black border-gray-200 dark:border-gray-700 mx-auto mb-4"></div>
+                        </div>
+                    </div>
+                )}
+
                 <ol className="inline-flex items-center space-x-1 md:space-x-3">
+                    {/* Home */}
                     <li className="inline-flex items-center">
-                        <Link
-                            href={`/${locale}/customer`}
-                            className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600 dark:text-gray-400 dark:hover:text-white"
+                        <button
+                            onClick={() => {
+                                setIsNavigating(true);
+                                router.push(`/${locale}`);
+                            }}
+                            className="inline-flex cursor-pointer items-center text-gray-700 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition-colors"
                         >
                             <FiHome className="mr-2" />
-                            {t.Home || "Home"}
-                        </Link>
+                            Home
+                        </button>
                     </li>
+
+                    {/* Category */}
                     <li>
                         <div className="flex items-center">
                             <FiChevronRight className="mx-1 text-gray-400" />
-                            <Link
-                                href={`/${locale}/customer/categories`}
-                                className="ml-1 text-sm font-medium text-gray-700 hover:text-blue-600 md:ml-2 dark:text-gray-400 dark:hover:text-white"
+                            <button
+                                onClick={() => {
+                                    setIsNavigating(true);
+                                    router.push(`/${locale}/customer/categories`);
+                                }}
+                                className="text-gray-700 cursor-pointer hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition-colors"
                             >
-                                {t.Categories || "Categories"}
-                            </Link>
+                                Categories
+                            </button>
                         </div>
                     </li>
                     <li aria-current="page">
                         <div className="flex items-center">
                             <FiChevronRight className="mx-1 text-gray-400" />
-                            <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2 dark:text-gray-400">
+                            <span className="text-gray-500 dark:text-gray-400 truncate max-w-xs md:max-w-md">
                                 {category?.name}
                             </span>
                         </div>

@@ -5,6 +5,7 @@ import { API_BASE_URL } from "@/lib/config";
 import { useTranslations } from "@/utils/useTranslations";
 import { usePathname, useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
+import { BiCopy } from "react-icons/bi";
 import { IoIosArrowBack } from "react-icons/io";
 import { MdDelete, MdEdit } from "react-icons/md";
 import Swal from "sweetalert2";
@@ -13,6 +14,7 @@ interface Product {
   id: number;
   name: string;
   slug: string;
+  barcode: string;
   model_code: string;
   price: number | string;
   stock: number;
@@ -68,7 +70,10 @@ export default function ProductViewPage({
   const [videos, setVideos] = useState<string[]>([]);
   const [specs, setSpecs] = useState<Record<string, string>>({});
 
-  // Fetch product data
+  const [barcodeImage, setBarcodeImage] = useState(null);
+  const [barcodeText, setBarcodeText] = useState("");
+
+  // Fetch product datas
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -150,6 +155,39 @@ export default function ProductViewPage({
     };
 
     fetchProduct();
+  }, [slug]);
+
+  useEffect(() => {
+    const fetchBarcode = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_BASE_URL}/api/products/${slug}/barcode`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch product");
+
+        const data = await res.json();
+        setBarcodeImage(data.image);
+        setBarcodeText(data.barcode);
+      }
+      catch (error) {
+        console.error("Error fetching product:", error);
+        Swal.fire({
+          position: "top-end",
+          icon: "error",
+          title: "Failed to load product",
+          showConfirmButton: false,
+          timer: 2000,
+          toast: true,
+        });
+      }
+    };
+
+    fetchBarcode();
   }, [slug]);
 
   // Handle delete product
@@ -383,10 +421,10 @@ export default function ProductViewPage({
                 </p>
                 <span
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${product.stock_status === "Active"
-                      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                      : product.stock_status === "Inactive"
-                        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                        : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                    : product.stock_status === "Inactive"
+                      ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                      : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
                     }`}
                 >
                   {product.stock_status === "Active"
@@ -434,8 +472,8 @@ export default function ProductViewPage({
                 </p>
                 <span
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${product.is_featured
-                      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                      : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                    : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
                     }`}
                 >
                   {product.is_featured ? "Yes" : "No"}
@@ -449,14 +487,55 @@ export default function ProductViewPage({
                 </p>
                 <span
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${product.is_featured
-                      ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                      : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                    : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
                     }`}
                 >
                   {product.is_active ? "Yes" : "No"}
                 </span>
               </div>
             </div>
+
+            <div className="mt-6">
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Barcode
+              </h3>
+
+              {barcodeImage ? (
+                <div className="flex flex-col items-center rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm p-4 transition hover:shadow-md">
+                  <img
+                    src={barcodeImage}
+                    alt="Product Barcode"
+                    className="h-20 w-full object-contain rounded-md"
+                  />
+                  <p className="mt-3 text-sm font-mono text-gray-700 dark:text-gray-300 tracking-wide">
+                    {barcodeText}
+                  </p>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(barcodeText);
+                      Swal.fire({
+                        position: "top-end",
+                        icon: "success",
+                        title: "Barcode copied to clipboard!",
+                        showConfirmButton: false,
+                        timer: 1500,
+                        toast: true,
+                      });
+                    }}
+                    className="mt-3 flex items-center cursor-pointer px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-800/60 transition"
+                  >
+                    <BiCopy className="w-4 h-4 mr-1" />
+                    Copy Barcode
+                  </button>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                  No barcode available
+                </p>
+              )}
+            </div>
+
           </div>
 
           {/* Description Card */}

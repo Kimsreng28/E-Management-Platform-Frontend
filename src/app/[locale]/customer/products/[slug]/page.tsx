@@ -9,8 +9,10 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { AiFillProduct } from "react-icons/ai";
+import { BiCopy } from "react-icons/bi";
 import { BsStars } from "react-icons/bs";
 import { CgDanger } from "react-icons/cg";
+import { CiBarcode } from "react-icons/ci";
 import {
   FiArrowLeft,
   FiCheck,
@@ -120,10 +122,16 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   const [submittingReview, setSubmittingReview] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
 
+  const [isNavigating, setIsNavigating] = useState(false);
+
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [showQr, setShowQr] = useState(false);
+
+  const [barcodeImage, setBarcodeImage] = useState(null);
+  const [barcodeText, setBarcodeText] = useState("");
+  const [showBarcode, setShowBarcode] = useState(false);
 
   const handleShareProduct = (product: Product) => {
     const productUrl = `${window.location.origin}/${currentLocale}/customer/products/${product.slug}`;
@@ -226,6 +234,40 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
 
     fetchProductData();
   }, [slug, locale, router, isInWishlist, token]);
+
+
+  useEffect(() => {
+    const fetchBarcode = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_BASE_URL}/api/products/${slug}/barcode`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch product");
+
+        const data = await res.json();
+        setBarcodeImage(data.image);
+        setBarcodeText(data.barcode);
+      }
+      catch (error) {
+        console.error("Error fetching product:", error);
+        Swal.fire({
+          position: "top-end",
+          icon: "error",
+          title: "Failed to load product",
+          showConfirmButton: false,
+          timer: 2000,
+          toast: true,
+        });
+      }
+    };
+
+    fetchBarcode();
+  }, [slug]);
 
   const handleAddToCart = async () => {
     if (!product) return;
@@ -493,27 +535,47 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     <div className="container mx-auto px-4 py-8 dark:bg-gray-900 min-h-screen">
       {/* Breadcrumb */}
       <nav className="flex mb-6 text-sm" aria-label="Breadcrumb">
+        {/* Loading Overlay */}
+        {isNavigating && (
+          <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center pointer-events-none">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-black border-gray-200 dark:border-gray-700 mx-auto mb-4"></div>
+            </div>
+          </div>
+        )}
+
         <ol className="inline-flex items-center space-x-1 md:space-x-2">
+          {/* Home */}
           <li className="inline-flex items-center">
-            <a
-              href={`/${locale}`}
-              className="inline-flex items-center text-gray-700 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition-colors"
+            <button
+              onClick={() => {
+                setIsNavigating(true);
+                router.push(`/${locale}`);
+              }}
+              className="inline-flex cursor-pointer items-center text-gray-700 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition-colors"
             >
               <FiHome className="mr-2" />
               Home
-            </a>
+            </button>
           </li>
+
+          {/* Products */}
           <li>
             <div className="flex items-center">
               <FiChevronRight className="mx-1 text-gray-400" />
-              <a
-                href={`/${locale}/customer/products`}
-                className="text-gray-700 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition-colors"
+              <button
+                onClick={() => {
+                  setIsNavigating(true);
+                  router.push(`/${locale}/customer/products`);
+                }}
+                className="text-gray-700 cursor-pointer hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition-colors"
               >
                 Products
-              </a>
+              </button>
             </div>
           </li>
+
+          {/* Current product */}
           <li aria-current="page">
             <div className="flex items-center">
               <FiChevronRight className="mx-1 text-gray-400" />
@@ -536,9 +598,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                     src={allMedia[selectedMedia].src}
                     alt={product.name}
                     fill
-                    className={`object-contain transition-opacity duration-300 ${
-                      imageLoading ? "opacity-0" : "opacity-100"
-                    }`}
+                    className={`object-contain transition-opacity duration-300 ${imageLoading ? "opacity-0" : "opacity-100"
+                      }`}
                     sizes="(max-width: 768px) 100vw, 50vw"
                     onLoad={() => setImageLoading(false)}
                     onError={() => setImageLoading(false)}
@@ -604,11 +665,10 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                 <button
                   key={media.id}
                   onClick={() => setSelectedMedia(index)}
-                  className={`h-24 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden transition-all ${
-                    selectedMedia === index
-                      ? "ring-2 ring-blue-500 dark:ring-blue-400 scale-105"
-                      : "hover:ring-1 hover:ring-gray-300 dark:hover:ring-gray-600"
-                  }`}
+                  className={`h-24 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden transition-all ${selectedMedia === index
+                    ? "ring-2 ring-blue-500 dark:ring-blue-400 scale-105"
+                    : "hover:ring-1 hover:ring-gray-300 dark:hover:ring-gray-600"
+                    }`}
                 >
                   {media.type === "image" ? (
                     <Image
@@ -648,13 +708,71 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {product.name}
               </h1>
-              <button
-                title="Share Product"
-                onClick={() => handleShareProduct(product)}
-                className="p-2 cursor-pointer text-gray-500 hover:text-blue-500 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
-              >
-                <PiShareNetworkDuotone className="w-5 h-5" />
-              </button>
+              <div>
+                <div className="relative inline-block">
+                  {/* Barcode Button */}
+                  <button
+                    title="Show Barcode"
+                    onClick={() => setShowBarcode((prev) => !prev)}
+                    className="p-2 cursor-pointer text-gray-800 hover:text-blue-500 dark:text-gray-300 dark:hover:text-blue-400 transition-colors"
+                  >
+                    <CiBarcode className="w-5 h-5" />
+                  </button>
+
+                  {/* Popup */}
+                  {showBarcode && (
+                    <div className="absolute z-50 top-full mt-2 right-0 w-64 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg p-4">
+                      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                        Barcode
+                      </h3>
+
+                      {barcodeImage ? (
+                        <div className="flex flex-col items-center">
+                          <img
+                            src={barcodeImage}
+                            alt="Product Barcode"
+                            className="h-20 w-full object-contain rounded-md"
+                          />
+                          <p className="mt-3 text-sm font-mono text-gray-700 dark:text-gray-300 tracking-wide">
+                            {barcodeText}
+                          </p>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(barcodeText);
+                              Swal.fire({
+                                position: "top-end",
+                                icon: "success",
+                                title: "Barcode copied to clipboard!",
+                                showConfirmButton: false,
+                                timer: 1500,
+                                toast: true,
+                              });
+                            }}
+                            className="mt-3 flex items-center cursor-pointer px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-800/60 transition"
+                          >
+                            <BiCopy className="w-4 h-4 mr-1" />
+                            Copy Barcode
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                          No barcode available
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  title="Share Product"
+                  onClick={() => handleShareProduct(product)}
+                  className="p-2 cursor-pointer text-gray-800 hover:text-blue-500 dark:text-gray-300 dark:hover:text-blue-400 transition-colors"
+                >
+                  <PiShareNetworkDuotone className="w-5 h-5" />
+                </button>
+
+              </div>
+
             </div>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               Model: {product.model_code} | Brand: {product.brand.name}
@@ -666,11 +784,10 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
               {Array.from({ length: 5 }, (_, i) => (
                 <svg
                   key={i}
-                  className={`w-5 h-5  sm:w-6 sm:h-6  ${
-                    i < Math.round(product.average_rating || 0)
-                      ? "text-yellow-400"
-                      : "text-gray-300"
-                  }`}
+                  className={`w-5 h-5  sm:w-6 sm:h-6  ${i < Math.round(product.average_rating || 0)
+                    ? "text-yellow-400"
+                    : "text-gray-300"
+                    }`}
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -758,11 +875,10 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
           <div className="flex items-center gap-3">
             {product.stock > 0 ? (
               <span
-                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                  product.stock <= product.low_stock_threshold
-                    ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
-                    : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-                }`}
+                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${product.stock <= product.low_stock_threshold
+                  ? "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+                  : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                  }`}
               >
                 {product.stock <= product.low_stock_threshold
                   ? "Low Stock"
@@ -812,11 +928,10 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
               <button
                 onClick={handleAddToCart}
                 disabled={product.stock <= 0}
-                className={`flex-1 cursor-pointer py-3 px-4 rounded-lg sm:rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 text-base ${
-                  product.stock <= 0
-                    ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
-                    : "bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black text-white shadow-md transform hover:shadow-lg dark:from-gray-800 dark:to-gray-900 dark:hover:from-gray-900 dark:hover:to-gray-800"
-                }`}
+                className={`flex-1 cursor-pointer py-3 px-4 rounded-lg sm:rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 text-base ${product.stock <= 0
+                  ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
+                  : "bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black text-white shadow-md transform hover:shadow-lg dark:from-gray-800 dark:to-gray-900 dark:hover:from-gray-900 dark:hover:to-gray-800"
+                  }`}
               >
                 <FiShoppingCart className="w-5 h-5" />
                 {product.stock > 0 ? "Add to Cart" : "Out of Stock"}
@@ -825,11 +940,10 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
               {/* Wishlist */}
               <button
                 onClick={handleWishlistToggle}
-                className={`flex-1 cursor-pointer py-3 px-4 rounded-lg sm:rounded-xl border font-medium transition-all duration-300 flex items-center justify-center gap-2 text-base ${
-                  isWishlisted
-                    ? "bg-red-50 text-red-500 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
-                    : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
-                }`}
+                className={`flex-1 cursor-pointer py-3 px-4 rounded-lg sm:rounded-xl border font-medium transition-all duration-300 flex items-center justify-center gap-2 text-base ${isWishlisted
+                  ? "bg-red-50 text-red-500 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800"
+                  : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                  }`}
               >
                 <FiHeart
                   className={`w-5 h-5 ${isWishlisted ? "fill-current" : ""}`}
@@ -899,11 +1013,10 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
               type="button"
               onClick={handleSubmitReview}
               disabled={submittingReview}
-              className={`w-fit cursor-pointer py-2 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 text-sm sm:text-base ${
-                submittingReview
-                  ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
-                  : "bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black text-white shadow-md transform hover:shadow-lg dark:bg-gray-800 dark:hover:bg-gray-700"
-              }`}
+              className={`w-fit cursor-pointer py-2 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 text-sm sm:text-base ${submittingReview
+                ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
+                : "bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black text-white shadow-md transform hover:shadow-lg dark:bg-gray-800 dark:hover:bg-gray-700"
+                }`}
             >
               {submittingReview ? (
                 <>
@@ -938,11 +1051,10 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                       {Array.from({ length: 5 }, (_, i) => (
                         <svg
                           key={i}
-                          className={`w-4 h-4 ${
-                            i < Math.round(product.average_rating || 0)
-                              ? "text-yellow-400"
-                              : "text-gray-300"
-                          }`}
+                          className={`w-4 h-4 ${i < Math.round(product.average_rating || 0)
+                            ? "text-yellow-400"
+                            : "text-gray-300"
+                            }`}
                           fill="currentColor"
                           viewBox="0 0 20 20"
                         >

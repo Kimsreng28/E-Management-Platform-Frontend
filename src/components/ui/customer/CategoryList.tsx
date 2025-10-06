@@ -42,7 +42,7 @@ const CategoryList: React.FC<CategoryListProps> = ({
           >
             <div className="w-24 h-24 rounded-lg overflow-hidden mb-3">
               <img
-                src={category.image || "/placeholder.png"}
+                src={category.image || "/images/placeholder.png"}
                 alt={category.name}
                 className="object-contain w-full h-full"
               />

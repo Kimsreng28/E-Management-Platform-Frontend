@@ -176,9 +176,8 @@ export default function DashboardPage({
           <StatCard
             title="Total Revenue"
             value={`$${stats?.currentMonthRevenue?.toString() || "0"}`}
-            change={`+${
-              stats?.revenueChange?.toString() || "0"
-            } from last month`}
+            change={`${stats?.revenueChange?.toString() || "0"
+              } from last month`}
             icon={
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -202,7 +201,11 @@ export default function DashboardPage({
           <StatCard
             title="Orders"
             value={`+${stats?.currentMonthOrders?.toString() || "0"}`}
-            change={`+${stats?.orderChange?.toString() || "0"} from last month`}
+            change={
+              stats
+                ? `${stats.orderChange > 0 ? '+' : ''}${stats.orderChange} from last month`
+                : "0 from last month"
+            }
             icon={
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -229,9 +232,8 @@ export default function DashboardPage({
           <StatCard
             title="Products"
             value={stats?.totalProducts?.toString() || "0"}
-            change={`+${
-              stats?.productsChange?.toString() || "0"
-            } from last month`}
+            change={`+${stats?.productsChange?.toString() || "0"
+              } from last month`}
             icon={
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -253,9 +255,8 @@ export default function DashboardPage({
           <StatCard
             title="Active Customers"
             value={`+${stats?.currentHourActive?.toString() || "0"}`}
-            change={`+${
-              stats?.activeCustomerChange?.toString() || "0"
-            } since last hour`}
+            change={`+${stats?.activeCustomerChange?.toString() || "0"
+              } since last hour`}
             icon={
               <svg
                 xmlns="http://www.w3.org/2000/svg"

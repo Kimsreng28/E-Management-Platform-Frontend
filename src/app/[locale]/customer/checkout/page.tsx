@@ -45,10 +45,14 @@ function StripePaymentForm({
   clientSecret,
   onSuccess,
   onCancel,
+  showFullScreenLoading,
+  setShowFullScreenLoading,
 }: {
   clientSecret: string;
   onSuccess: () => void;
   onCancel: () => void;
+  showFullScreenLoading?: boolean;
+  setShowFullScreenLoading?: (loading: boolean) => void;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -69,8 +73,15 @@ function StripePaymentForm({
 
     if (!cardElement) {
       setError("Card element not found");
+      if (setShowFullScreenLoading) {
+        setShowFullScreenLoading(false);
+      }
       setProcessing(false);
       return;
+    }
+
+    if (setShowFullScreenLoading) {
+      setShowFullScreenLoading(true);
     }
 
     const { error: stripeError, paymentIntent } =
@@ -82,10 +93,14 @@ function StripePaymentForm({
 
     if (stripeError) {
       setError(stripeError.message || "Payment failed");
-      setProcessing(false);
+      if (setShowFullScreenLoading) {
+        setShowFullScreenLoading(false);
+      }
     } else if (paymentIntent && paymentIntent.status === "succeeded") {
       onSuccess();
     }
+
+    setProcessing(false);
   };
 
   return (
@@ -150,6 +165,7 @@ function KhqrModal({
   onCancel: () => void;
 }) {
   const [paymentVerified, setPaymentVerified] = useState(false);
+
 
   // Polling mechanism to verify payment status
   useEffect(() => {
@@ -263,6 +279,8 @@ export default function CheckoutPage({
   });
   const [delivery, setDelivery] = useState<any>(null);
   const [showDeliveryTracking, setShowDeliveryTracking] = useState(false);
+
+  const [showFullScreenLoading, setShowFullScreenLoading] = useState(false);
 
   const handleViewOrderDetails = (order: Order) => {
     setSelectedOrder(order);
@@ -426,19 +444,28 @@ export default function CheckoutPage({
     if (!couponCode.trim()) return true;
 
     try {
+      // Calculate current order amount for validation
+      const orderAmount = orderSummary?.subtotal || 0;
+
       const response = await fetch(`${API_BASE_URL}/api/coupons/validate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify({ code: couponCode }),
+        body: JSON.stringify({
+          code: couponCode,
+          order_amount: orderAmount
+        }),
       });
+
       const result = await response.json();
-      if (!result.valid) {
-        setError("Invalid or expired coupon code");
+
+      if (!response.ok || !result.success) {
+        setError(result.message || "Invalid or expired coupon code");
         return false;
       }
+
       return true;
     } catch (err) {
       setError("Failed to validate coupon");
@@ -495,6 +522,7 @@ export default function CheckoutPage({
     }
 
     setLoading(true);
+    setShowFullScreenLoading(true);
     setError("");
 
     try {
@@ -529,6 +557,7 @@ export default function CheckoutPage({
           // For COD, mark as paid and show success immediately
           await completeOrder(result.order.id);
           await fetchDeliveryInfo(result.order.id);
+          setShowFullScreenLoading(false);
         } else {
           // For online payments, process payment
           await processPayment(result.order.id, result.order.total);
@@ -536,11 +565,13 @@ export default function CheckoutPage({
       } else {
         setError(result.message || "Failed to create order");
         setLoading(false);
+        setShowFullScreenLoading(false);
       }
     } catch (error) {
       console.error("Checkout error:", error);
       setError("An error occurred during checkout");
       setLoading(false);
+      setShowFullScreenLoading(false);
     }
   };
 
@@ -571,9 +602,11 @@ export default function CheckoutPage({
       // Store payment data and show the appropriate payment modal
       setPaymentData(result);
       setShowPaymentModal(true);
+      setShowFullScreenLoading(false);
     } catch (error: any) {
       setError(error.message || "Payment initialization failed");
       setLoading(false);
+      setShowFullScreenLoading(false);
     }
   };
 
@@ -662,12 +695,15 @@ export default function CheckoutPage({
 
   const handlePaymentSuccess = async () => {
     setShowPaymentModal(false);
+    setShowFullScreenLoading(true);
 
     if (orderId && paymentData?.payment?.id) {
       await completeOrder(orderId, paymentData.payment.id);
 
       await fetchDeliveryInfo(orderId);
     }
+
+    setShowFullScreenLoading(false);
 
     try {
       if (paymentData?.id) {
@@ -716,6 +752,7 @@ export default function CheckoutPage({
   const handlePaymentCancel = () => {
     setShowPaymentModal(false);
     setLoading(false);
+    setShowFullScreenLoading(false);
   };
 
   const handleContinueShopping = () => {
@@ -732,6 +769,14 @@ export default function CheckoutPage({
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+
+      {/* Full-screen loading overlay */}
+      {showFullScreenLoading && (
+        <div className="fixed inset-0 z-50 flex justify-center items-center bg-black/40 bg-opacity-50 dark:bg-gray-900">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-black border-gray-200 dark:border-gray-700"></div>
+        </div>
+      )}
+
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -1595,7 +1640,7 @@ export default function CheckoutPage({
                   )?.path
                     ? `${API_BASE_URL}/${item.product.images.find((img) => img.is_primary)?.path
                     }`
-                    : "/placeholder.png";
+                    : "/images/placeholder.png";
 
                   return (
                     <div key={item.id} className="flex items-center">
@@ -1716,6 +1761,8 @@ export default function CheckoutPage({
                     clientSecret={paymentData.client_secret}
                     onSuccess={handlePaymentSuccess}
                     onCancel={handlePaymentCancel}
+                    showFullScreenLoading={showFullScreenLoading}
+                    setShowFullScreenLoading={setShowFullScreenLoading}
                   />
                 </Elements>
               )}

@@ -548,20 +548,18 @@ export default function CheckoutModal({
                     {addresses.map((address) => (
                       <div
                         key={address.id}
-                        className={`p-4 border rounded-lg cursor-pointer ${
-                          selectedAddress?.id === address.id
-                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                            : "border-gray-200 dark:border-gray-700"
-                        }`}
+                        className={`p-4 border rounded-lg cursor-pointer ${selectedAddress?.id === address.id
+                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                          : "border-gray-200 dark:border-gray-700"
+                          }`}
                         onClick={() => setSelectedAddress(address)}
                       >
                         <div className="flex items-center">
                           <div
-                            className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${
-                              selectedAddress?.id === address.id
-                                ? "border-blue-500 bg-blue-500"
-                                : "border-gray-300"
-                            }`}
+                            className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${selectedAddress?.id === address.id
+                              ? "border-blue-500 bg-blue-500"
+                              : "border-gray-300"
+                              }`}
                           >
                             {selectedAddress?.id === address.id && (
                               <svg
@@ -662,20 +660,18 @@ export default function CheckoutModal({
                   </h3>
                   <div className="grid gap-4">
                     <div
-                      className={`p-4 border rounded-lg cursor-pointer ${
-                        paymentMethod === "stripe"
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                          : "border-gray-200 dark:border-gray-700"
-                      }`}
+                      className={`p-4 border rounded-lg cursor-pointer ${paymentMethod === "stripe"
+                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                        : "border-gray-200 dark:border-gray-700"
+                        }`}
                       onClick={() => setPaymentMethod("stripe")}
                     >
                       <div className="flex items-center">
                         <div
-                          className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${
-                            paymentMethod === "stripe"
-                              ? "border-blue-500 bg-blue-500"
-                              : "border-gray-300"
-                          }`}
+                          className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${paymentMethod === "stripe"
+                            ? "border-blue-500 bg-blue-500"
+                            : "border-gray-300"
+                            }`}
                         >
                           {paymentMethod === "stripe" && (
                             <svg
@@ -703,20 +699,18 @@ export default function CheckoutModal({
                     </div>
 
                     <div
-                      className={`p-4 border rounded-lg cursor-pointer ${
-                        paymentMethod === "khqr"
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                          : "border-gray-200 dark:border-gray-700"
-                      }`}
+                      className={`p-4 border rounded-lg cursor-pointer ${paymentMethod === "khqr"
+                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                        : "border-gray-200 dark:border-gray-700"
+                        }`}
                       onClick={() => setPaymentMethod("khqr")}
                     >
                       <div className="flex items-center">
                         <div
-                          className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${
-                            paymentMethod === "khqr"
-                              ? "border-blue-500 bg-blue-500"
-                              : "border-gray-300"
-                          }`}
+                          className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${paymentMethod === "khqr"
+                            ? "border-blue-500 bg-blue-500"
+                            : "border-gray-300"
+                            }`}
                         >
                           {paymentMethod === "khqr" && (
                             <svg
@@ -742,20 +736,18 @@ export default function CheckoutModal({
                     </div>
 
                     <div
-                      className={`p-4 border rounded-lg cursor-pointer ${
-                        paymentMethod === "cod"
-                          ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                          : "border-gray-200 dark:border-gray-700"
-                      }`}
+                      className={`p-4 border rounded-lg cursor-pointer ${paymentMethod === "cod"
+                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                        : "border-gray-200 dark:border-gray-700"
+                        }`}
                       onClick={() => setPaymentMethod("cod")}
                     >
                       <div className="flex items-center">
                         <div
-                          className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${
-                            paymentMethod === "cod"
-                              ? "border-blue-500 bg-blue-500"
-                              : "border-gray-300"
-                          }`}
+                          className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${paymentMethod === "cod"
+                            ? "border-blue-500 bg-blue-500"
+                            : "border-gray-300"
+                            }`}
                         >
                           {paymentMethod === "cod" && (
                             <svg
@@ -860,10 +852,9 @@ export default function CheckoutModal({
                 const imageSrc = item.product?.images?.find(
                   (img) => img.is_primary
                 )?.path
-                  ? `${API_BASE_URL}/${
-                      item.product.images.find((img) => img.is_primary)?.path
-                    }`
-                  : "/placeholder.png";
+                  ? `${API_BASE_URL}/${item.product.images.find((img) => img.is_primary)?.path
+                  }`
+                  : "/images/placeholder.png";
 
                 return (
                   <div key={item.id} className="flex items-center">

@@ -80,41 +80,67 @@ export default function RecentOrders({ orders, params }: RecentOrdersProps) {
       </div>
 
       {/* Responsive scrollable table */}
-      <div className="overflow-x-auto mt-4">
-        <table className="w-full text-sm text-gray-900 dark:text-gray-200">
-          <thead>
-            <tr className="text-left font-bold border-b border-gray-200 dark:border-gray-700">
-              <th className="py-2 px-2">Order ID</th>
-              <th className="px-2">Customer</th>
-              <th className="px-2">Product</th>
-              <th className="px-2">Amount</th>
-              <th className="px-2">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map((order) => (
-              <tr
-                key={order.id}
-                className="border-b border-gray-200 dark:border-gray-700 last:border-0"
-              >
-                <td className="py-2 px-2">{order.id}</td>
-                <td className="px-2">{order.customer}</td>
-                <td className="px-2">{order.product}</td>
-                <td className="px-2">{order.amount}</td>
-                <td className="px-2">
-                  <div
-                    className={`inline-flex shadow-sm border border-gray-300 dark:border-gray-600 rounded-md font-semibold px-3 py-1 text-xs sm:text-sm ${getStatusClasses(
-                      order.status
-                    )}`}
-                  >
-                    {order.status}
-                  </div>
-                </td>
+      {orders.length > 0 ? (
+        <div className="overflow-x-auto mt-4">
+          <table className="w-full text-sm text-gray-900 dark:text-gray-200">
+            <thead>
+              <tr className="text-left font-bold border-b border-gray-200 dark:border-gray-700">
+                <th className="py-2 px-2">Order ID</th>
+                <th className="px-2">Customer</th>
+                <th className="px-2">Product</th>
+                <th className="px-2">Amount</th>
+                <th className="px-2">Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {orders.map((order) => (
+                <tr
+                  key={order.id}
+                  className="border-b border-gray-200 dark:border-gray-700 last:border-0"
+                >
+                  <td className="py-2 px-2">{order.id}</td>
+                  <td className="px-2">{order.customer}</td>
+                  <td className="px-2">{order.product}</td>
+                  <td className="px-2">{order.amount}</td>
+                  <td className="px-2">
+                    <div
+                      className={`inline-flex shadow-sm border border-gray-300 dark:border-gray-600 rounded-md font-semibold px-3 py-1 text-xs sm:text-sm ${getStatusClasses(
+                        order.status
+                      )}`}
+                    >
+                      {order.status}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-16 w-16 mb-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.5}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M3 3h18v18H3V3z"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 8v8m4-4H8"
+            />
+          </svg>
+          <p className="text-lg font-semibold">No recent orders</p>
+          <p className="text-sm text-gray-400">You haven’t placed any orders yet.</p>
+        </div>
+      )}
     </div>
   );
 }

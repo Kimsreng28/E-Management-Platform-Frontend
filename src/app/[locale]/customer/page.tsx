@@ -62,6 +62,9 @@ export default function CustomerHomePage({
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [newProducts, setNewProducts] = useState<Product[]>([]);
+  const [popularProducts, setPopularProducts] = useState<Product[]>([]);
+  const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
+  const [highlyRatedProducts, setHighlyRatedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -117,6 +120,54 @@ export default function CustomerHomePage({
     };
 
     fetchProducts();
+  }, []);
+
+  useEffect(() => {
+    const fetchPopularProducts = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/products/popular?limit=5`);
+        const data = await res.json();
+        if (data) {
+          setPopularProducts(data);
+        }
+      } catch (err) {
+        console.error('Error fetching popular products:', err);
+      }
+    };
+
+    fetchPopularProducts();
+  }, []);
+
+  useEffect(() => {
+    const fetchRecommendedProducts = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/products/recommended?limit=5`);
+        const data = await res.json();
+        if (data) {
+          setRecommendedProducts(data);
+        }
+      } catch (err) {
+        console.error('Error fetching recommended products:', err);
+      }
+    };
+
+    fetchRecommendedProducts();
+  }, []);
+
+  useEffect(() => {
+    const fetchHighlyRatedProducts = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/products/highly-rated?limit=5`);
+        const data = await res.json();
+        if (data) {
+          setHighlyRatedProducts(data);
+        }
+      } catch (err) {
+        console.error('Error fetching highly rated products:', err);
+      }
+    };
+
+    fetchHighlyRatedProducts();
   }, []);
 
   const featureItems = [
@@ -232,6 +283,102 @@ export default function CustomerHomePage({
           {/* Products Card List */}
           <div className="px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
             {newProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                locale={language}
+                product={product}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Popular Products Section */}
+      {popularProducts.length > 0 && (
+        <div className="w-full py-2 px-2 sm:px-6 lg:px-2 mt-6">
+          <div className="px-4 mb-4 mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                Popular Products
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                Our best-selling items
+              </p>
+            </div>
+            <Link
+              href={`/${language}/customer/products`}
+              className="flex items-center bg-gradient-to-r from-black to-gray-800 dark:from-gray-900 dark:to-gray-700 hover:from-gray-900 hover:to-gray-700 dark:hover:from-gray-800 dark:hover:to-gray-600 text-white px-6 py-3 rounded-lg shadow-lg shadow-black/25 dark:shadow-gray-900/50 transition-all duration-300 hover:shadow-xl hover:shadow-black/40 dark:hover:shadow-gray-800/60"
+            >
+              View All Products
+              <IoIosArrowForward className="ml-2 text-xl" />
+            </Link>
+          </div>
+          <div className="px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            {popularProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                locale={language}
+                product={product}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recommended Products Section */}
+      {recommendedProducts.length > 0 && (
+        <div className="w-full py-2 px-2 sm:px-6 lg:px-2 mt-6">
+          <div className="px-4 mb-4 mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                Recommended For You
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                Products you might like
+              </p>
+            </div>
+            <Link
+              href={`/${language}/customer/products`}
+              className="flex items-center bg-gradient-to-r from-black to-gray-800 dark:from-gray-900 dark:to-gray-700 hover:from-gray-900 hover:to-gray-700 dark:hover:from-gray-800 dark:hover:to-gray-600 text-white px-6 py-3 rounded-lg shadow-lg shadow-black/25 dark:shadow-gray-900/50 transition-all duration-300 hover:shadow-xl hover:shadow-black/40 dark:hover:shadow-gray-800/60"
+            >
+              View All Products
+              <IoIosArrowForward className="ml-2 text-xl" />
+            </Link>
+          </div>
+          <div className="px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            {recommendedProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                locale={language}
+                product={product}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Highly Rated Products Section */}
+      {highlyRatedProducts.length > 0 && (
+        <div className="w-full py-2 px-2 sm:px-6 lg:px-2 mt-6">
+          <div className="px-4 mb-4 mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+                Highly Rated
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                Customer favorites with top ratings
+              </p>
+            </div>
+            <Link
+              href={`/${language}/customer/products`}
+              className="flex items-center bg-gradient-to-r from-black to-gray-800 dark:from-gray-900 dark:to-gray-700 hover:from-gray-900 hover:to-gray-700 dark:hover:from-gray-800 dark:hover:to-gray-600 text-white px-6 py-3 rounded-lg shadow-lg shadow-black/25 dark:shadow-gray-900/50 transition-all duration-300 hover:shadow-xl hover:shadow-black/40 dark:hover:shadow-gray-800/60"
+            >
+              View All Products
+              <IoIosArrowForward className="ml-2 text-xl" />
+            </Link>
+          </div>
+          <div className="px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            {highlyRatedProducts.map((product) => (
               <ProductCard
                 key={product.id}
                 locale={language}
