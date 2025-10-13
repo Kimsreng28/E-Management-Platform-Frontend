@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "@/utils/useTranslations";
 import { useState } from "react";
 import {
   FiCalendar,
@@ -15,6 +16,7 @@ interface ReportFiltersProps {
   onExport: (type: "pdf" | "csv") => void;
   reportType: string;
   isLoading?: boolean;
+  params?: { locale: "en" | "kh" };
 }
 
 export default function ReportFilters({
@@ -24,11 +26,15 @@ export default function ReportFilters({
   onExport,
   reportType,
   isLoading = false,
+  params
 }: ReportFiltersProps) {
   const [showCustomRange, setShowCustomRange] = useState(false);
   const [customStart, setCustomStart] = useState("");
   const [customEnd, setCustomEnd] = useState("");
   const [open, setOpen] = useState(false);
+
+  const language = params?.locale || "en";
+  const t = useTranslations(language);
 
   const handleExport = (type: "pdf" | "csv") => {
     onExport(type);
@@ -36,14 +42,14 @@ export default function ReportFilters({
   };
 
   const periods = [
-    { value: "day", label: "Today" },
-    { value: "week", label: "This Week" },
-    { value: "month", label: "This Month" },
-    { value: "year", label: "This Year" },
-    { value: "last_week", label: "Last Week" },
-    { value: "last_month", label: "Last Month" },
-    { value: "last_year", label: "Last Year" },
-    { value: "custom", label: "Custom Range" },
+    { value: "day", label: t.reportsPage.today },
+    { value: "week", label: t.reportsPage.thisWeek },
+    { value: "month", label: t.reportsPage.thisMonth },
+    { value: "year", label: t.reportsPage.thisYear },
+    { value: "last_week", label: t.reportsPage.lastWeek },
+    { value: "last_month", label: t.reportsPage.lastMonth },
+    { value: "last_year", label: t.reportsPage.lastYear },
+    { value: "custom", label: t.reportsPage.customRange },
   ];
 
   const handlePeriodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -89,7 +95,7 @@ export default function ReportFilters({
               <div className="flex items-center gap-2">
                 <FiCalendar className="text-blue-500" />
                 <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                  Custom Range:
+                  {t.reportsPage.customRange}:
                 </span>
               </div>
               <div className="flex flex-col sm:flex-row gap-2">
@@ -129,7 +135,7 @@ export default function ReportFilters({
             disabled={isLoading}
           >
             <FiDownload size={16} />
-            Export
+            {t.reportsPage.export}
             <FiChevronDown size={16} className="ml-1" />
           </button>
 

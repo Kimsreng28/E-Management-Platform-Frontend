@@ -110,8 +110,8 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
         type === "checkbox"
           ? (e.target as HTMLInputElement).checked
           : type === "number"
-          ? parseFloat(value) || 0
-          : value,
+            ? parseFloat(value) || 0
+            : value,
     }));
   };
 
@@ -284,15 +284,15 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
   };
 
   return (
-    <div className="p-6 space-y-6 bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="p-1 space-y-3 bg-gray-50 dark:bg-gray-900 min-h-screen">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Coupon Management
+            {t.coupon.couponManagement}
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Create and manage discount coupons
+            {t.coupon.createAndManage}
           </p>
         </div>
         <button
@@ -300,7 +300,7 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
           className="flex items-center cursor-pointer gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
         >
           <FiPlus size={18} />
-          Create Coupon
+          {t.coupon.createCoupons}
         </button>
       </div>
 
@@ -309,8 +309,8 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">
-                Total Coupons
+              <p className="text-gray-800 dark:text-gray-400 text-lg">
+                {t.coupon.totalCoupons}
               </p>
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
                 {coupons.length}
@@ -325,8 +325,8 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">
-                Active Coupons
+              <p className="text-gray-800 dark:text-gray-400 text-lg">
+                {t.coupon.activeCoupons}
               </p>
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
                 {coupons.filter(isCouponActive).length}
@@ -344,8 +344,8 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">
-                Fixed Discounts
+              <p className="text-gray-800 dark:text-gray-400 text-lg">
+                {t.coupon.fixDiscounts}
               </p>
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
                 {coupons.filter((c) => c.type === "fixed").length}
@@ -363,8 +363,8 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">
-                Percentage Discounts
+              <p className="text-gray-800 dark:text-gray-400 text-lg">
+                {t.coupon.percentageDiscount}
               </p>
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
                 {coupons.filter((c) => c.type === "percentage").length}
@@ -398,7 +398,7 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
             onClick={() => setShowCreateModal(true)}
             className="bg-blue-600 hover:bg-blue-700 cursor-pointer text-white px-6 py-2 rounded-lg transition-colors"
           >
-            Create Coupon
+            {t.coupon.createCoupons}
           </button>
         </div>
       ) : (
@@ -406,33 +406,30 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
           {coupons.map((coupon) => (
             <div
               key={coupon.id}
-              className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border-l-4 ${
-                isCouponActive(coupon)
-                  ? "border-green-500"
-                  : "border-gray-300 dark:border-gray-600 opacity-80"
-              }`}
+              className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border-l-4 ${isCouponActive(coupon)
+                ? "border-green-500"
+                : "border-gray-300 dark:border-gray-600 opacity-80"
+                }`}
             >
               {/* Coupon Header */}
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 p-4">
                 <div className="flex justify-between items-start">
                   <div>
                     <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        isCouponActive(coupon)
-                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                          : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-                      }`}
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-lg font-bold ${isCouponActive(coupon)
+                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                        : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+                        }`}
                     >
-                      {isCouponActive(coupon) ? "Active" : "Inactive"}
+                      {isCouponActive(coupon) ? t.coupon.active : t.coupon.inactive}
                     </span>
                     <span
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ml-2 ${
-                        coupon.type === "fixed"
-                          ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-                          : "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
-                      }`}
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-lg font-bold ml-2 ${coupon.type === "fixed"
+                        ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                        : "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+                        }`}
                     >
-                      {coupon.type === "fixed" ? "Fixed" : "Percentage"}
+                      {coupon.type === "fixed" ? t.coupon.fix : t.coupon.percentage}
                     </span>
                   </div>
                   <button
@@ -460,14 +457,14 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
                   {coupon.min_order_amount && (
                     <div className="flex items-center">
                       <FiDollarSign size={14} className="mr-2" />
-                      <span>Min. order: ${coupon.min_order_amount}</span>
+                      <span>{t.coupon.minOrder}: ${coupon.min_order_amount}</span>
                     </div>
                   )}
 
                   <div className="flex items-center">
                     <FiCalendar size={14} className="mr-2" />
                     <span>
-                      Valid: {new Date(coupon.start_date).toLocaleDateString()}{" "}
+                      {t.coupon.valid}: {new Date(coupon.start_date).toLocaleDateString()}{" "}
                       - {new Date(coupon.end_date).toLocaleDateString()}
                     </span>
                   </div>
@@ -475,7 +472,7 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
                   {coupon.usage_limit && (
                     <div className="flex items-center">
                       <FiTag size={14} className="mr-2" />
-                      <span>Limit: {coupon.usage_limit} uses</span>
+                      <span>{t.coupon.limit}: {coupon.usage_limit} {t.coupon.uses}</span>
                     </div>
                   )}
                 </div>
@@ -487,7 +484,7 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
                   onClick={() => setPreviewCoupon(coupon)}
                   className="text-blue-600 cursor-pointer hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium"
                 >
-                  Preview
+                  {t.coupon.preview}
                 </button>
                 <button
                   onClick={() => handleEdit(coupon)}
@@ -522,7 +519,7 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Coupon Code *
+                  {t.coupon.couponCode} *
                 </label>
                 <input
                   type="text"
@@ -538,7 +535,7 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Discount Type *
+                  {t.coupon.discountType} *
                 </label>
                 <select
                   name="type"
@@ -554,7 +551,7 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Value *
+                  {t.coupon.value} *
                 </label>
                 <input
                   type="number"
@@ -571,7 +568,7 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Minimum Order Amount
+                  {t.coupon.minimumOrderAmount}
                 </label>
                 <input
                   type="number"
@@ -588,7 +585,7 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Start Date *
+                    {t.coupon.startDate} *
                   </label>
                   <input
                     type="date"
@@ -602,7 +599,7 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    End Date *
+                    {t.coupon.endDate} *
                   </label>
                   <input
                     type="date"
@@ -617,7 +614,7 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Usage Limit
+                  {t.coupon.usageLimit}
                 </label>
                 <input
                   type="number"
@@ -644,7 +641,7 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
                   htmlFor="is_active"
                   className="ml-2 block text-sm text-gray-700 dark:text-gray-300"
                 >
-                  Active
+                  {t.coupon.active}
                 </label>
               </div>
 
@@ -657,13 +654,13 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
                   }}
                   className="px-4 py-2 border cursor-pointer border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
-                  Cancel
+                  {t.coupon.cancel}
                 </button>
                 <button
                   type="submit"
                   className="px-4 py-2 cursor-pointer bg-blue-600 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
-                  {editingCoupon ? "Update Coupon" : "Create Coupon"}
+                  {editingCoupon ? t.coupon.updateCoupon : t.coupon.createCoupons}
                 </button>
               </div>
             </form>
@@ -677,7 +674,7 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full">
             <div className="p-6 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Coupon Preview
+                {t.coupon.couponPreview}
               </h2>
             </div>
 
@@ -691,26 +688,26 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
                 <p className="text-lg font-mono bg-white/20 py-1 px-3 rounded-md inline-block">
                   {previewCoupon.code}
                 </p>
-                <p className="text-sm mt-3 opacity-90">
+                <p className="text-lg mt-3 opacity-90">
                   {previewCoupon.min_order_amount
-                    ? `On orders over $${previewCoupon.min_order_amount}`
-                    : "On any order"}
+                    ? `${t.coupon.onOrderOver} $${previewCoupon.min_order_amount}`
+                    : `${t.coupon.onOrderOver}`}
                 </p>
               </div>
 
-              <div className="space-y-3 text-sm text-gray-600 dark:text-gray-300">
+              <div className="space-y-3 text-lg text-gray-700 dark:text-gray-300">
                 <div className="flex justify-between">
-                  <span>Discount Type:</span>
-                  <span className="font-medium">
+                  <span>{t.coupon.discountType}:</span>
+                  <span className="font-bold">
                     {previewCoupon.type === "fixed"
-                      ? "Fixed Amount"
-                      : "Percentage"}
+                      ? t.coupon.fix
+                      : t.coupon.percentage}
                   </span>
                 </div>
 
                 <div className="flex justify-between">
-                  <span>Value:</span>
-                  <span className="font-medium">
+                  <span>{t.coupon.value}:</span>
+                  <span className="font-bold">
                     {previewCoupon.type === "fixed"
                       ? `$${previewCoupon.value}`
                       : `${previewCoupon.value}%`}
@@ -719,46 +716,45 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
 
                 {previewCoupon.min_order_amount && (
                   <div className="flex justify-between">
-                    <span>Minimum Order:</span>
-                    <span className="font-medium">
+                    <span>{t.coupon.minimumOrder}:</span>
+                    <span className="font-bold">
                       ${previewCoupon.min_order_amount}
                     </span>
                   </div>
                 )}
 
                 <div className="flex justify-between">
-                  <span>Valid From:</span>
-                  <span className="font-medium">
+                  <span>{t.coupon.validFrom}:</span>
+                  <span className="font-bold">
                     {new Date(previewCoupon.start_date).toLocaleDateString()}
                   </span>
                 </div>
 
                 <div className="flex justify-between">
-                  <span>Valid Until:</span>
-                  <span className="font-medium">
+                  <span>{t.coupon.validUntil}:</span>
+                  <span className="font-bold">
                     {new Date(previewCoupon.end_date).toLocaleDateString()}
                   </span>
                 </div>
 
                 {previewCoupon.usage_limit && (
                   <div className="flex justify-between">
-                    <span>Usage Limit:</span>
-                    <span className="font-medium">
-                      {previewCoupon.usage_limit} times
+                    <span>{t.coupon.usageLimit}:</span>
+                    <span className="font-bold">
+                      {previewCoupon.usage_limit} {t.coupon.times}
                     </span>
                   </div>
                 )}
 
                 <div className="flex justify-between">
-                  <span>Status:</span>
+                  <span>{t.coupon.status}:</span>
                   <span
-                    className={`font-medium ${
-                      isCouponActive(previewCoupon)
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-red-600 dark:text-red-400"
-                    }`}
+                    className={`font-bold ${isCouponActive(previewCoupon)
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-red-600 dark:text-red-400"
+                      }`}
                   >
-                    {isCouponActive(previewCoupon) ? "Active" : "Inactive"}
+                    {isCouponActive(previewCoupon) ? t.coupon.active : t.coupon.inactive}
                   </span>
                 </div>
               </div>
@@ -767,9 +763,9 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
             <div className="bg-gray-50 dark:bg-gray-700/50 px-6 py-4 flex justify-end">
               <button
                 onClick={() => setPreviewCoupon(null)}
-                className="px-4 py-2 bg-blue-600 cursor-pointer border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-blue-700"
+                className="px-4 py-2 bg-blue-600 cursor-pointer border border-transparent rounded-md shadow-sm text-lg font-medium text-white hover:bg-blue-700"
               >
-                Close
+                {t.coupon.close}
               </button>
             </div>
           </div>

@@ -144,7 +144,7 @@ export default function CategoryDetailPage() {
                             className="inline-flex cursor-pointer items-center text-gray-700 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition-colors"
                         >
                             <FiHome className="mr-2" />
-                            Home
+                            {t.Home}
                         </button>
                     </li>
 
@@ -159,7 +159,7 @@ export default function CategoryDetailPage() {
                                 }}
                                 className="text-gray-700 cursor-pointer hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition-colors"
                             >
-                                Categories
+                                {t.categoryPage.categories}
                             </button>
                         </div>
                     </li>
@@ -201,7 +201,7 @@ export default function CategoryDetailPage() {
                             />
                             <div className="flex flex-wrap gap-4">
                                 <div className="bg-blue-100 dark:bg-blue-900 px-3 py-1 rounded-full text-sm">
-                                    {products.length} Products
+                                    {products.length} {t.categoryPage.products}
                                 </div>
                                 {category.children_count && category.children_count > 0 && (
                                     <div className="bg-green-100 dark:bg-green-900 px-3 py-1 rounded-full text-sm">
@@ -210,7 +210,7 @@ export default function CategoryDetailPage() {
                                 )}
                                 {category.is_featured && (
                                     <div className="bg-yellow-100 dark:bg-yellow-900 px-3 py-1 rounded-full text-sm">
-                                        Featured
+                                        {t.categoryPage.featured}
                                     </div>
                                 )}
                             </div>
@@ -243,11 +243,11 @@ export default function CategoryDetailPage() {
             {/* Products Section */}
             <div>
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold">Products</h2>
+                    <h2 className="text-2xl font-bold">{t.categoryPage.products}</h2>
 
                     {/* Sort Options */}
                     <div className="flex items-center space-x-2">
-                        <span className="text-sm text-gray-600 dark:text-gray-300">Sort by:</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-300">{t.categoryPage.sortBy}:</span>
                         <select
                             value={`${sortBy}-${sortOrder}`}
                             onChange={(e) => {
@@ -350,12 +350,12 @@ export default function CategoryDetailPage() {
                                                     }`}
                                             >
                                                 {product.stock <= product.low_stock_threshold
-                                                    ? "Low Stock"
-                                                    : "In Stock"}
+                                                    ? t.createProduct.lowStock
+                                                    : t.createProduct.inStock}
                                             </span>
                                         ) : (
                                             <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-                                                Out of Stock
+                                                {t.createProduct.outOfStock}
                                             </span>
                                         )}
                                     </div>

@@ -49,11 +49,11 @@ export default function RecentOrders({ orders, params }: RecentOrdersProps) {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Recent Orders
+            {t.dashboardPage.recentOrders}
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-            You have {orders.length} recent orders this{" "}
-            {orders.length > 1 ? "week" : "day"}
+            {t.dashboardPage.youHave} {orders.length} {t.dashboardPage.recentOrdersThis}{" "}
+            {orders.length > 1 ? t.dashboardPage.week : t.dashboardPage.day}
           </p>
         </div>
 
@@ -75,7 +75,7 @@ export default function RecentOrders({ orders, params }: RecentOrdersProps) {
               <path d="M15 12a3 3 0 1 1-6 0a3 3 0 0 1 6 0Z" />
             </g>
           </svg>
-          View all
+          {t.dashboardPage.viewAll}
         </button>
       </div>
 
@@ -137,8 +137,8 @@ export default function RecentOrders({ orders, params }: RecentOrdersProps) {
               d="M12 8v8m4-4H8"
             />
           </svg>
-          <p className="text-lg font-semibold">No recent orders</p>
-          <p className="text-sm text-gray-400">You haven’t placed any orders yet.</p>
+          <p className="text-lg font-semibold">{t.dashboardPage.noRecentOrders}</p>
+          <p className="text-sm text-gray-400">{t.dashboardPage.youHaveNotPlacedAnyOrdersYet}</p>
         </div>
       )}
     </div>

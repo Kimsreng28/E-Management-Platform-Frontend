@@ -303,7 +303,7 @@ export function CustomerNavbar({
                                 </p>
                                 {category.products_count && (
                                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                                    {category.products_count} products
+                                    {category.products_count} {t.categoryPage.products}
                                   </p>
                                 )}
                               </div>

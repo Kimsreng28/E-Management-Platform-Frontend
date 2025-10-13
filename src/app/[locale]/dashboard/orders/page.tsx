@@ -46,23 +46,6 @@ interface Payment {
   status: string;
 }
 
-const statusOptions = [
-  { label: "All Status", value: "" },
-  { label: "Pending", value: "pending" },
-  { label: "Processing", value: "processing" },
-  { label: "Shipped", value: "shipped" },
-  { label: "Cancelled", value: "cancelled" },
-  { label: "Refunded", value: "refunded" },
-  { label: "Completed", value: "completed" },
-];
-
-const paymentOptions = [
-  { label: "Paid", value: "completed" },
-  { label: "Pending", value: "pending" },
-  { label: "Failed", value: "failed" },
-  { label: "Refunded", value: "refunded" },
-];
-
 export default function OrdersPage({
   params,
 }: {
@@ -95,6 +78,23 @@ export default function OrdersPage({
     top: number;
     left: number;
   } | null>(null);
+
+  const statusOptions = [
+    { label: t.ordersPage.allStatus, value: "" },
+    { label: t.ordersPage.pending, value: "pending" },
+    { label: t.ordersPage.processing, value: "processing" },
+    { label: t.ordersPage.shipped, value: "shipped" },
+    { label: t.ordersPage.cancelled, value: "cancelled" },
+    { label: t.ordersPage.refunded, value: "refunded" },
+    { label: t.ordersPage.completed, value: "completed" },
+  ];
+
+  const paymentOptions = [
+    { label: t.ordersPage.completed, value: "completed" },
+    { label: t.ordersPage.pending, value: "pending" },
+    { label: t.ordersPage.failed, value: "failed" },
+    { label: t.ordersPage.refunded, value: "refunded" },
+  ];
 
   // Fetch order stats
   const fetchOrderStats = async () => {
@@ -206,18 +206,16 @@ export default function OrdersPage({
     return (
       <span className="inline-flex flex-col ml-1">
         <IoIosArrowUp
-          className={`w-3 h-3 ${
-            sortField === field && sortDirection === "asc"
-              ? "text-gray-900 dark:text-gray-200"
-              : "text-gray-400 dark:text-gray-200"
-          }`}
+          className={`w-3 h-3 ${sortField === field && sortDirection === "asc"
+            ? "text-gray-900 dark:text-gray-200"
+            : "text-gray-400 dark:text-gray-200"
+            }`}
         />
         <IoIosArrowDown
-          className={`w-3 h-3 ${
-            sortField === field && sortDirection === "desc"
-              ? "text-gray-900 dark:text-gray-200"
-              : "text-gray-400 dark:text-gray-200"
-          }`}
+          className={`w-3 h-3 ${sortField === field && sortDirection === "desc"
+            ? "text-gray-900 dark:text-gray-200"
+            : "text-gray-400 dark:text-gray-200"
+            }`}
         />
       </span>
     );
@@ -290,17 +288,40 @@ export default function OrdersPage({
     sortDirection,
   ]);
 
+  const getTranslatedStatus = (status: string) => {
+    const statusMap: { [key: string]: string } = {
+      pending: t.ordersPage.pending,
+      processing: t.ordersPage.processing,
+      shipped: t.ordersPage.shipped,
+      cancelled: t.ordersPage.cancelled,
+      refunded: t.ordersPage.refunded,
+      completed: t.ordersPage.completed,
+    };
+    return statusMap[status] || status;
+  };
+
+  // Helper function to translate payment status
+  const getTranslatedPaymentStatus = (status: string) => {
+    const statusMap: { [key: string]: string } = {
+      pending: t.ordersPage.pending,
+      completed: t.ordersPage.completed,
+      failed: t.ordersPage.failed,
+      refunded: t.ordersPage.refunded,
+    };
+    return statusMap[status] || status;
+  };
+
   return (
-    <div className="space-y-6 px-4 sm:px-6 lg:px-1 lg:py-1 py-6 sm:space-y-6 md:px-6 sm:py-6">
+    <div className="space-y-3 px-2 sm:px-2 lg:px-2 lg:py-2 py-2 sm:space-y-3 md:px-2 sm:py-2">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6">
         {/* Title Section */}
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2 dark:text-white">
-            Orders
+            {t.ordersPage.orders}
           </h1>
           <p className="text-sm sm:text-base text-gray-500 dark:text-gray-300">
-            Manage customer orders and track fulfillment
+            {t.ordersPage.manageCustomer}
           </p>
         </div>
       </div>
@@ -308,12 +329,12 @@ export default function OrdersPage({
       {/* Stats Section */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <StatCard
-          title="Total Orders"
+          title={t.ordersPage.totalOrders}
           value={stats?.total?.toString() || "0"}
           icon={
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="w-6 h-6"
+              className="w-10 h-10"
               viewBox="0 0 24 24"
             >
               <path
@@ -329,12 +350,12 @@ export default function OrdersPage({
           gradientTo="to-[#5752cf]"
         />
         <StatCard
-          title="Pending"
+          title={t.ordersPage.pending}
           value={stats?.pending?.toString() || "0"}
           icon={
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="w-6 h-6"
+              className="w-10 h-10"
               viewBox="0 0 24 24"
             >
               <g fill="none">
@@ -350,12 +371,12 @@ export default function OrdersPage({
           gradientTo="to-[#06b6d4]"
         />
         <StatCard
-          title="Processing"
+          title={t.ordersPage.processing}
           value={stats?.processing?.toString() || "0"}
           icon={
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="w-6 h-6"
+              className="w-10 h-10"
               viewBox="0 0 32 32"
             >
               <path
@@ -368,12 +389,12 @@ export default function OrdersPage({
           gradientTo="to-[#f97316]"
         />
         <StatCard
-          title="Shipped"
+          title={t.ordersPage.shipped}
           value={stats?.shipped?.toString() || "0"}
           icon={
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="w-6 h-6"
+              className="w-10 h-10"
               viewBox="0 0 24 24"
             >
               <path
@@ -390,12 +411,12 @@ export default function OrdersPage({
           gradientTo="to-[#0d9488]"
         />
         <StatCard
-          title="Completed"
+          title={t.ordersPage.completed}
           value={stats?.completed?.toString() || "0"}
           icon={
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="w-6 h-6"
+              className="w-10 h-10"
               viewBox="0 0 32 32"
             >
               <path
@@ -415,10 +436,10 @@ export default function OrdersPage({
         <div className=" p-2 m-2 ">
           <div className="mb-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              Order Management
+              {t.ordersPage.orderManagement}
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Search, filter, and manage customer orders
+              {t.ordersPage.searchFilterManage}
             </p>
           </div>
 
@@ -431,7 +452,7 @@ export default function OrdersPage({
                 </div>
                 <input
                   type="text"
-                  placeholder="Search orders..."
+                  placeholder={t.ordersPage.searchOrders}
                   className="w-full text-xs sm:text-sm md:text-base border shadow focus:border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-gray-300 border-gray-300 rounded-lg pl-8 sm:pl-10 py-1.5 sm:py-2 dark:bg-gray-800 dark:text-white dark:border-gray-600"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -469,7 +490,7 @@ export default function OrdersPage({
                   }}
                   className="w-full text-sm sm:text-base border shadow focus:border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-gray-300 border-gray-300 rounded-lg px-2 py-2 pr-8 dark:bg-gray-800 dark:text-white dark:border-gray-600 appearance-none"
                 >
-                  <option value="">All Payments</option>
+                  <option value="">{t.ordersPage.allPayments}</option>
                   {paymentOptions.map((opt) => (
                     <option key={opt.value} value={opt.value}>
                       {opt.label}
@@ -492,7 +513,7 @@ export default function OrdersPage({
                   onClick={() => handleSort("order_number")}
                 >
                   <div className="flex items-center">
-                    Order ID {getSortIndicator("order_number")}
+                    {t.ordersPage.orderId} {getSortIndicator("order_number")}
                   </div>
                 </th>
                 <th
@@ -501,14 +522,14 @@ export default function OrdersPage({
                   onClick={() => handleSort("user.name")}
                 >
                   <div className="flex items-center">
-                    Customer {getSortIndicator("user.name")}
+                    {t.ordersPage.customer} {getSortIndicator("user.name")}
                   </div>
                 </th>
                 <th
                   scope="col"
                   className="px-6 py-3 text-left text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider"
                 >
-                  Products
+                  {t.ordersPage.product}
                 </th>
                 <th
                   scope="col"
@@ -516,7 +537,7 @@ export default function OrdersPage({
                   onClick={() => handleSort("total")}
                 >
                   <div className="flex items-center">
-                    Total {getSortIndicator("total")}
+                    {t.ordersPage.total} {getSortIndicator("total")}
                   </div>
                 </th>
                 <th
@@ -525,7 +546,7 @@ export default function OrdersPage({
                   onClick={() => handleSort("status")}
                 >
                   <div className="flex items-center">
-                    Status {getSortIndicator("status")}
+                    {t.ordersPage.status} {getSortIndicator("status")}
                   </div>
                 </th>
                 <th
@@ -534,7 +555,7 @@ export default function OrdersPage({
                   onClick={() => handleSort("payment_status")}
                 >
                   <div className="flex items-center">
-                    Payment {getSortIndicator("payment_status")}
+                    {t.ordersPage.payment} {getSortIndicator("payment_status")}
                   </div>
                 </th>
                 <th
@@ -543,14 +564,14 @@ export default function OrdersPage({
                   onClick={() => handleSort("created_at")}
                 >
                   <div className="flex items-center">
-                    Date {getSortIndicator("created_at")}
+                    {t.ordersPage.date} {getSortIndicator("created_at")}
                   </div>
                 </th>
                 <th
                   scope="col"
                   className="px-6 py-3 text-right text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider"
                 >
-                  Actions
+                  {t.ordersPage.actions}
                 </th>
               </tr>
             </thead>
@@ -581,13 +602,13 @@ export default function OrdersPage({
                     className="hover:bg-gray-50 dark:hover:bg-gray-700"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-xs font-semibold text-gray-900 dark:text-white">
+                      <div className="text-xs font-semibold text-black dark:text-white">
                         #{order.order_number || order.id}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        <div className="text-sm font-medium text-black dark:text-white">
                           {order.user?.name || "N/A"}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -601,7 +622,7 @@ export default function OrdersPage({
                           order.items.slice(0, 2).map((item, index) => (
                             <div
                               key={index}
-                              className="text-xs font-semibold text-gray-600 dark:text-gray-300 truncate"
+                              className="text-xs font-semibold text-black dark:text-gray-300 truncate"
                               title={`${item.product_name} (x${item.quantity})`}
                             >
                               {item.product_name} (x{item.quantity})
@@ -622,78 +643,64 @@ export default function OrdersPage({
                       </div>
                     </td>
 
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-black font-bold dark:text-gray-400">
                       ${parseFloat(order.total).toFixed(2)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                            ${
-                              order.status === "pending"
-                                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                                : ""
-                            }
-                            ${
-                              order.status === "processing"
-                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                                : ""
-                            }
-                            ${
-                              order.status === "shipped"
-                                ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
-                                : ""
-                            }
-                            ${
-                              order.status === "cancelled"
-                                ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                                : ""
-                            }
-                            ${
-                              order.status === "refunded"
-                                ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-                                : ""
-                            }
-                            ${
-                              order.status === "completed"
-                                ? "bg-green-300 text-green-900 dark:bg-green-900 dark:text-green-200"
-                                : ""
-                            }
-                          `}
+      ${order.status === "pending"
+                            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                            : ""
+                          }
+      ${order.status === "processing"
+                            ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                            : ""
+                          }
+      ${order.status === "shipped"
+                            ? "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
+                            : ""
+                          }
+      ${order.status === "cancelled"
+                            ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                            : ""
+                          }
+      ${order.status === "refunded"
+                            ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                            : ""
+                          }
+      ${order.status === "completed"
+                            ? "bg-green-300 text-green-900 dark:bg-green-900 dark:text-green-200"
+                            : ""
+                          }
+    `}
                       >
-                        {order.status}
+                        {getTranslatedStatus(order.status)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {order.payments?.length ? (
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                              ${
-                                order.payments[order.payments.length - 1]
-                                  .status === "pending"
-                                  ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                                  : ""
-                              }
-                              ${
-                                order.payments[order.payments.length - 1]
-                                  .status === "completed"
-                                  ? "bg-green-300 text-green-900 dark:bg-green-900 dark:text-green-200"
-                                  : ""
-                              }
-                              ${
-                                order.payments[order.payments.length - 1]
-                                  .status === "failed"
-                                  ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                                  : ""
-                              }
-                              ${
-                                order.payments[order.payments.length - 1]
-                                  .status === "refunded"
-                                  ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-                                  : ""
-                              }
-                            `}
+        ${order.payments[order.payments.length - 1].status === "pending"
+                              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                              : ""
+                            }
+        ${order.payments[order.payments.length - 1].status === "completed"
+                              ? "bg-green-300 text-green-900 dark:bg-green-900 dark:text-green-200"
+                              : ""
+                            }
+        ${order.payments[order.payments.length - 1].status === "failed"
+                              ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                              : ""
+                            }
+        ${order.payments[order.payments.length - 1].status === "refunded"
+                              ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                              : ""
+                            }
+      `}
                         >
-                          {order.payments[order.payments.length - 1].status}
+                          {getTranslatedPaymentStatus(order.payments[order.payments.length - 1].status)}
                         </span>
                       ) : (
                         <span className="text-gray-500 text-xs">N/A</span>
@@ -740,7 +747,7 @@ export default function OrdersPage({
                                 }}
                               >
                                 <MdVisibility className="mr-2" />
-                                View Details
+                                {t.ordersPage.viewDetails}
                               </button>
 
                               <button
@@ -753,7 +760,7 @@ export default function OrdersPage({
                                 }}
                               >
                                 <RiEditLine className="mr-2" />
-                                Update Status
+                                {t.ordersPage.updateStatus}
                               </button>
 
                               <button

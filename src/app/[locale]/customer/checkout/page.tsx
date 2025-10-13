@@ -8,6 +8,7 @@ import { useCart } from "@/contexts/CartContext";
 import { API_BASE_URL } from "@/lib/config";
 import { Address } from "@/types/address";
 import { Order } from "@/types/order";
+import { useTranslations } from "@/utils/useTranslations";
 import {
   CardElement,
   Elements,
@@ -248,6 +249,7 @@ export default function CheckoutPage({
 }) {
   const unwrappedParams = use(params);
   const language = unwrappedParams.locale || "en";
+  const t = useTranslations(language);
   const router = useRouter();
   const { cart, clearCart } = useCart();
   const [loading, setLoading] = useState(false);
@@ -780,17 +782,17 @@ export default function CheckoutPage({
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Checkout
+            {t.checkOutPage.checkout}
           </h1>
           <div className="flex items-center">
             <span className="text-sm text-gray-500 dark:text-gray-400 mr-4">
-              Step {step} of 3
+              {t.checkOutPage.step} {step} {t.categoryPage.of} 3
             </span>
             <button
               onClick={() => router.back()}
               className="text-blue-600 cursor-pointer hover:underline dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium"
             >
-              Back to Cart
+              {t.checkOutPage.backToCart}
             </button>
           </div>
         </div>
@@ -808,19 +810,19 @@ export default function CheckoutPage({
                 {step === 1 && (
                   <div className="flex items-center">
                     <FaShippingFast className="mr-2" />
-                    <span>Shipping Address</span>
+                    <span>{t.checkOutPage.shippingAddress}</span>
                   </div>
                 )}
                 {step === 2 && (
                   <div className="flex items-center">
                     <FaCreditCard className="mr-2" />
-                    Payment Method
+                    {t.checkOutPage.paymentMethod}
                   </div>
                 )}
                 {step === 3 && (
                   <div className="flex items-center">
                     <FaCheck className="mr-2" />
-                    Order Summary
+                    {t.cartPage.orderSummary}
                   </div>
                 )}
               </h2>
@@ -829,7 +831,7 @@ export default function CheckoutPage({
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-lg font-medium flex items-center mb-4">
-                      Select Shipping Address
+                      {t.checkOutPage.selectShippingAddress}
                     </h3>
                     <div className="grid gap-4">
                       {addresses.map((address) => (
@@ -874,7 +876,7 @@ export default function CheckoutPage({
                                 {address.country}
                               </p>
                               <p className="text-sm text-gray-600 dark:text-gray-400">
-                                Phone: {address.phone}
+                                {t.checkOutPage.phone}: {address.phone}
                               </p>
                             </div>
                           </div>
@@ -893,7 +895,7 @@ export default function CheckoutPage({
                       ) : (
                         <BsFillHouseAddFill className="mr-2" />
                       )}
-                      Add New Address
+                      {t.checkOutPage.addNewAddress}
                     </button>
                   </div>
 
@@ -1063,12 +1065,12 @@ export default function CheckoutPage({
                   <div>
                     <h3 className="text-lg flex items-center font-medium mb-4">
                       <FaNoteSticky className="mr-2" />
-                      Order Notes
+                      {t.checkOutPage.orderNotes}
                     </h3>
                     <textarea
                       value={orderNotes}
                       onChange={(e) => setOrderNotes(e.target.value)}
-                      placeholder="Any special instructions for your order?"
+                      placeholder={t.checkOutPage.anySpecialInstructions}
                       className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       rows={3}
                     />
@@ -1077,18 +1079,18 @@ export default function CheckoutPage({
                   <div>
                     <h3 className="text-lg flex items-center font-medium mb-4">
                       <RiCoupon3Fill className="mr-2" />
-                      Apply Coupon
+                      {t.checkOutPage.applyCoupon}
                     </h3>
                     <div className="flex gap-2">
                       <input
                         type="text"
                         value={couponCode}
                         onChange={(e) => setCouponCode(e.target.value)}
-                        placeholder="Enter coupon code"
+                        placeholder={t.checkOutPage.enterCouponCode}
                         className="flex-1 p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                       />
                       <button className="px-4 py-3 cursor-pointer bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600">
-                        Apply
+                        {t.checkOutPage.apply}
                       </button>
                     </div>
                   </div>
@@ -1102,7 +1104,7 @@ export default function CheckoutPage({
                         : "bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black shadow-md hover:shadow-lg"
                         }`}
                     >
-                      Continue to Payment
+                      {t.checkOutPage.continueToPayment}
                       <VscDebugContinue className="ml-2" />
                     </button>
                   </div>
@@ -1113,7 +1115,7 @@ export default function CheckoutPage({
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-lg font-medium mb-4">
-                      Select Payment Method
+                      {t.checkOutPage.selectPaymentMethod}
                     </h3>
                     <div className="grid gap-4">
                       <button
@@ -1157,7 +1159,7 @@ export default function CheckoutPage({
                                 Credit/Debit Card (Stripe)
                               </p>
                               <p className="text-sm text-gray-600 dark:text-gray-400">
-                                Pay securely using your credit or debit card
+                                {t.checkOutPage.PaySecurely}
                               </p>
                             </div>
                           </div>
@@ -1203,7 +1205,7 @@ export default function CheckoutPage({
                             <div className="flex flex-col items-start">
                               <p className="font-medium">KHQR Payment</p>
                               <p className="text-sm text-gray-600 dark:text-gray-400">
-                                Scan QR code to pay with your mobile banking app
+                                {t.checkOutPage.scanToPay}
                               </p>
                             </div>
                           </div>
@@ -1247,7 +1249,7 @@ export default function CheckoutPage({
                                 Cash on Delivery (COD)
                               </p>
                               <p className="text-sm text-gray-600 dark:text-gray-400">
-                                Pay when you receive your order
+                                {t.checkOutPage.payWhenYouReceive}
                               </p>
                             </div>
                           </div>
@@ -1262,7 +1264,7 @@ export default function CheckoutPage({
                       className=" flex items-center cursor-pointer px-6 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
                     >
                       <IoIosArrowBack className="mr-2 w-5 h-5" />
-                      Back
+                      {t.checkOutPage.back}
                     </button>
                     <button
                       onClick={handleCheckout}
@@ -1276,7 +1278,7 @@ export default function CheckoutPage({
                         "Processing..."
                       ) : (
                         <>
-                          Completed Order{" "}
+                          {t.checkOutPage.completedOrder}{" "}
                           <VscDebugContinue className="ml-2 w-5 h-5" />
                         </>
                       )}
@@ -1292,10 +1294,10 @@ export default function CheckoutPage({
                       <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-green-600 dark:text-green-400" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path d="M21 7v-.63c0-1.193 0-1.79-.158-2.27a3.05 3.05 0 0 0-1.881-1.937C18.493 2 17.914 2 16.755 2h-9.51c-1.159 0-1.738 0-2.206.163a3.05 3.05 0 0 0-1.881 1.936C3 4.581 3 5.177 3 6.37V15m18-4v9.374c0 .858-.985 1.314-1.608.744a.946.946 0 0 0-1.284 0l-.483.442a1.657 1.657 0 0 1-2.25 0a1.657 1.657 0 0 0-2.25 0a1.657 1.657 0 0 1-2.25 0a1.657 1.657 0 0 0-2.25 0a1.657 1.657 0 0 1-2.25 0l-.483-.442a.946.946 0 0 0-1.284 0c-.623.57-1.608.114-1.608-.744V19" /><path stroke-linejoin="round" d="m9.5 10.4l1.429 1.6L14.5 8" /><path d="M7.5 15.5H9m7.5 0H12" /></g></svg>
                     </div>
                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                      Order Placed Successfully!
+                      {t.checkOutPage.orderPlacedSuccessful}
                     </h3>
                     <p className="text-gray-600 dark:text-gray-400 mb-6">
-                      Thank you for your order. Your order number is{" "}
+                      {t.checkOutPage.thankYou} {" "}
                       <span className="font-semibold">
                         #{orderSummary.order_number}
                       </span>
@@ -1305,14 +1307,14 @@ export default function CheckoutPage({
                   {/* Order Details */}
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
                     <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                      Order Details
+                      {t.ordersDetail.orderDetails}
                     </h4>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Shipping Information */}
                       <div>
                         <h5 className="font-medium text-gray-900 dark:text-white mb-2">
-                          Shipping Address
+                          {t.checkOutPage.shippingAddress}
                         </h5>
                         <p className="text-gray-600 dark:text-gray-400">
                           {selectedAddress?.address_line_1}
@@ -1323,19 +1325,19 @@ export default function CheckoutPage({
                           <br />
                           {selectedAddress?.country}
                           <br />
-                          Phone: {selectedAddress?.phone}
+                          {t.checkOutPage.phone}: {selectedAddress?.phone}
                         </p>
                       </div>
 
                       {/* Order Summary */}
                       <div>
                         <h5 className="font-medium text-gray-900 dark:text-white mb-2">
-                          Order Summary
+                          {t.cartPage.orderSummary}
                         </h5>
                         <div className="space-y-1">
                           <div className="flex justify-between">
                             <span className="text-gray-600 dark:text-gray-400">
-                              Order Number:
+                              {t.checkOutPage.orderNumber}:
                             </span>
                             <span className="font-medium">
                               #{orderSummary.order_number}
@@ -1343,7 +1345,7 @@ export default function CheckoutPage({
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600 dark:text-gray-400">
-                              Order Date:
+                              {t.checkOutPage.orderDate}:
                             </span>
                             <span className="font-medium">
                               {new Date(
@@ -1353,7 +1355,7 @@ export default function CheckoutPage({
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600 dark:text-gray-400">
-                              Payment Method:
+                              {t.checkOutPage.paymentMethod}:
                             </span>
                             <span className="font-medium capitalize">
                               {paymentMethod === "cod"
@@ -1363,7 +1365,7 @@ export default function CheckoutPage({
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600 dark:text-gray-400">
-                              Status:
+                              {t.coupon.status}:
                             </span>
                             <span
                               className={`font-medium capitalize ${orderSummary.status === "completed"
@@ -1384,7 +1386,7 @@ export default function CheckoutPage({
                   {/* Order Items */}
                   <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
                     <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                      Order Items
+                      {t.ordersDetail.orderItems}
                     </h4>
 
                     <div className="space-y-4">
@@ -1422,13 +1424,13 @@ export default function CheckoutPage({
                   {/* Order Total */}
                   <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
                     <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                      Order Total
+                      {t.ordersDetail.orderTotal}
                     </h4>
 
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">
-                          Subtotal:
+                          {t.cartPage.subtotal}:
                         </span>
                         <span className="font-medium">
                           ${formatCurrency(orderSummary.subtotal)}
@@ -1437,7 +1439,7 @@ export default function CheckoutPage({
 
                       {Number(orderSummary.product_discount) > 0 && (
                         <div className="flex justify-between text-green-600 dark:text-green-400">
-                          <span>Product Discount:</span>
+                          <span>{t.checkOutPage.productDiscount}:</span>
                           <span className="font-medium">
                             -${formatCurrency(orderSummary.product_discount)}
                           </span>
@@ -1446,7 +1448,7 @@ export default function CheckoutPage({
 
                       {Number(orderSummary.coupon_discount) > 0 && (
                         <div className="flex justify-between text-green-600 dark:text-green-400">
-                          <span>Coupon Discount:</span>
+                          <span>{t.checkOutPage.couponDiscount}:</span>
                           <span className="font-medium">
                             -${formatCurrency(orderSummary.coupon_discount)}
                           </span>
@@ -1455,7 +1457,7 @@ export default function CheckoutPage({
 
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">
-                          Shipping:
+                          {t.footer.shipping}:
                         </span>
                         <span className="font-medium">
                           ${formatCurrency(orderSummary.shipping_cost)}
@@ -1464,7 +1466,7 @@ export default function CheckoutPage({
 
                       <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">
-                          Tax:
+                          {t.checkOutPage.tax}:
                         </span>
                         <span className="font-medium">
                           ${formatCurrency(orderSummary.tax_amount)}
@@ -1472,7 +1474,7 @@ export default function CheckoutPage({
                       </div>
 
                       <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-300 dark:border-gray-600">
-                        <span>Total:</span>
+                        <span>{t.cartPage.total}:</span>
                         <span className="text-blue-600 dark:text-blue-400">
                           ${formatCurrency(orderSummary.total)}
                         </span>
@@ -1483,7 +1485,7 @@ export default function CheckoutPage({
                   {/* Next Steps */}
                   <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
                     <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                      What's Next?
+                      {t.checkOutPage.whatNext}
                     </h4>
 
                     <div className="space-y-3">
@@ -1495,11 +1497,10 @@ export default function CheckoutPage({
                         </div>
                         <div className="ml-3">
                           <p className="font-medium text-gray-900 dark:text-white">
-                            Order Confirmation
+                            {t.checkOutPage.orderConfirmation}
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            You'll receive an email confirmation shortly with
-                            your order details.
+                            {t.checkOutPage.youllReceive}
                           </p>
                         </div>
                       </div>
@@ -1513,13 +1514,13 @@ export default function CheckoutPage({
                         <div className="ml-3">
                           <p className="font-medium text-gray-900 dark:text-white">
                             {paymentMethod === "cod"
-                              ? "Order Processing"
-                              : "Payment Processing"}
+                              ? t.checkOutPage.orderProcessing
+                              : t.checkOutPage.paymentProcessing}
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
                             {paymentMethod === "cod"
-                              ? "Your order is being prepared for shipment. You'll pay when it arrives."
-                              : "Your payment has been processed successfully."}
+                              ? t.checkOutPage.yourOrder
+                              : t.checkOutPage.yourPayment}
                           </p>
                         </div>
                       </div>
@@ -1532,11 +1533,10 @@ export default function CheckoutPage({
                         </div>
                         <div className="ml-3">
                           <p className="font-medium text-gray-900 dark:text-white">
-                            Shipping Updates
+                            {t.checkOutPage.shippingUpdates}
                           </p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            We'll send you tracking information once your order
-                            ships.
+                            {t.checkOutPage.wellSend}
                           </p>
                         </div>
                       </div>
@@ -1549,7 +1549,7 @@ export default function CheckoutPage({
                       onClick={handleContinueShopping}
                       className={`px-6 flex items-center cursor-pointer justify-center gap-2 py-3 rounded-lg font-medium text-white transition-all duration-300 bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black shadow-md hover:shadow-lg`}
                     >
-                      Continue Shopping
+                      {t.cartPage.continueShopping}
                       <VscDebugContinue className="ml-2 w-5 h-5" />
                     </button>
 
@@ -1558,7 +1558,7 @@ export default function CheckoutPage({
                       className={`px-6 flex items-center cursor-pointer justify-center gap-2 py-3 rounded-lg font-medium text-white transition-all duration-300 bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black shadow-md hover:shadow-lg`}
                     >
                       <TbReport className="mr-2 w-5 h-5" />
-                      View Order Details
+                      {t.checkOutPage.viewOrderDetails}
                     </button>
 
                     <button
@@ -1566,7 +1566,7 @@ export default function CheckoutPage({
                       className="px-6 flex items-center cursor-pointer py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
                       <HiOutlineDownload className="mr-2 w-5 h-5" />
-                      Download Invoice
+                      {t.checkOutPage.downloadInvoice}
                     </button>
 
                     {delivery && delivery.status !== 'completed' && (
@@ -1575,7 +1575,7 @@ export default function CheckoutPage({
                         className={`px-6 flex items-center cursor-pointer justify-center gap-2 py-3 rounded-lg font-medium text-white transition-all duration-300 bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black shadow-md hover:shadow-lg`}
                       >
                         <MdOutlineDeliveryDining className="mr-2" />
-                        Track Delivery
+                        {t.checkOutPage.trackDelivery}
                       </button>
                     )}
                   </div>
@@ -1583,10 +1583,10 @@ export default function CheckoutPage({
                   {/* Support Information */}
                   <div className="p-6 bg-blue-50 dark:bg-blue-900/20 rounded-2xl shadow-sm">
                     <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 text-center">
-                      Need Help?
+                      {t.checkOutPage.needHelp}
                     </h3>
                     <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-4">
-                      Our support team is here for you. Reach out by email, phone, or chat.
+                      {t.checkOutPage.ourSupport}
                     </p>
 
                     <div className="space-y-3">
@@ -1625,22 +1625,23 @@ export default function CheckoutPage({
                 isOpen={showOrderDetail}
                 onClose={() => setShowOrderDetail(false)}
                 order={selectedOrder}
-                language={language}
+                params={{ locale: language }}
               />
             </div>
           </div>
 
           <div className="lg:col-span-1">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 sticky top-6">
-              <h3 className="text-lg font-medium mb-4">Order Summary</h3>
+              <h3 className="text-lg font-medium mb-4">{t.cartPage.orderSummary}</h3>
               <div className="space-y-4">
                 {cart?.items.map((item) => {
-                  const imageSrc = item.product?.images?.find(
-                    (img) => img.is_primary
-                  )?.path
-                    ? `${API_BASE_URL}/${item.product.images.find((img) => img.is_primary)?.path
-                    }`
-                    : "/images/placeholder.png";
+                  const primaryImage = item.product?.images?.find((img) => img.is_primary);
+                  const fallbackImage = item.product?.images?.[0];
+                  const imageSrc = primaryImage
+                    ? `${API_BASE_URL}/${primaryImage.path}`
+                    : fallbackImage
+                      ? `${API_BASE_URL}/${fallbackImage.path}`
+                      : "/images/placeholder.png";
 
                   return (
                     <div key={item.id} className="flex items-center">
@@ -1674,7 +1675,7 @@ export default function CheckoutPage({
               <div className="border-t border-gray-200 dark:border-gray-700 mt-4 pt-4 space-y-2">
                 <div className="flex justify-between">
                   <span className="text-gray-600 dark:text-gray-400">
-                    Subtotal
+                    {t.cartPage.subtotal}
                   </span>
                   <span className="font-medium">
                     ${formatCurrency(productSubtotal)}
@@ -1683,7 +1684,7 @@ export default function CheckoutPage({
 
                 {Number(productDiscount) > 0 && (
                   <div className="flex justify-between text-green-600 dark:text-green-400">
-                    <span>Product Discount</span>
+                    <span>{t.checkOutPage.productDiscount}</span>
                     <span className="font-medium">
                       -${formatCurrency(productDiscount)}
                     </span>
@@ -1692,7 +1693,7 @@ export default function CheckoutPage({
 
                 {Number(couponDiscount) > 0 && (
                   <div className="flex justify-between text-green-600 dark:text-green-400">
-                    <span>Coupon Discount</span>
+                    <span>{t.checkOutPage.couponDiscount}</span>
                     <span className="font-medium">
                       -${formatCurrency(couponDiscount)}
                     </span>
@@ -1701,7 +1702,7 @@ export default function CheckoutPage({
 
                 <div className="flex justify-between">
                   <span className="text-gray-600 dark:text-gray-400">
-                    Shipping
+                    {t.footer.shipping}
                   </span>
                   <span className="font-medium">
                     ${formatCurrency(shippingCost)}
@@ -1709,14 +1710,14 @@ export default function CheckoutPage({
                 </div>
 
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Tax</span>
+                  <span className="text-gray-600 dark:text-gray-400">{t.checkOutPage.tax}</span>
                   <span className="font-medium">
                     ${formatCurrency(taxAmount)}
                   </span>
                 </div>
 
                 <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-200 dark:border-gray-700">
-                  <span>Total</span>
+                  <span>{t.cartPage.total}</span>
                   <span>${formatCurrency(total)}</span>
                 </div>
               </div>
@@ -1789,6 +1790,7 @@ export default function CheckoutPage({
           isOpen={showDeliveryTracking}
           onClose={() => setShowDeliveryTracking(false)}
           orderId={orderId}
+          params={{ locale: language }}
         />
       )}
     </div>

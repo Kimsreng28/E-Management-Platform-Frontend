@@ -2,7 +2,7 @@
 
 import { API_BASE_URL } from "@/lib/config";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   IoIosArrowBack,
@@ -18,6 +18,7 @@ import {
   IoIosEyeOff
 } from "react-icons/io";
 import { FaTransgender, FaGlobe } from "react-icons/fa";
+import { useTranslations } from "@/utils/useTranslations";
 
 interface UserProfile {
   user: {
@@ -55,8 +56,13 @@ interface PasswordForm {
 export default function ProfilePage({
   params,
 }: {
-  params: Promise<{ locale: string }>;
+  params: Promise<{ locale: "en" | "kh" }>;
 }) {
+
+  const unwrappedParams = use(params);
+  const language = unwrappedParams.locale || "en";
+  const t = useTranslations(language);
+
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -300,10 +306,10 @@ export default function ProfilePage({
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Profile Settings
+            {t.profileSetting.profileSettings}
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Manage your account information and preferences
+            {t.profileSetting.manageYourAccount}
           </p>
         </div>
 
@@ -311,7 +317,7 @@ export default function ProfilePage({
           {/* Avatar Section */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Profile Photo
+              {t.profileSetting.profilePhoto}
             </h2>
 
             <div className="flex items-center space-x-6">
@@ -342,7 +348,7 @@ export default function ProfilePage({
 
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Upload a new photo. Maximum file size: 5MB.
+                  {t.profileSetting.uploadANewPhoto}
                 </p>
               </div>
             </div>
@@ -351,13 +357,13 @@ export default function ProfilePage({
           {/* Personal Information */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-              Personal Information
+              {t.profileSetting.personalInformation}
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Full Name
+                  {t.profileSetting.fullName}
                 </label>
                 <div className="relative">
                   <IoIosPerson className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -373,7 +379,7 @@ export default function ProfilePage({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Email Address
+                  {t.profileSetting.emailAddress}
                 </label>
                 <div className="relative">
                   <IoIosMail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -389,7 +395,7 @@ export default function ProfilePage({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Phone Number
+                  {t.login.phoneNumber}
                 </label>
                 <div className="relative">
                   <IoIosCall className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -405,7 +411,7 @@ export default function ProfilePage({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Birth Date
+                  {t.profileSetting.birthDate}
                 </label>
                 <div className="relative">
                   <IoIosCalendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -420,7 +426,7 @@ export default function ProfilePage({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Gender
+                  {t.settingSession.gender}
                 </label>
                 <div className="relative">
                   <FaTransgender className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -439,7 +445,7 @@ export default function ProfilePage({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Website
+                  {t.settingSession.website}
                 </label>
                 <div className="relative">
                   <IoIosLink className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -463,7 +469,7 @@ export default function ProfilePage({
                 onChange={(e) => handleInputChange("profile", "bio", e.target.value)}
                 rows={3}
                 className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-                placeholder="Tell us about yourself..."
+                placeholder={t.profileSetting.tellUs}
               />
             </div>
           </div>
@@ -471,7 +477,7 @@ export default function ProfilePage({
           {/* Address Information */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-              Address Information
+              {t.settingSession.addressInformation}
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -503,7 +509,7 @@ export default function ProfilePage({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Phone Number
+                  {t.settingSession.phoneNumber}
                 </label>
                 <input
                   type="tel"
@@ -516,7 +522,7 @@ export default function ProfilePage({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Address Line 1
+                  {t.settingSession.addressLine1}
                 </label>
                 <input
                   type="text"
@@ -529,7 +535,7 @@ export default function ProfilePage({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Address Line 2
+                  {t.settingSession.addressLine2}
                 </label>
                 <input
                   type="text"
@@ -542,7 +548,7 @@ export default function ProfilePage({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  City
+                  {t.settingSession.city}
                 </label>
                 <input
                   type="text"
@@ -555,7 +561,7 @@ export default function ProfilePage({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  State/Province
+                  {t.settingSession.state}
                 </label>
                 <input
                   type="text"
@@ -568,7 +574,7 @@ export default function ProfilePage({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Postal Code
+                  {t.settingSession.postalCode}
                 </label>
                 <input
                   type="text"
@@ -581,7 +587,7 @@ export default function ProfilePage({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Country
+                  {t.settingSession.country}
                 </label>
                 <div className="relative">
                   <FaGlobe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -600,15 +606,15 @@ export default function ProfilePage({
           {/* Security Section */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-              Security
+              {t.settingSession.security}
             </h2>
 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-medium text-gray-900 dark:text-white">Change Password</h3>
+                  <h3 className="font-medium text-gray-900 dark:text-white">{t.settingSession.changePassword}</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Update your password to keep your account secure
+                    {t.profileSetting.updateYourPassword}
                   </p>
                 </div>
                 <button
@@ -633,12 +639,12 @@ export default function ProfilePage({
               {saving ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Saving...
+                  {t.profileSetting.saving}
                 </>
               ) : (
                 <>
                   <IoIosSave className="mr-2" />
-                  Save Changes
+                  {t.settingSession.saveChanges}
                 </>
               )}
             </button>
@@ -650,13 +656,13 @@ export default function ProfilePage({
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 w-full max-w-md">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-                Change Password
+                {t.settingSession.changePassword}
               </h2>
 
               <form onSubmit={handlePasswordSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Current Password
+                    {t.settingSession.currentPassword}
                   </label>
                   <div className="relative">
                     <input
@@ -679,7 +685,7 @@ export default function ProfilePage({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    New Password
+                    {t.settingSession.newPassword}
                   </label>
                   <div className="relative">
                     <input
@@ -703,7 +709,7 @@ export default function ProfilePage({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Confirm New Password
+                    {t.settingSession.confirmNewPassword}
                   </label>
                   <div className="relative">
                     <input
@@ -730,14 +736,14 @@ export default function ProfilePage({
                     onClick={() => setShowPasswordModal(false)}
                     className="px-4 py-2 cursor-pointer bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500"
                   >
-                    Cancel
+                    {t.productDashboard.cancel}
                   </button>
                   <button
                     type="submit"
                     disabled={changingPassword}
                     className={`px-4 w-fit  flex items-center cursor-pointer justify-center gap-2 py-2 rounded-lg font-medium text-white transition-all duration-300 bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black shadow-md hover:shadow-lg`}
                   >
-                    {changingPassword ? "Changing..." : "Change Password"}
+                    {changingPassword ? t.profileSetting.changing : t.settingSession.changePassword}
                   </button>
                 </div>
               </form>

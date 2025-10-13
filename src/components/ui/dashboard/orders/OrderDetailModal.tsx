@@ -6,6 +6,8 @@ import { LuUser } from "react-icons/lu";
 import { BiSolidUserRectangle } from "react-icons/bi";
 import { API_BASE_URL } from "@/lib/config";
 import { FaNoteSticky } from "react-icons/fa6";
+import { usePathname } from "next/navigation";
+import { useTranslations } from "@/utils/useTranslations";
 
 interface OrderItem {
     id: number;
@@ -54,17 +56,26 @@ interface OrderDetailModalProps {
     isOpen: boolean;
     onClose: () => void;
     orderIds: number[];
+    params?: { locale: "en" | "kh" };
 }
 
-export default function OrderDetailModal({ isOpen, onClose, orderIds }: OrderDetailModalProps) {
+export default function OrderDetailModal({ isOpen, onClose, orderIds, params }: OrderDetailModalProps) {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentOrderIndex, setCurrentOrderIndex] = useState(0);
 
+    const language = params?.locale || "en";
+    const t = useTranslations(language);
+
     useEffect(() => {
         if (isOpen && orderIds.length > 0) {
             fetchOrders();
+        } else if (isOpen && orderIds.length === 0) {
+            // Handle case when there are no orders
+            setLoading(false);
+            setOrders([]);
+            setError(t.ordersDetail.orderNotFountForThisCustomer);
         }
     }, [isOpen, orderIds]);
 
@@ -136,7 +147,10 @@ export default function OrderDetailModal({ isOpen, onClose, orderIds }: OrderDet
                             <MdClose className="w-5 h-5" />
                         </button>
                         <h2 className="text-xl font-bold text-gray-800 dark:text-white">
-                            Order Details ({currentOrderIndex + 1} of {orders.length})
+                            {orders.length > 0
+                                ? `${t.ordersDetail.orderDetails} (${currentOrderIndex + 1} ${t.ordersDetail.of} ${orders.length})`
+                                : `${t.ordersDetail.orderDetails}`
+                            }
                         </h2>
                     </div>
 
@@ -169,19 +183,19 @@ export default function OrderDetailModal({ isOpen, onClose, orderIds }: OrderDet
                     ) : error ? (
                         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4">
                             <h2 className="text-red-800 dark:text-red-400 font-semibold">
-                                Error Loading Orders
+                                {orders.length === 0 ? t.ordersDetail.orderNothing : "Error Loading Orders"}
                             </h2>
                             <p className="text-red-600 dark:text-red-300 mt-1">{error}</p>
                         </div>
                     ) : currentOrder ? (
-                        <OrderDetailContent order={currentOrder} />
+                        <OrderDetailContent order={currentOrder} t={t} />
                     ) : (
                         <div className="text-center py-12">
                             <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-                                No Orders Found
+                                {t.ordersDetail.ordersNotFound}
                             </h2>
                             <p className="text-gray-600 dark:text-gray-400 mt-2">
-                                The requested orders could not be found.
+                                {t.ordersDetail.thisCustomerHasNo}
                             </p>
                         </div>
                     )}
@@ -191,14 +205,14 @@ export default function OrderDetailModal({ isOpen, onClose, orderIds }: OrderDet
     );
 }
 
-function OrderDetailContent({ order }: { order: Order }) {
+function OrderDetailContent({ order, t }: { order: Order; t: ReturnType<typeof useTranslations> }) {
     return (
         <div className="space-y-6">
             {/* Order Header */}
             <div className="bg-gray-50 dark:bg-gray-700 px-4 md:px-6 py-4 rounded-lg">
                 <div className="flex flex-col md:flex-row justify-between md:items-center gap-3">
                     <h1 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-white">
-                        Order #{order.order_number}
+                        {t.ordersDetail.order} #{order.order_number}
                     </h1>
                     <span
                         className={`px-3 py-1 rounded-full text-sm font-medium self-start md:self-auto ${order.status === "completed"
@@ -214,30 +228,46 @@ function OrderDetailContent({ order }: { order: Order }) {
                                             : "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200"
                             }`}
                     >
-                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        {
+                            order.status === "completed"
+                                ? t.ordersDetail.completed
+                                : order.status === "processing"
+                                    ? t.ordersDetail.processing
+                                    : order.status === "pending"
+                                        ? t.ordersDetail.pending
+                                        : order.status === "cancelled"
+                                            ? t.ordersDetail.cancelled || "Cancelled" // fallback
+                                            : order.status === "delivered"
+                                                ? t.ordersDetail.delivered || "Delivered"
+                                                : order.status
+                        }
                     </span>
                 </div>
+
                 <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm md:text-base">
-                    Placed on {new Date(order.created_at).toLocaleDateString()} at{" "}
+                    {t.ordersDetail.placedOn}{" "}
+                    {new Date(order.created_at).toLocaleDateString()}{" "}
+                    {t.ordersDetail.at}{" "}
                     {new Date(order.created_at).toLocaleTimeString()}
                 </p>
             </div>
+
 
             {/* Customer Information */}
             <div>
                 <h2 className="text-lg flex items-center font-semibold mb-3 text-gray-800 dark:text-white">
                     <BiSolidUserRectangle className="mr-2 text-blue-500" />
-                    Customer Information
+                    {t.ordersDetail.customerInformation}
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                     <div>
-                        <p className="text-gray-600 dark:text-gray-400 text-sm">Name</p>
+                        <p className="text-gray-600 dark:text-gray-400 text-sm">{t.ordersDetail.name}</p>
                         <p className="font-medium text-gray-800 dark:text-white">
                             {order.user.name}
                         </p>
                     </div>
                     <div>
-                        <p className="text-gray-600 dark:text-gray-400 text-sm">Email</p>
+                        <p className="text-gray-600 dark:text-gray-400 text-sm">{t.ordersDetail.email}</p>
                         <p className="font-medium text-gray-800 dark:text-white break-all">
                             {order.user.email}
                         </p>
@@ -249,26 +279,26 @@ function OrderDetailContent({ order }: { order: Order }) {
             <div>
                 <h2 className="text-lg flex items-center font-semibold mb-3 text-gray-800 dark:text-white">
                     <FaShoppingCart className="mr-2 text-blue-500" />
-                    Order Items
+                    {t.ordersDetail.orderItems}
                 </h2>
                 <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
                     <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                         <thead className="bg-gray-50 dark:bg-gray-700">
                             <tr>
                                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-800 dark:text-gray-300 uppercase tracking-wider">
-                                    Product
+                                    {t.ordersDetail.product}
                                 </th>
                                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-800 dark:text-gray-300 uppercase tracking-wider">
-                                    Model
+                                    {t.ordersDetail.model}
                                 </th>
                                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-800 dark:text-gray-300 uppercase tracking-wider">
-                                    Qty
+                                    {t.ordersDetail.qty}
                                 </th>
                                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-800 dark:text-gray-300 uppercase tracking-wider">
-                                    Unit Price
+                                    {t.ordersDetail.unitPrice}
                                 </th>
                                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-800 dark:text-gray-300 uppercase tracking-wider">
-                                    Total
+                                    {t.ordersDetail.total}
                                 </th>
                             </tr>
                         </thead>
@@ -284,13 +314,13 @@ function OrderDetailContent({ order }: { order: Order }) {
                                     <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                         {item.product_model}
                                     </td>
-                                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                    <td className="px-4 py-4 whitespace-nowrap text-sm font-bold text-gray-800 dark:text-gray-400">
                                         {item.quantity}
                                     </td>
-                                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                    <td className="px-4 py-4 whitespace-nowrap text-sm font-bold text-gray-800 dark:text-gray-400">
                                         ${Number(item.unit_price).toFixed(2)}
                                     </td>
-                                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                    <td className="px-4 py-4 whitespace-nowrap text-sm font-bold text-gray-800 dark:text-gray-400">
                                         ${Number(item.total_price).toFixed(2)}
                                     </td>
                                 </tr>
@@ -302,9 +332,9 @@ function OrderDetailContent({ order }: { order: Order }) {
                                     colSpan={4}
                                     className="px-4 py-4 text-sm font-semibold text-gray-800 dark:text-white text-right"
                                 >
-                                    Order Total:
+                                    {t.ordersDetail.orderTotal}:
                                 </td>
-                                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                                <td className="px-4 py-4 whitespace-nowrap text-lg font-bold text-gray-900 dark:text-white">
                                     ${order.total}
                                 </td>
                             </tr>
@@ -319,7 +349,7 @@ function OrderDetailContent({ order }: { order: Order }) {
                     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4 md:p-6">
                         <h2 className="text-lg flex items-center font-semibold mb-4 text-gray-800 dark:text-white">
                             <MdOutlinePayment className="mr-2 text-indigo-500" />
-                            Payment Information
+                            {t.ordersDetail.paymentInformation}
                         </h2>
                         <div className="grid grid-cols-1 gap-3">
                             {order.payments.map((payment) => {
@@ -375,7 +405,7 @@ function OrderDetailContent({ order }: { order: Order }) {
                     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm p-4 md:p-6">
                         <h2 className="text-lg flex items-center font-semibold mb-4 text-gray-800 dark:text-white">
                             <FaTruck className="mr-2 text-green-500" />
-                            Shipping Information
+                            {t.ordersDetail.shippingInformation}
                         </h2>
 
                         <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600 space-y-3">
@@ -425,7 +455,7 @@ function OrderDetailContent({ order }: { order: Order }) {
                 <div>
                     <h2 className="text-lg font-semibold mb-3 flex items-center text-gray-800 dark:text-white">
                         <FaNoteSticky className="mr-2 text-yellow-500" />
-                        Order Notes
+                        {t.ordersDetail.orderNotes}
                     </h2>
                     <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
                         <p className="text-yellow-800 dark:text-yellow-200 text-sm md:text-base">

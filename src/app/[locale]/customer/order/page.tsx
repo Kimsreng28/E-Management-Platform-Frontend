@@ -22,6 +22,7 @@ import { FaBoxOpen, FaSearch } from "react-icons/fa";
 import { format } from "date-fns";
 import Image from "next/image";
 import OrderDetailModal from "@/components/ui/customer/OrderDetailModal";
+import { useTranslations } from "@/utils/useTranslations";
 
 interface OrdersResponse {
     data: Order[];
@@ -34,7 +35,7 @@ interface OrdersResponse {
 export default function OrderHistoryPage({
     params,
 }: {
-    params: Promise<{ locale: string }>;
+    params: Promise<{ locale: "en" | "kh" }>;
 }) {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
@@ -51,9 +52,10 @@ export default function OrderHistoryPage({
 
     const unwrappedParams = use(params);
     const language = unwrappedParams.locale || "en";
+    const t = useTranslations(language);
 
     const statusOptions = [
-        { value: "all", label: "All Orders" },
+        { value: "all", label: t.orderDetail.allOrders },
         { value: "pending", label: "Pending" },
         { value: "processing", label: "Processing" },
         { value: "shipped", label: "Shipped" },
@@ -196,10 +198,10 @@ export default function OrderHistoryPage({
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                                Order History
+                                {t.orderDetail.orderHistory}
                             </h1>
                             <p className="text-gray-600 dark:text-gray-400">
-                                {totalOrders} orders found
+                                {totalOrders} {t.orderDetail.ordersFound}
                             </p>
                         </div>
                     </div>
@@ -216,7 +218,7 @@ export default function OrderHistoryPage({
                                 </div>
                                 <input
                                     type="text"
-                                    placeholder="Search orders..."
+                                    placeholder={t.ordersPage.searchOrders}
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
@@ -226,7 +228,7 @@ export default function OrderHistoryPage({
 
                         {/* Status Filter */}
                         <div className="w-full sm:w-64">
-                            <label htmlFor="statusFilter" className="sr-only">Filter by status</label>
+                            <label htmlFor="statusFilter" className="sr-only">{t.createProduct.filterByStatus}</label>
                             <select
                                 id="statusFilter"
                                 value={statusFilter}
@@ -249,7 +251,7 @@ export default function OrderHistoryPage({
                         <div className="flex flex-col items-center bg-white dark:bg-gray-800 rounded-xl shadow-md p-8 text-center">
                             <IoIosCart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                                No orders found
+                                {t.ordersDetail.ordersNotFound}
                             </h3>
                             <p className="text-gray-600 dark:text-gray-400 mb-4">
                                 {searchTerm || statusFilter !== "all"
@@ -262,7 +264,7 @@ export default function OrderHistoryPage({
                                     className={`px-4 w-fit flex items-center cursor-pointer justify-center gap-2 py-3 rounded-lg font-medium text-white transition-all duration-300 bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black shadow-md hover:shadow-lg`}
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7.5 18a1.5 1.5 0 1 1 0 3a1.5 1.5 0 0 1 0-3Zm9 0a1.5 1.5 0 1 1 0 3a1.5 1.5 0 0 1 0-3Z" /><path stroke-linecap="round" d="M13 13v-2m0 0V9m0 2h2m-2 0h-2M2 3l.261.092c1.302.457 1.953.686 2.325 1.231s.372 1.268.372 2.715V9.76c0 2.942.063 3.912.93 4.826c.866.914 2.26.914 5.05.914H12m4.24 0c1.561 0 2.342 0 2.894-.45c.551-.45.709-1.214 1.024-2.743l.5-2.424c.347-1.74.52-2.609.076-3.186c-.443-.577-1.96-.577-3.645-.577h-6.065m-6.066 0H7" /></g></svg>
-                                    Start Shopping
+                                    {t.orderDetail.startShopping}
                                 </Link>
                             )}
                         </div>
@@ -275,10 +277,10 @@ export default function OrderHistoryPage({
                                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
                                     <div>
                                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                            Order #{order.order_number}
+                                            {t.orderDetail.order} #{order.order_number}
                                         </h3>
                                         <p className="text-gray-600 dark:text-gray-400">
-                                            Placed on {formatDate(order.created_at)}
+                                            {t.ordersDetail.placedOn} {formatDate(order.created_at)}
                                         </p>
                                     </div>
 
@@ -327,7 +329,7 @@ export default function OrderHistoryPage({
                                         onClick={() => handleViewOrderDetails(order)}
                                         className={`px-4 w-fit flex items-center cursor-pointer justify-center gap-2 py-2 rounded-lg font-medium text-white transition-all duration-300 bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black shadow-md hover:shadow-lg`}
                                     >
-                                        View Details
+                                        {t.createProduct.viewDetail}
                                         <IoIosArrowForward className="ml-2" />
                                     </button>
                                 </div>
@@ -377,7 +379,7 @@ export default function OrderHistoryPage({
                 isOpen={showOrderDetail}
                 onClose={() => setShowOrderDetail(false)}
                 order={selectedOrder}
-                language={language}
+                params={{ locale: language }}
             />
         </div>
     );

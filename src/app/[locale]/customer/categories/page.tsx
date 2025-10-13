@@ -1,9 +1,10 @@
 "use client";
 
 import { API_BASE_URL } from "@/lib/config";
+import { useTranslations } from "@/utils/useTranslations";
 import { debounce } from "lodash";
 import Image from "next/image";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { MdOutlineViewInAr } from "react-icons/md";
 
 interface Category {
@@ -72,6 +73,11 @@ export default function CategoriesPage({
 }: {
   params: Promise<{ locale: "en" | "kh" }>;
 }) {
+
+  const unwrappedParams = use(params);
+  const language = unwrappedParams.locale || "en";
+  const t = useTranslations(language);
+
   const [locale, setLocale] = useState<"en" | "kh">("en");
   const [categories, setCategories] = useState<Category[]>([]);
   const [featuredCategories, setFeaturedCategories] = useState<Category[]>([]);
@@ -282,11 +288,10 @@ export default function CategoriesPage({
       {/* Header */}
       <div className="text-center mb-12">
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-          Product Categories
+          {t.categoryPage.productCategories}
         </h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Explore our comprehensive range of electrical measurement and testing
-          equipment for a wide variety of applications.
+          {t.categoryPage.exploreOurComprehensive}
         </p>
       </div>
 
@@ -304,7 +309,7 @@ export default function CategoriesPage({
                 d="m19.3 8.9l3.2 3.2l-1.4 1.4l-3.2-3.2q-.525.3-1.125.5T15.5 11q-1.875 0-3.187-1.312T11 6.5t1.313-3.187T15.5 2t3.188 1.313T20 6.5q0 .675-.2 1.275T19.3 8.9m-3.8.1q1.05 0 1.775-.725T18 6.5t-.725-1.775T15.5 4t-1.775.725T13 6.5t.725 1.775T15.5 9M4 22q-.825 0-1.412-.587T2 20V6q0-.825.588-1.412T4 4h5.5q-.275.625-.375 1.288t-.1 1.312q0 2.725 1.925 4.55t4.575 1.825q.475 0 .95-.063t.975-.212L20 15.25V20q0 .825-.587 1.413T18 22z"
               />
             </svg>
-            Featured Categories
+            {t.categoryPage.featuredCategories}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {featuredCategories.map((category) => (
@@ -338,7 +343,7 @@ export default function CategoriesPage({
                     </div>
                   )}
                   <div className="absolute top-4 right-4 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                    Featured
+                    {t.categoryPage.featured}
                   </div>
                 </div>
                 <div className="p-6">
@@ -351,7 +356,7 @@ export default function CategoriesPage({
                     }}
                     className="inline-flex cursor-pointer items-center text-blue-600 hover:text-blue-800 font-medium"
                   >
-                    View details
+                    {t.categoryPage.viewDetails}
                     <svg
                       className="w-4 h-4 ml-1"
                       fill="currentColor"
@@ -374,10 +379,10 @@ export default function CategoriesPage({
       {/* Stats Section */}
       <div className="flex flex-col py-2 sm:py-2 md:py-2 px-2 sm:px-6 lg:px-2">
         <h2 className="text-2xl text-center sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-          Why Choose Our Equipment?
+          {t.categoryPage.whyChoose}
         </h2>
         <p className="text-center sm:text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-8">
-          Professional-grade instruments from trusted manufacturers
+          {t.categoryPage.professionalGrade}
         </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 text-center transition-transform transform hover:shadow-xl">
@@ -405,8 +410,8 @@ export default function CategoriesPage({
             <div className="text-4xl font-extrabold text-gray-900 dark:text-white">
               {stats.totalProducts}+
             </div>
-            <p className="mt-1 text-sm font-medium text-gray-500 dark:text-gray-400">
-              Total Products
+            <p className="mt-1 text-lg font-semibold text-gray-800 dark:text-gray-400">
+              {t.categoryPage.totalProducts}
             </p>
           </div>
 
@@ -427,7 +432,7 @@ export default function CategoriesPage({
             <div className="text-3xl font-bold text-green-600">
               {stats.totalCategories}
             </div>
-            <div className="text-gray-600">Categories</div>
+            <div className="text-gray-800 font-semibold text-lg">{t.categoryPage.categories}</div>
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 text-center transition-transform transform hover:shadow-xl">
@@ -451,7 +456,7 @@ export default function CategoriesPage({
             <div className="text-3xl font-bold text-purple-600">
               {stats.totalBrands}
             </div>
-            <div className="text-gray-600">Brands</div>
+            <div className="text-gray-800 text-lg font-semibold">{t.categoryPage.brands}</div>
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 text-center transition-transform transform hover:shadow-xl">
@@ -475,7 +480,7 @@ export default function CategoriesPage({
             <div className="text-3xl font-bold text-orange-600">
               {stats.support}
             </div>
-            <div className="text-gray-600">Support</div>
+            <div className="text-gray-800 font-semibold text-lg">{t.categoryPage.support}</div>
           </div>
         </div>
       </div>
@@ -487,7 +492,7 @@ export default function CategoriesPage({
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search categories..."
+                placeholder={t.categoryPage.searchCategories}
                 onChange={handleSearchChange}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
@@ -574,7 +579,7 @@ export default function CategoriesPage({
                   transition
                 "
               >
-                <option value="order-asc">Default Order</option>
+                <option value="order-asc">{t.categoryPage.defaultOrder}</option>
                 <option value="name-asc">Name (A-Z)</option>
                 <option value="name-desc">Name (Z-A)</option>
                 <option value="created_at-desc">Newest First</option>
@@ -616,10 +621,10 @@ export default function CategoriesPage({
                 d="M7.425 9.475L11.15 3.4q.15-.25.375-.363T12 2.925t.475.113t.375.362l3.725 6.075q.15.25.15.525t-.125.5t-.35.363t-.525.137h-7.45q-.3 0-.525-.137T7.4 10.5t-.125-.5t.15-.525M17.5 22q-1.875 0-3.187-1.312T13 17.5t1.313-3.187T17.5 13t3.188 1.313T22 17.5t-1.312 3.188T17.5 22M3 20.5v-6q0-.425.288-.712T4 13.5h6q.425 0 .713.288T11 14.5v6q0 .425-.288.713T10 21.5H4q-.425 0-.712-.288T3 20.5m14.5-.5q1.05 0 1.775-.725T20 17.5t-.725-1.775T17.5 15t-1.775.725T15 17.5t.725 1.775T17.5 20M5 19.5h4v-4H5zM10.05 9h3.9L12 5.85zm7.45 8.5"
               />
             </svg>
-            All Categories
+            {t.categoryPage.allCategories}
           </h2>
           <div className="text-sm text-gray-500">
-            Showing {categories.length} of {stats.totalCategories} categories
+            {t.categoryPage.showing} {categories.length} {t.categoryPage.of} {stats.totalCategories} {t.categoryPage.category}
           </div>
         </div>
 
@@ -683,7 +688,7 @@ export default function CategoriesPage({
                     }}
                     className="text-sm cursor-pointer hover:underline text-blue-600 hover:text-blue-800 font-medium inline-flex items-center"
                   >
-                    View details
+                    {t.categoryPage.viewDetails}
                     <svg
                       className="w-4 h-4 ml-1"
                       fill="currentColor"
@@ -751,7 +756,7 @@ export default function CategoriesPage({
                       }}
                       className="text-sm cursor-pointer hover:underline text-blue-600 hover:text-blue-800 font-medium inline-flex items-center"
                     >
-                      View details
+                      {t.categoryPage.viewDetails}
                       <svg
                         className="w-4 h-4 ml-1"
                         fill="currentColor"
@@ -778,7 +783,7 @@ export default function CategoriesPage({
           <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold">Category Details</h2>
+                <h2 className="text-2xl font-bold">{t.categoryPage.categoryDetails}</h2>
                 <button
                   onClick={closeModal}
                   className="text-gray-500 cursor-pointer hover:text-gray-700"
@@ -890,7 +895,7 @@ export default function CategoriesPage({
                   {selectedCategory.products &&
                     selectedCategory.products.length > 0 && (
                       <div>
-                        <h4 className="text-lg font-semibold mb-3">Products</h4>
+                        <h4 className="text-lg font-semibold mb-3">{t.categoryPage.products}</h4>
                         <div className="grid grid-cols-1 gap-2">
                           {selectedCategory.products
                             .slice(0, 5)
@@ -922,7 +927,7 @@ export default function CategoriesPage({
                       onClick={closeModal}
                       className="px-4 py-2 border cursor-pointer border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
                     >
-                      Close
+                      {t.productDashboard.close}
                     </button>
                     <button
                       onClick={async () => {
@@ -935,7 +940,7 @@ export default function CategoriesPage({
                                    bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black text-white shadow-md transform hover:shadow-lg 
                                    dark:bg-gray-800 dark:hover:bg-gray-700">
                       <MdOutlineViewInAr className="text-lg" />
-                      View All Products
+                      {t.homePage.viewAllProducts}
                     </button>
                   </div>
                 </div>
@@ -956,7 +961,7 @@ export default function CategoriesPage({
             {/* Header */}
             <div className="flex justify-between items-center px-6 py-4 border-b dark:border-gray-700">
               <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
-                Products in {selectedCategory?.name}
+                {t.categoryPage.productsIn} {selectedCategory?.name}
               </h2>
               <button
                 onClick={() => setShowProductsModal(false)}
@@ -1015,12 +1020,12 @@ export default function CategoriesPage({
                               }`}
                           >
                             {product.stock <= product.low_stock_threshold
-                              ? "Low Stock"
-                              : "In Stock"}
+                              ? t.createProduct.lowStock
+                              : t.createProduct.inStock}
                           </span>
                         ) : (
                           <span className="inline-block text-xs font-semibold px-3 py-1 rounded-full bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200">
-                            Out of Stock
+                            {t.createProduct.outOfStock}
                           </span>
                         )}
                       </div>

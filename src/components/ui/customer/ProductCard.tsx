@@ -7,6 +7,7 @@ import { useTranslations } from "@/utils/useTranslations";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { FaRegStar, FaStar } from "react-icons/fa";
 import { FiDownload } from "react-icons/fi";
 import { LuQrCode } from "react-icons/lu";
 import {
@@ -20,6 +21,7 @@ import Swal from "sweetalert2";
 interface ProductCardProps {
   product: Product;
   locale: "en" | "kh";
+  showRating?: boolean;
 }
 
 interface Product {
@@ -53,7 +55,7 @@ interface ProductImage {
   is_primary: boolean;
 }
 
-export default function ProductCard({ product, locale }: ProductCardProps) {
+export default function ProductCard({ product, locale, showRating = false }: ProductCardProps) {
   const pathname = usePathname();
   const router = useRouter();
   const currentLocale = pathname.split("/")[1] || "en";
@@ -63,7 +65,10 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
   const [token, setToken] = useState<string | null>(null);
 
   const mainImage =
-    product.images.find((img) => img.is_primary)?.path || "";
+    product.images.find((img) => img.is_primary)?.path ||
+    product.images[0]?.path ||
+    "/images/placeholder.png";
+
   const [imageLoaded, setImageLoaded] = useState(false);
 
   const { addToCart } = useCart();
@@ -250,6 +255,21 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
     }
   };
 
+  const renderStars = (rating: number) => {
+    return (
+      <div className="flex items-center mt-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          star <= rating ?
+            <FaStar key={star} className="text-yellow-400 text-sm" /> :
+            <FaRegStar key={star} className="text-gray-300 text-sm" />
+        ))}
+        <span className="ml-1 text-xs text-gray-600 dark:text-gray-400">
+          ({product.total_ratings || 0})
+        </span>
+      </div>
+    );
+  };
+
   return (
     <div className="group bg-white dark:bg-gray-700 rounded-lg sm:rounded-xl md:rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 p-3 sm:p-4 flex flex-col relative overflow-hidden border border-gray-100 dark:border-gray-700 h-full">
 
@@ -354,7 +374,7 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
                 {qrCodeUrl ? (
                   <div className="flex flex-col items-center gap-4">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white text-center">
-                      QR Code for {product.name}
+                      {t.productCard.qrCodeFor} {product.name}
                     </h3>
 
                     <img
@@ -367,14 +387,14 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
                       onClick={handleDownloadQr}
                       className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-medium transition"
                     >
-                      <FiDownload className="w-5 h-5" /> Download QR Code
+                      <FiDownload className="w-5 h-5" /> {t.productCard.downloadQrCode}
                     </button>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-4">
                     <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-blue-500 border-gray-300"></div>
                     <p className="text-gray-600 dark:text-gray-300 text-center">
-                      Generating QR code...
+                      {t.productCard.generateQrCode}
                     </p>
                   </div>
                 )}
@@ -392,12 +412,12 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
           )}
           {product.is_featured && (
             <span className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-2 py-0.5 sm:px-3 sm:py-1 text-xs font-bold rounded-full shadow-md">
-              Featured
+              {t.productCard.featured}
             </span>
           )}
           {product.is_new && (
             <span className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-2 py-0.5 sm:px-3 sm:py-1 text-xs font-bold rounded-full shadow-md">
-              New
+              {t.productCard.new}
             </span>
           )}
         </div>
@@ -414,19 +434,19 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
               {product.stock <= product.low_stock_threshold ? (
                 <>
                   <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-amber-500 rounded-full mr-1"></span>
-                  Low Stock
+                  {t.createProduct.lowStock}
                 </>
               ) : (
                 <>
                   <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full mr-1"></span>
-                  In Stock
+                  {t.createProduct.inStock}
                 </>
               )}
             </span>
           ) : (
             <span className="inline-flex items-center px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
               <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-gray-500 rounded-full mr-1"></span>
-              Out of Stock
+              {t.createProduct.outOfStock}
             </span>
           )}
         </div>
@@ -498,10 +518,10 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
           {product.stock > 0 ? (
             <>
               <MdAddShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
-              Add to Cart
+              {t.productCard.addToCart}
             </>
           ) : (
-            "Out of Stock"
+            `${t.createProduct.outOfStock}`
           )}
         </button>
       </div>
@@ -621,12 +641,12 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
                           }`}
                       >
                         {product.stock <= product.low_stock_threshold
-                          ? "Low Stock"
-                          : "In Stock"}
+                          ? t.createProduct.lowStock
+                          : t.createProduct.inStock}
                       </span>
                     ) : (
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
-                        Out of Stock
+                        {t.createProduct.outOfStock}
                       </span>
                     )}
                   </div>
@@ -646,7 +666,7 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
                       ) : (
                         <MdRemoveShoppingCart className="text-lg" />
                       )}
-                      {product.stock > 0 ? "Add to Cart" : "Out of Stock"}
+                      {product.stock > 0 ? t.productCard.addToCart : t.createProduct.outOfStock}
                     </button>
 
                     <button
@@ -681,7 +701,7 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
              dark:bg-gray-800 dark:hover:bg-gray-700"
                   >
                     <MdOutlineViewInAr className="text-lg" />
-                    View Full Details
+                    {t.productCard.viewFullDetails}
                   </button>
                 </div>
               </div>
@@ -689,6 +709,13 @@ export default function ProductCard({ product, locale }: ProductCardProps) {
           </div>
         </div>
       )}
+
+      {showRating && (product.average_rating ?? 0) > 0 && (
+        <div className="px-4 pb-3">
+          {renderStars(product.average_rating ?? 0)}
+        </div>
+      )}
+
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import ContactForm from "@/components/ui/customer/ContactForm";
 import { API_BASE_URL } from "@/lib/config";
 import { FAQ } from "@/types/faq";
 
@@ -169,7 +170,7 @@ export default async function ContactPage({
                   {language === "en" ? "Address" : "អាសយដ្ឋាន"}
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  123 Street Name, Phnom Penh
+                  123 Street, Phnom Penh
                 </p>
                 <p className="text-gray-600 dark:text-gray-400">Cambodia</p>
               </div>
@@ -255,85 +256,7 @@ export default async function ContactPage({
             {language === "en" ? "Send us a message" : "ផ្ញើសារមកពួកយើង"}
           </h2>
 
-          <form className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="name"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  {language === "en" ? "Full Name" : "ឈ្មោះពេញ"}
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors"
-                  placeholder={
-                    language === "en" ? "Your name" : "ឈ្មោះរបស់អ្នក"
-                  }
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                >
-                  Email
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors"
-                  placeholder="your.email@example.com"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="subject"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                {language === "en" ? "Subject" : "ប្រធានបទ"}
-              </label>
-              <input
-                type="text"
-                id="subject"
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors"
-                placeholder={
-                  language === "en"
-                    ? "What is this regarding?"
-                    : "តើនេះគឺទាក់ទងនឹងអ្វី?"
-                }
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="message"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                {language === "en" ? "Message" : "សារ"}
-              </label>
-              <textarea
-                id="message"
-                rows={5}
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white transition-colors"
-                placeholder={
-                  language === "en"
-                    ? "How can we help you?"
-                    : "តើយើងអាចជួយអ្នកបានយ៉ាងដូចម្តេច?"
-                }
-              ></textarea>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full cursor-pointer bg-gradient-to-r from-blue-600 to-purple-600 text-white font-medium py-3 px-4 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
-            >
-              {language === "en" ? "Send Message" : "ផ្ញើសារ"}
-            </button>
-          </form>
+          <ContactForm language={language} />
         </div>
       </div>
 

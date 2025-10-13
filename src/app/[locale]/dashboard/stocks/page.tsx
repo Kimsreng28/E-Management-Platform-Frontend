@@ -1,9 +1,14 @@
 "use client";
 
 import { API_BASE_URL } from "@/lib/config";
-import { useEffect, useState } from "react";
+import { useTranslations } from "@/utils/useTranslations";
+import { SaveIcon, XCircleIcon } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { use, useEffect, useState } from "react";
 import { AiTwotoneEdit } from "react-icons/ai";
+import { FaRegSave } from "react-icons/fa";
 import { IoIosRefresh } from "react-icons/io";
+import { MdOutlineCancel } from "react-icons/md";
 import Swal from "sweetalert2";
 
 // Define interfaces for the data structures
@@ -33,7 +38,11 @@ interface PaginatedResponse<T> {
   to?: number;
 }
 
-export default function StocksPage() {
+export default function StocksPage({
+  params,
+}: {
+  params: Promise<{ locale: "en" | "kh" }>;
+}) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -44,6 +53,13 @@ export default function StocksPage() {
   const [activeTab, setActiveTab] = useState<string>("all");
   const [editStock, setEditStock] = useState<number>(0);
   const [editThreshold, setEditThreshold] = useState<number>(0);
+
+  const pathname = usePathname();
+
+  const unwrappedParams = use(params);
+  const language = unwrappedParams.locale || "en";
+  const currentLocale = pathname.split("/")[1] || "en";
+  const t = useTranslations(language);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -225,21 +241,22 @@ export default function StocksPage() {
     if (stock === 0)
       return {
         status: "out-of-stock",
-        label: "Out of Stock",
+        label: t.stockPage.outOfStock,
         color: "bg-red-100 text-red-800",
       };
     if (stock <= threshold)
       return {
         status: "low",
-        label: "Low Stock",
+        label: t.stockPage.lowStock,
         color: "bg-yellow-100 text-yellow-800",
       };
     return {
       status: "in-stock",
-      label: "In Stock",
+      label: t.stockPage.inStock,
       color: "bg-green-100 text-green-800",
     };
   };
+
 
   const filteredProducts = products.filter((product: Product) => {
     const matchesSearch =
@@ -252,29 +269,29 @@ export default function StocksPage() {
       return (
         matchesSearch &&
         getStockStatus(product.stock, product.low_stock_threshold).status ===
-          "low"
+        "low"
       );
     if (activeTab === "out")
       return (
         matchesSearch &&
         getStockStatus(product.stock, product.low_stock_threshold).status ===
-          "out-of-stock"
+        "out-of-stock"
       );
 
     return matchesSearch;
   });
 
   return (
-    <div className="space-y-6 px-4 sm:px-6 lg:px-1 lg:py-1 py-6 sm:space-y-6 md:px-6 sm:py-6">
+    <div className="space-y-3 px-2 sm:px-2 lg:px-2 lg:py-2 py-2 sm:space-y-3 md:px-2 sm:py-2">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6">
         {/* Title Section */}
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2 dark:text-white">
-            Stock Management
+            {t.stockPage.stockManagement}
           </h1>
           <p className="text-sm sm:text-base text-gray-500 dark:text-gray-300">
-            Manage your stocks and inventory.
+            {t.stockPage.manageStock}
           </p>
         </div>
 
@@ -298,7 +315,7 @@ export default function StocksPage() {
             </div>
             <input
               type="text"
-              placeholder="Search products..."
+              placeholder={t.stockPage.searchProducts}
               className="pl-9 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white dark:border-gray-600"
               value={searchTerm}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -314,9 +331,9 @@ export default function StocksPage() {
             }
             className="w-full sm:w-[180px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white dark:border-gray-600"
           >
-            <option value="all">All Products</option>
-            <option value="low">Low Stock</option>
-            <option value="out">Out of Stock</option>
+            <option value="all">{t.stockPage.allProducts}</option>
+            <option value="low">{t.stockPage.lowStock}</option>
+            <option value="out">{t.stockPage.outOfStock}</option>
           </select>
         </div>
       </div>
@@ -339,11 +356,11 @@ export default function StocksPage() {
               />
             </svg>
             <h3 className="text-red-800 font-medium dark:text-red-200">
-              Low Stock Alert
+              {t.stockPage.lowStockAlert}
             </h3>
           </div>
           <p className="text-red-700 mt-1 dark:text-red-300">
-            {lowStockAlert.length} product(s) are running low on stock
+            {lowStockAlert.length} {t.stockPage.lowStockAlertDescription}
           </p>
         </div>
       )}
@@ -352,10 +369,10 @@ export default function StocksPage() {
       <div className="bg-white shadow rounded-lg overflow-hidden dark:bg-gray-800">
         <div className="p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-            Inventory
+            {t.stockPage.inventory}
           </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-            Manage your product inventory and stock levels
+            {t.stockPage.manageYourProducts}
           </p>
 
           {loading ? (
@@ -367,7 +384,7 @@ export default function StocksPage() {
           ) : filteredProducts.length === 0 ? (
             <div className="flex justify-center items-center h-40">
               <p className="text-gray-500 dark:text-gray-300">
-                No products found
+                {t.stockPage.productNotFound}
               </p>
             </div>
           ) : (
@@ -377,33 +394,33 @@ export default function StocksPage() {
                   <tr>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold text-gray-800 uppercase tracking-wider dark:text-gray-300"
+                      className="px-6 py-3 text-left text-sm font-bold text-gray-800 uppercase tracking-wider dark:text-gray-300"
                     >
-                      Product
+                      {t.stockPage.product}
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold text-gray-800  uppercase tracking-wider dark:text-gray-300"
+                      className="px-6 py-3 text-left text-sm font-semibold text-gray-800  uppercase tracking-wider dark:text-gray-300"
                     >
-                      Current Stock
+                      {t.stockPage.currentStock}
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold text-gray-800  uppercase tracking-wider dark:text-gray-300"
+                      className="px-6 py-3 text-left text-sm font-semibold text-gray-800  uppercase tracking-wider dark:text-gray-300"
                     >
-                      Threshold
+                      {t.stockPage.threshold}
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-semibold text-gray-800  uppercase tracking-wider dark:text-gray-300"
+                      className="px-6 py-3 text-left text-sm font-semibold text-gray-800  uppercase tracking-wider dark:text-gray-300"
                     >
-                      Status
+                      {t.stockPage.status}
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-right text-xs font-semibold text-gray-800  uppercase tracking-wider dark:text-gray-300"
+                      className="px-6 py-3 text-right text-sm font-semibold text-gray-800  uppercase tracking-wider dark:text-gray-300"
                     >
-                      Actions
+                      {t.stockPage.actions}
                     </th>
                   </tr>
                 </thead>
@@ -415,18 +432,18 @@ export default function StocksPage() {
                     );
                     return (
                       <tr key={product.id}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-black font-bold dark:text-white">
                           {product.name}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-black font-bold dark:text-gray-300">
                           {product.stock}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-black font-bold dark:text-gray-300">
                           {product.low_stock_threshold}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
-                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${stockStatus.color}`}
+                            className={`px-2 inline-flex text-xs leading-5 font-bold rounded-full ${stockStatus.color}`}
                           >
                             {stockStatus.label}
                           </span>
@@ -472,7 +489,7 @@ export default function StocksPage() {
               {/* Rows per page selector */}
               <div className="flex items-center">
                 <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 mr-2">
-                  Rows per page:
+                  {t.viewCategory.rowsPerPage}:
                 </span>
                 <select
                   value={itemsPerPage}
@@ -497,7 +514,7 @@ export default function StocksPage() {
                   disabled={currentPage === 1}
                   className="px-2 sm:px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-xs sm:text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50"
                 >
-                  First
+                  {t.viewCategory.first}
                 </button>
                 <button
                   onClick={() =>
@@ -506,11 +523,11 @@ export default function StocksPage() {
                   disabled={currentPage === 1}
                   className="px-2 sm:px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-xs sm:text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50"
                 >
-                  Previous
+                  {t.viewCategory.previous}
                 </button>
 
                 <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 px-1 sm:px-2">
-                  Page {currentPage} of {totalPages}
+                  {t.viewCategory.page} {currentPage} {t.viewCategory.of} {totalPages}
                 </span>
 
                 <button
@@ -520,14 +537,14 @@ export default function StocksPage() {
                   disabled={currentPage === totalPages}
                   className="px-2 sm:px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-xs sm:text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50"
                 >
-                  Next
+                  {t.viewCategory.next}
                 </button>
                 <button
                   onClick={() => setCurrentPage(totalPages)}
                   disabled={currentPage === totalPages}
                   className="px-2 sm:px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-xs sm:text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-50"
                 >
-                  Last
+                  {t.viewCategory.last}
                 </button>
               </div>
             </div>
@@ -539,17 +556,17 @@ export default function StocksPage() {
       {editingProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-auto p-6 dark:bg-gray-800">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-              Edit Stock
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+              {t.stockPage.editStock}
             </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-300 mb-4">
-              Update stock levels for {editingProduct.name}
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+              {t.stockPage.updateStockLevel} {editingProduct.name}
             </p>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Current Stock
+                  {t.stockPage.currentStock}
                 </label>
                 <input
                   type="number"
@@ -563,7 +580,7 @@ export default function StocksPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Low Stock Threshold
+                  {t.stockPage.lowStockThreshold}
                 </label>
                 <input
                   type="number"
@@ -580,15 +597,17 @@ export default function StocksPage() {
             <div className="mt-6 flex justify-end space-x-3">
               <button
                 onClick={() => setEditingProduct(null)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                className="px-4 py-2 border cursor-pointer flex items-center border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:border-gray-600"
               >
-                Cancel
+                <MdOutlineCancel className="w-5 h-5 mr-2" />
+                {t.stockPage.cancel}
               </button>
               <button
                 onClick={handleUpdateStock}
-                className="px-4 py-2 bg-blue-600 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-4 py-2 bg-blue-600 cursor-pointer flex items-center border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                Save Changes
+                <FaRegSave className="w-5 h-5 mr-2" />
+                {t.stockPage.saveChanges}
               </button>
             </div>
           </div>
@@ -599,17 +618,17 @@ export default function StocksPage() {
       {restockProduct && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-auto p-6 dark:bg-gray-800">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-              Restock Product
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+              {t.stockPage.restock}
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-300 mb-4">
-              Add stock to {restockProduct.name}
+              {t.stockPage.addStockTo} {restockProduct.name}
             </p>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Quantity to Add
+                  {t.stockPage.quantityToAdd}
                 </label>
                 <input
                   type="number"
@@ -623,7 +642,7 @@ export default function StocksPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  New Total
+                  {t.stockPage.newTotal}
                 </label>
                 <p className="text-lg font-medium">
                   {(restockProduct.stock || 0) + (restockQuantity || 0)}
@@ -634,15 +653,17 @@ export default function StocksPage() {
             <div className="mt-6 flex justify-end space-x-3">
               <button
                 onClick={() => setRestockProduct(null)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                className="px-4 py-2 border cursor-pointer flex items-center border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:border-gray-600"
               >
-                Cancel
+                <MdOutlineCancel className="w-5 h-5 mr-2" />
+                {t.stockPage.cancel}
               </button>
               <button
                 onClick={handleRestock}
-                className="px-4 py-2 bg-green-600 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="px-4 py-2 bg-green-600 cursor-pointer flex items-center border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
               >
-                Confirm Restock
+                <FaRegSave className="w-5 h-5 mr-2" />
+                {t.stockPage.confirmRestock}
               </button>
             </div>
           </div>

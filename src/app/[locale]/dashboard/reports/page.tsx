@@ -196,10 +196,10 @@ export default function ReportsPage({ locale }: { locale: "en" | "kh" }) {
     setCustomRange(range);
 
   const tabs = [
-    { id: "salesReport", label: "Sales Report" },
-    { id: "productPerformance", label: "Product Performance" },
-    { id: "inventoryReport", label: "Inventory Report" },
-    { id: "customerAnalysis", label: "Customer Analysis" },
+    { id: "salesReport", label: t.reportsPage.salesReport },
+    { id: "productPerformance", label: t.reportsPage.productPerformance },
+    { id: "inventoryReport", label: t.reportsPage.inventoryReport },
+    { id: "customerAnalysis", label: t.reportsPage.customerAnalysis },
   ];
 
   const getTableHeaders = () => {
@@ -232,52 +232,48 @@ export default function ReportsPage({ locale }: { locale: "en" | "kh" }) {
   return (
     <div className="p-1 space-y-1">
       <div className="mb-4">
-        <h1 className="text-3xl font-bold mb-2">Reports & Analytics</h1>
+        <h1 className="text-3xl font-bold mb-2">{t.reportsPage.reports}</h1>
         <p className="text-gray-600">
-          Track performance and analyze business metrics.
+          {t.reportsPage.trackPerformance}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-3">
         <StatCard
-          title="Total Revenue"
+          title={t.reportsPage.totalRevenue}
           value={`$${stats?.totalRevenue?.toString() || "0"}`}
-          change={`+ ${
-            stats?.revenueChange?.toString() || "0"
-          } from last period`}
+          change={`+ ${stats?.revenueChange?.toString() || "0"
+            } ${t.reportsPage.fromLastPeriod}`}
           gradientFrom="from-[#5d30b6]"
           gradientTo="to-[#5752cf]"
           icon={undefined}
         />
 
         <StatCard
-          title="Total Orders"
+          title={t.reportsPage.totalOrders}
           value={stats?.totalOrders?.toString() || "0"}
-          change={`+ ${
-            stats?.ordersChange?.toString() || "0"
-          } from last period`}
+          change={`+ ${stats?.ordersChange?.toString() || "0"
+            } ${t.reportsPage.fromLastPeriod}`}
           gradientFrom="from-[#2563eb]"
           gradientTo="to-[#06b6d4]"
           icon={undefined}
         />
 
         <StatCard
-          title="New Customers"
+          title={t.reportsPage.newCustomers}
           value={stats?.newCustomers?.toString() || "0"}
-          change={`+ ${
-            stats?.customersChange?.toString() || "0"
-          } from last period`}
+          change={`+ ${stats?.customersChange?.toString() || "0"
+            } ${t.reportsPage.fromLastPeriod}`}
           gradientFrom="from-[#ec4899]"
           gradientTo="to-[#f97316]"
           icon={undefined}
         />
 
         <StatCard
-          title="Average Order Value"
+          title={t.reportsPage.averageOrderValue}
           value={`$${stats?.avgOrderValue?.toString() || "0"}`}
-          change={`+ ${
-            stats?.avgOrderValueChange?.toString() || "0"
-          } from last period`}
+          change={`+ ${stats?.avgOrderValueChange?.toString() || "0"
+            } ${t.reportsPage.fromLastPeriod}`}
           gradientFrom="from-[#22c55e]"
           gradientTo="to-[#0d9488]"
           icon={undefined}
@@ -299,6 +295,7 @@ export default function ReportsPage({ locale }: { locale: "en" | "kh" }) {
         onExport={handleExport}
         reportType={activeTab}
         isLoading={isLoading}
+        params={{ locale: language }}
       />
 
       {/* Table Content */}

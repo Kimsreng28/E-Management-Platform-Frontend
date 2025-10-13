@@ -18,6 +18,7 @@ import OrderDetailModal from "@/components/ui/customer/OrderDetailModal";
 import { Order } from "@/types/order";
 import initializeEcho, { disconnectEcho } from "@/lib/echo";
 import { User } from "@/contexts/ChatContext";
+import { useTranslations } from "@/utils/useTranslations";
 
 
 interface Delivery {
@@ -79,7 +80,9 @@ export default function DeliveryTrackingPage() {
 
     const pathname = usePathname();
     // Get current locale from URL
-    const currentLocale = pathname.split("/")[1] || "en";
+    const currentLocale = (pathname.split("/")[1] || "en") as "en" | "kh";
+    const t = useTranslations(currentLocale);
+
     const deliveryId = params.id as string;
     const [delivery, setDelivery] = useState<Delivery | null>(null);
     const [loading, setLoading] = useState(true);
@@ -99,32 +102,32 @@ export default function DeliveryTrackingPage() {
     const statusSteps = [
         {
             status: 'assigned',
-            label: 'Order Assigned',
-            description: 'Delivery agent has been assigned to your order',
+            label: t.deliveryTrack.orderAssigned,
+            description: t.deliveryTrack.deliveryAgent,
             icon: <RiCustomerService2Line className="w-6 h-6" />
         },
         {
             status: 'picked_up',
-            label: 'Picked Up',
-            description: 'Your order has been picked up from the store',
+            label: t.deliveryTrack.pickedUp,
+            description: t.deliveryTrack.yourOrder,
             icon: <TbTruckDelivery className="w-6 h-6" />
         },
         {
             status: 'out_for_delivery',
-            label: 'Out for Delivery',
-            description: 'Your order is on the way to you',
+            label: t.deliveryTrack.outForDelivery,
+            description: t.deliveryTrack.yourOrderIsOnTheWay,
             icon: <MdOutlineDeliveryDining className="w-6 h-6" />
         },
         {
             status: 'delivered',
-            label: 'Delivered',
-            description: 'Your order has been delivered',
+            label: t.deliveryTrack.delivered,
+            description: t.deliveryTrack.yourOrderHasBeenDelivered,
             icon: <IoIosCheckmarkCircle className="w-6 h-6" />
         },
         {
             status: 'completed',
-            label: 'Completed',
-            description: 'Order completed successfully',
+            label: t.deliveryTrack.completed,
+            description: t.deliveryTrack.orderCompletedSuccessfully,
             icon: <IoIosCheckmarkCircle className="w-6 h-6" />
         }
     ];
@@ -394,10 +397,10 @@ export default function DeliveryTrackingPage() {
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                         <div>
                             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                                Track Your Delivery
+                                {t.deliveryTrack.trackYourDelivery}
                             </h1>
                             <p className="text-gray-600 dark:text-gray-400">
-                                Order #{delivery.order.order_number}
+                                {t.orderDetail.order} #{delivery.order.order_number}
                             </p>
                         </div>
 
@@ -412,7 +415,7 @@ export default function DeliveryTrackingPage() {
                 {/* Delivery Progress */}
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
                     <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-                        Delivery Status
+                        {t.deliveryTrack.deliveryStatus}
                     </h2>
 
                     {/* Progress Steps */}
@@ -464,7 +467,7 @@ export default function DeliveryTrackingPage() {
                         <div className="flex items-center">
                             <BsClockHistory className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3" />
                             <div>
-                                <h3 className="font-medium text-blue-800 dark:text-blue-300">Estimated Arrival</h3>
+                                <h3 className="font-medium text-blue-800 dark:text-blue-300">{t.deliveryTrack.estimatedArrival}</h3>
                                 <p className="text-blue-600 dark:text-blue-400">{getEstimatedTime()}</p>
                                 {delivery.estimated_arrival_time && (
                                     <p className="text-sm text-blue-500 dark:text-blue-400 mt-1">
@@ -480,7 +483,7 @@ export default function DeliveryTrackingPage() {
                 {delivery.agent && (
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
                         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                            Your Delivery Agent
+                            {t.deliveryTrack.deliveryAgent}
                         </h2>
 
                         <div className="flex items-center space-x-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
@@ -584,7 +587,7 @@ export default function DeliveryTrackingPage() {
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                            Order Items
+                            {t.ordersDetail.orderItems}
                         </h2>
                         <button
                             onClick={handleShowOrderDetail}
@@ -617,7 +620,7 @@ export default function DeliveryTrackingPage() {
                                         <h3 className="font-medium text-gray-900 dark:text-white">{item.product_name}</h3>
                                         <p className="text-sm text-gray-600 dark:text-gray-400">{item.product_model}</p>
                                         <p className="text-sm text-gray-600 dark:text-gray-400">
-                                            Qty: {item.quantity} × ${item.unit_price}
+                                            {t.ordersDetail.qty}: {item.quantity} × ${item.unit_price}
                                         </p>
                                     </div>
 
@@ -633,7 +636,7 @@ export default function DeliveryTrackingPage() {
 
                     <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
                         <div className="flex justify-between items-center">
-                            <span className="text-lg font-semibold text-gray-900 dark:text-white">Total</span>
+                            <span className="text-lg font-semibold text-gray-900 dark:text-white">{t.cartPage.total}</span>
                             <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
                                 ${delivery.order.total}
                             </span>
@@ -644,7 +647,7 @@ export default function DeliveryTrackingPage() {
                 {/* Delivery History */}
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
                     <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                        Delivery History
+                        {t.deliveryTrack.deliveryHistory}
                     </h2>
 
                     <div className="space-y-4">
@@ -667,7 +670,7 @@ export default function DeliveryTrackingPage() {
                             ))
                         ) : (
                             <p className="text-gray-500 dark:text-gray-400 text-center py-4">
-                                No tracking history available yet.
+                                {t.deliveryTrack.noTrackingHistory}
                             </p>
                         )}
                     </div>
@@ -677,13 +680,13 @@ export default function DeliveryTrackingPage() {
                 {delivery.delivery_options && (
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
                         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                            Delivery Instructions
+                            {t.deliveryTrack.deliveryInstructions}
                         </h2>
 
                         <div className="space-y-3">
                             {delivery.delivery_options.instructions && (
                                 <div>
-                                    <h3 className="font-medium text-gray-900 dark:text-white">Special Instructions</h3>
+                                    <h3 className="font-medium text-gray-900 dark:text-white">{t.deliveryTrack.specialInstructions}</h3>
                                     <p className="text-gray-600 dark:text-gray-400">{delivery.delivery_options.instructions}</p>
                                 </div>
                             )}
@@ -699,7 +702,7 @@ export default function DeliveryTrackingPage() {
                                     />
                                     <span className="w-5 h-5 flex items-center justify-center rounded-full border border-gray-400 peer-checked:border-green-500 peer-checked:bg-green-500 transition"></span>
                                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Leave at door
+                                        {t.deliveryTrack.leaveAtDoor}
                                     </span>
                                 </label>
 
@@ -713,7 +716,7 @@ export default function DeliveryTrackingPage() {
                                     />
                                     <span className="w-5 h-5 flex items-center justify-center rounded-full border border-gray-400 peer-checked:border-green-500 peer-checked:bg-green-500 transition"></span>
                                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Signature required
+                                        {t.deliveryTrack.signatureRequired}
                                     </span>
                                 </label>
                             </div>
@@ -725,19 +728,19 @@ export default function DeliveryTrackingPage() {
                 {delivery.status === 'delivered' && !delivery.received_at && (
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
                         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                            Confirm Receipt
+                            {t.deliveryTrack.confirmReceipt}
                         </h2>
 
                         <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
                             <p className="text-yellow-800 dark:text-yellow-200 mb-4">
-                                Your order has been marked as delivered. Please confirm that you have received it.
+                                {t.deliveryTrack.yourOrderHasBeenMarked}
                             </p>
 
                             <button
                                 onClick={handleConfirmReceipt}
                                 className="w-full cursor-pointer bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors"
                             >
-                                Confirm Receipt of Delivery
+                                {t.deliveryTrack.confirmReceiptOfDelivery}
                             </button>
                         </div>
                     </div>
@@ -775,7 +778,7 @@ export default function DeliveryTrackingPage() {
                 isOpen={showOrderDetail}
                 onClose={() => setShowOrderDetail(false)}
                 order={fullOrder}
-                language={params.locale as string}
+                params={currentLocale === 'en' ? { locale: 'en' } : { locale: 'kh' }}
             />
         </div>
     );

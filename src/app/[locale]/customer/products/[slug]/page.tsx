@@ -555,7 +555,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
               className="inline-flex cursor-pointer items-center text-gray-700 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition-colors"
             >
               <FiHome className="mr-2" />
-              Home
+              {t.Home}
             </button>
           </li>
 
@@ -570,7 +570,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                 }}
                 className="text-gray-700 cursor-pointer hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400 transition-colors"
               >
-                Products
+                {t.Products}
               </button>
             </div>
           </li>
@@ -774,8 +774,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
               </div>
 
             </div>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Model: {product.model_code} | Brand: {product.brand.name}
+            <p className="text-lg text-gray-700 dark:text-gray-400 mt-1">
+              {t.ordersDetail.model}: {product.model_code} | {t.productDashboard.brand}: {product.brand.name}
             </p>
           </div>
 
@@ -849,7 +849,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
               <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl">
                 <h3 className="text-lg font-semibold mb-3 dark:text-white flex items-center">
                   <FiCheck className="mr-2 text-blue-500" />
-                  Specifications
+                  {t.createProduct.specifications}
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {Object.entries(product.specifications).map(
@@ -881,8 +881,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                   }`}
               >
                 {product.stock <= product.low_stock_threshold
-                  ? "Low Stock"
-                  : "In Stock"}
+                  ? t.createProduct.lowStock
+                  : t.createProduct.inStock}
                 {product.stock <= product.low_stock_threshold && (
                   <span className="ml-1">
                     <CgDanger className="w-4 h-4" />
@@ -891,11 +891,11 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
               </span>
             ) : (
               <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
-                Out of Stock
+                {t.createProduct.outOfStock}
               </span>
             )}
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              {product.stock} units available
+              {product.stock} {t.productDetail.unitsAvailable}
             </span>
           </div>
 
@@ -934,7 +934,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                   }`}
               >
                 <FiShoppingCart className="w-5 h-5" />
-                {product.stock > 0 ? "Add to Cart" : "Out of Stock"}
+                {product.stock > 0 ? t.productCard.addToCart : t.createProduct.outOfStock}
               </button>
 
               {/* Wishlist */}
@@ -948,7 +948,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                 <FiHeart
                   className={`w-5 h-5 ${isWishlisted ? "fill-current" : ""}`}
                 />
-                {isWishlisted ? "Wishlisted" : "Add to Wishlist"}
+                {isWishlisted ? t.productDetail.wishlisted : t.productDetail.addToWishlist}
               </button>
             </div>
           </div>
@@ -959,18 +959,18 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
       <div className="mb-12">
         <h2 className="text-2xl font-bold mb-6 dark:text-white flex items-center">
           <BsStars className="mr-2 text-yellow-400" />
-          Customer Reviews
+          {t.productDetail.customerReviews}
         </h2>
 
         {/* Add Review Form */}
         {token && (
           <div className="mb-8 p-6 bg-white rounded-xl shadow-sm dark:bg-gray-800">
             <h3 className="text-lg font-semibold mb-4 dark:text-white">
-              Write a Review
+              {t.productDetail.writeAReview}
             </h3>
             <div className="mb-4">
               <label className="block text-sm font-medium mb-2 dark:text-gray-300">
-                Your Rating
+                {t.productDetail.yourRating}
               </label>
               <div className="flex space-x-1">
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -996,7 +996,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                 htmlFor="comment"
                 className="block text-sm font-medium mb-2 dark:text-gray-300"
               >
-                Your Review
+                {t.productDetail.yourReview}
               </label>
               <textarea
                 id="comment"
@@ -1006,7 +1006,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                   setUserReview({ ...userReview, comment: e.target.value })
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white transition-colors"
-                placeholder="Share your experience with this product..."
+                placeholder={t.productDetail.shareYourExperience}
               />
             </div>
             <button
@@ -1026,7 +1026,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
               ) : (
                 <>
                   <FiSend className="w-5 h-5" />
-                  Submit Review
+                  {t.productDetail.submitReview}
                 </>
               )}
             </button>
@@ -1092,7 +1092,7 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         <div>
           <h2 className="text-2xl font-bold mb-6 flex items-center dark:text-white">
             <AiFillProduct className="w-6 h-6 mr-2 text-blue-700" />
-            Related Products
+            {t.productDetail.relatedProducts}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {relatedProducts.map((relatedProduct) => (

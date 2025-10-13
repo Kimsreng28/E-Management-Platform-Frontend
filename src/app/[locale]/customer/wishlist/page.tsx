@@ -4,6 +4,7 @@
 import { useCart } from "@/contexts/CartContext";
 import { useWishlist } from "@/contexts/WishlistContext";
 import { API_BASE_URL } from "@/lib/config";
+import { useTranslations } from "@/utils/useTranslations";
 import Image from "next/image";
 import Link from "next/link";
 import { use, useState } from "react";
@@ -15,6 +16,7 @@ export default function WishlistPage({
 }) {
   const unwrappedParams = use(params);
   const language = unwrappedParams.locale || "en";
+  const t = useTranslations(language);
   const { wishlist, loading, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
   const [movingToCart, setMovingToCart] = useState<number | null>(null);
@@ -61,17 +63,17 @@ export default function WishlistPage({
             </svg>
           </div>
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-            Your wishlist is empty
+            {t.wishlistPage.yourWishlistIsEmpty}
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
-            Save your favorite items here for easy access later.
+            {t.wishlistPage.saveYourFavorites}
           </p>
           <Link
             href={`/${language}/customer/products`}
             className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-2" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5" d="M9 11.5h2.5m0 0H14m-2.5 0V14m0-2.5V9M20 20l2 2M6.75 3.27a9.5 9.5 0 1 1-3.48 3.48" /></svg>
-            Browse Products
+            {t.wishlistPage.browseProducts}
           </Link>
         </div>
       </div>
@@ -95,11 +97,11 @@ export default function WishlistPage({
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            My Wishlist
+            {t.wishlistPage.myWishlist}
           </h1>
           <span className="text-sm text-gray-500 dark:text-gray-400">
             {validWishlist.length}{" "}
-            {validWishlist.length === 1 ? "item" : "items"}
+            {validWishlist.length === 1 ? t.wishlistPage.item : t.wishlistPage.items}
           </span>
         </div>
 
@@ -131,7 +133,7 @@ export default function WishlistPage({
                   {isOutOfStock && (
                     <div className="absolute inset-0 bg-gray-900/60 flex items-center justify-center">
                       <span className="bg-gray-800 text-white px-3 py-1 rounded-md text-sm font-medium">
-                        Out of Stock
+                        {t.createProduct.outOfStock}
                       </span>
                     </div>
                   )}
@@ -167,7 +169,7 @@ export default function WishlistPage({
 
                     {product.stock > 0 && (
                       <span className="text-xs font-medium px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-full">
-                        In Stock
+                        {t.createProduct.inStock}
                       </span>
                     )}
                   </div>
@@ -204,7 +206,7 @@ export default function WishlistPage({
                         Moving...
                       </>
                     ) : isOutOfStock ? (
-                      "Out of Stock"
+                      t.createProduct.outOfStock
                     ) : (
                       <>
                         <svg
@@ -220,7 +222,7 @@ export default function WishlistPage({
                             d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
                           />
                         </svg>
-                        Move to Cart
+                        {t.wishlistPage.moveToCart}
                       </>
                     )}
                   </button>

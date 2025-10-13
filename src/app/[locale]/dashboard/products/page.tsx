@@ -78,6 +78,16 @@ interface ImportPreviewData {
   totalRows?: number;
 }
 
+interface Brand {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  logo: string;
+  is_featured: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 export default function ProductsPage({
   params,
@@ -103,10 +113,14 @@ export default function ProductsPage({
   const [sortOrder, setSortOrder] = useState("desc");
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
 
+  const [priceRange, setPriceRange] = useState<[number, number] | null>([1, 300]);
+  const [selectedBrand, setSelectedBrand] = useState<number | null>(null);
+  const [stockFilter, setStockFilter] = useState<string | null>(null);
+  const [brands, setBrands] = useState<any[]>([]);
+
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState<{
     top: number;
     left: number;
@@ -167,6 +181,39 @@ export default function ProductsPage({
     fetchCategories();
   }, []);
 
+  // Fetch brand from API
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_BASE_URL}/api/companies`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        });
+        if (!res.ok) throw new Error("Failed to fetch brands");
+        const data = await res.json();
+
+        // Handle different response structures
+        if (Array.isArray(data)) {
+          setBrands(data);
+        } else if (data.data && Array.isArray(data.data)) {
+          setBrands(data.data);
+        } else if (data.items && Array.isArray(data.items)) {
+          setBrands(data.items);
+        } else {
+          console.error("Unexpected brands response structure:", data);
+          setBrands([]);
+        }
+      } catch (error) {
+        console.error("Error fetching brands:", error);
+        setBrands([]);
+      }
+    };
+    fetchBrands();
+  }, []);
+
   // Fetch products from API
   const fetchProducts = async () => {
     try {
@@ -181,6 +228,12 @@ export default function ProductsPage({
         ...(searchTerm && { search: searchTerm }),
         ...(selectedStatus && { status: selectedStatus }),
         ...(selectedCategory && { category_id: selectedCategory.toString() }),
+        ...(selectedBrand && { brand_id: selectedBrand.toString() }),
+        ...(stockFilter && { stock: stockFilter }),
+        ...(priceRange && {
+          min_price: priceRange[0].toString(),
+          max_price: priceRange[1].toString()
+        }),
       });
 
       const res = await fetch(
@@ -223,7 +276,12 @@ export default function ProductsPage({
     sortOrder,
     selectedStatus,
     selectedCategory,
+    selectedBrand,
+    stockFilter,
+    priceRange
   ]);
+
+
 
   // Handle delete product
   const handleDelete = async (productId: number, productSlug: string, productName: string) => {
@@ -640,8 +698,15 @@ export default function ProductsPage({
     );
   }
 
+  const stockOptions = [
+    { value: t.createProduct.allStock, label: t.createProduct.allStock },
+    { value: "in_stock", label: t.createProduct.inStock },
+    { value: "low_stock", label: t.createProduct.lowStock },
+    { value: "out_of_stock", label: t.createProduct.outOfStock },
+  ];
+
   return (
-    <div className="space-y-6 px-4 sm:px-6 lg:px-1 lg:py-1 py-6 sm:space-y-6 md:px-6 sm:py-6">
+    <div className="space-y-3 px-2 sm:px-2 lg:px-2 lg:py-2 py-2 sm:space-y-3 md:px-2 sm:py-2">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6">
         {/* Title Section */}
@@ -664,7 +729,7 @@ export default function ProductsPage({
             <svg xmlns="http://www.w3.org/2000/svg" className="mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24">
               <path fill="currentColor" d="M11 16V7.85l-2.6 2.6L7 9l5-5l5 5l-1.4 1.45l-2.6-2.6V16h-2Zm-7 4v-5h2v3h12v-3h2v5H4Z" />
             </svg>
-            <span className="whitespace-nowrap">Import</span>
+            <span className="whitespace-nowrap">{t.productDashboard.import}</span>
           </button>
           <input
             type="file"
@@ -682,7 +747,7 @@ export default function ProductsPage({
             <svg xmlns="http://www.w3.org/2000/svg" className="mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24">
               <path fill="currentColor" d="M6 20q-.825 0-1.413-.588T4 18v-3h2v3h12v-3h2v3q0 .825-.588 1.413T18 20H6Zm6-4l-5-5l1.4-1.45l2.6 2.6V4h2v8.15l2.6-2.6L17 11l-5 5Z" />
             </svg>
-            <span className="whitespace-nowrap">Export</span>
+            <span className="whitespace-nowrap">{t.productDashboard.export}</span>
           </button>
 
           {/* Add Category Button (secondary) */}
@@ -728,11 +793,11 @@ export default function ProductsPage({
               <div className="flex justify-between items-center mb-4">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Import Preview
+                    {t.productDashboard.importPreview}
                   </h3>
                   {importPreviewData?.totalRows && (
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      Total products to import: {importPreviewData.totalRows}
+                      {t.productDashboard.totalProductsToImport}: {importPreviewData.totalRows}
                     </p>
                   )}
                 </div>
@@ -751,10 +816,10 @@ export default function ProductsPage({
                   <div className="mb-4">
                     <div className="flex justify-between items-center mb-2">
                       <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        All Products in CSV ({importPreviewData.previewData.length} items):
+                        {t.productDashboard.allProductsInCSV} ({importPreviewData.previewData.length} {t.productDashboard.items}):
                       </h4>
                       <span className="text-xs text-gray-500 dark:text-gray-400">
-                        Scroll to see all products
+                        {t.productDashboard.scrollToSeeAllProducts}
                       </span>
                     </div>
                     <div className="overflow-x-auto max-h-96 border border-gray-200 dark:border-gray-700 rounded-lg">
@@ -765,25 +830,25 @@ export default function ProductsPage({
                               #
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                              Name
+                              {t.productDashboard.name}
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                              Model Code
+                              {t.productDashboard.modelCode}
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                              Category
+                              {t.productDashboard.category}
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                              Brand
+                              {t.productDashboard.brand}
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                              Price
+                              {t.productDashboard.price}
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                              Stock
+                              {t.productDashboard.stock}
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                              Status
+                              {t.productDashboard.status}
                             </th>
                           </tr>
                         </thead>
@@ -838,13 +903,13 @@ export default function ProductsPage({
                       </div>
                       <div className="ml-3">
                         <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                          Import Information
+                          {t.productDashboard.importInformation}
                         </h3>
                         <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
-                          <p>• All {importPreviewData.previewData.length} products will be processed</p>
-                          <p>• Products with existing model codes will be skipped</p>
-                          <p>• Missing categories or brands will cause import errors</p>
-                          <p>• Review the data above before confirming import</p>
+                          <p>• {t.productDashboard.all} {importPreviewData.previewData.length} {t.productDashboard.productsWillBeProcessed}</p>
+                          <p>• {t.productDashboard.productsWithExisting}</p>
+                          <p>• {t.productDashboard.missingCategoriesOrBrands}</p>
+                          <p>• {t.productDashboard.reviewTheData}</p>
                         </div>
                       </div>
                     </div>
@@ -856,7 +921,7 @@ export default function ProductsPage({
                       className="flex items-center cursor-pointer px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
                     >
                       <MdClose className="w-4 h-4 mr-2" />
-                      Cancel
+                      {t.productDashboard.cancel}
                     </button>
                     <button
                       onClick={handleConfirmImport}
@@ -869,12 +934,12 @@ export default function ProductsPage({
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
-                          Importing...
+                          {t.productDashboard.importing}
                         </span>
                       ) : (
                         <>
                           <MdFileUpload className="w-4 h-4 mr-2" />
-                          Import All {importPreviewData?.previewData?.length} Products
+                          {t.productDashboard.importAll} {importPreviewData?.previewData?.length} {t.productDashboard.products}
                         </>
                       )}
                     </button>
@@ -884,7 +949,7 @@ export default function ProductsPage({
                 <>
                   <div className="mb-4">
                     <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Import Results:
+                      {t.productDashboard.importResults}:
                     </h4>
                     <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-4">
                       <div className="flex">
@@ -895,13 +960,13 @@ export default function ProductsPage({
                         </div>
                         <div className="ml-3">
                           <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                            Import completed with {importPreviewData.errors.length} error(s)
+                            {t.productDashboard.importCompletedWith} {importPreviewData.errors.length} {t.productDashboard.error}
                           </h3>
                           <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
-                            <p><strong>Imported:</strong> {importPreviewData.imported} products</p>
-                            <p><strong>Skipped:</strong> {importPreviewData.skipped} products</p>
+                            <p><strong>{t.productDashboard.imported}:</strong> {importPreviewData.imported} {t.productDashboard.product}</p>
+                            <p><strong>{t.productDashboard.skipped}:</strong> {importPreviewData.skipped} {t.productDashboard.product}</p>
                             <div className="mt-3">
-                              <p className="font-medium">Errors:</p>
+                              <p className="font-medium">{t.productDashboard.errors}:</p>
                               <div className="mt-2 max-h-40 overflow-y-auto">
                                 <ul className="list-disc list-inside space-y-1">
                                   {importPreviewData.errors.map((error, index) => (
@@ -921,7 +986,7 @@ export default function ProductsPage({
                       onClick={handleModalClose}
                       className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
                     >
-                      Close
+                      {t.productDashboard.close}
                     </button>
                   </div>
                 </>
@@ -939,7 +1004,7 @@ export default function ProductsPage({
           icon={
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="w-6 h-6"
+              className="w-10 h-10"
               viewBox="0 0 24 24"
             >
               <path
@@ -960,7 +1025,7 @@ export default function ProductsPage({
           icon={
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="w-6 h-6"
+              className="w-10 h-10"
               viewBox="0 0 24 24"
             >
               <path
@@ -981,7 +1046,7 @@ export default function ProductsPage({
           icon={
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="w-6 h-6"
+              className="w-10 h-10"
               viewBox="0 0 24 24"
             >
               <g fill="none">
@@ -1004,7 +1069,7 @@ export default function ProductsPage({
           icon={
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="w-6 h-6"
+              className="w-10 h-10"
               viewBox="0 0 24 24"
             >
               <g fill="none">
@@ -1093,6 +1158,87 @@ export default function ProductsPage({
                 </select>
                 <IoIosArrowDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none w-4 h-4" />
               </div>
+
+              {/* Filter by Brand */}
+              <div className="relative w-full md:w-48">
+                <select
+                  value={selectedBrand || ""}
+                  onChange={(e) => setSelectedBrand(e.target.value ? Number(e.target.value) : null)}
+                  className="w-full text-sm sm:text-base border shadow focus:border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-gray-300 border-gray-300 rounded-lg px-3 py-2 pr-8 dark:bg-gray-800 dark:text-white dark:border-gray-600 appearance-none"
+                >
+                  <option value="">{t.productDashboard.allBrands}</option>
+                  {brands.map((brand) => (
+                    <option key={brand.id} value={brand.id}>
+                      {brand.name}
+                    </option>
+                  ))}
+                </select>
+                <IoIosArrowDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none w-4 h-4" />
+              </div>
+
+              {/* Filter by Stock */}
+              <div className="relative w-full md:w-48">
+                <select
+                  value={stockFilter || ""}
+                  onChange={(e) => setStockFilter(e.target.value)}
+                  className="w-full text-sm sm:text-base border shadow focus:border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-gray-300 border-gray-300 rounded-lg px-3 py-2 pr-8 dark:bg-gray-800 dark:text-white dark:border-gray-600 appearance-none"
+                >
+                  {stockOptions.map((option) => (
+                    <option key={option.value || "all"} value={option.value || ""}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <IoIosArrowDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none w-4 h-4" />
+              </div>
+
+              {/* Filter by Price Range */}
+              <div className="relative w-full md:w-64">
+                <div className="flex space-x-2">
+                  {/* Min Price */}
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-black dark:text-gray-400 text-sm">
+                      $
+                    </span>
+                    <input
+                      type="number"
+                      placeholder="Min"
+                      className="w-full text-sm sm:text-base border shadow 
+                      focus:border-transparent transition-all duration-200 ease-in-out 
+                      focus:outline-none focus:ring-1 focus:ring-gray-300 
+                    border-gray-300 rounded-lg pl-6 pr-3 py-2 
+                    dark:bg-gray-800 dark:text-white dark:border-gray-600"
+                      value={priceRange?.[0] || ""}
+                      onChange={(e) => setPriceRange([
+                        e.target.value ? Number(e.target.value) : 0,
+                        priceRange?.[1] || 1000
+                      ])}
+                    />
+                  </div>
+
+                  {/* Max Price */}
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-black dark:text-gray-400 text-sm">
+                      $
+                    </span>
+                    <input
+                      type="number"
+                      placeholder="Max"
+                      className="w-full text-sm sm:text-base border shadow 
+                      focus:border-transparent transition-all duration-200 ease-in-out 
+                      focus:outline-none focus:ring-1 focus:ring-gray-300 
+                    border-gray-300 rounded-lg pl-6 pr-3 py-2 
+                    dark:bg-gray-800 dark:text-white dark:border-gray-600"
+                      value={priceRange?.[1] || ""}
+                      onChange={(e) => setPriceRange([
+                        priceRange?.[0] || 0,
+                        e.target.value ? Number(e.target.value) : 1000
+                      ])}
+                    />
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -1209,7 +1355,7 @@ export default function ProductsPage({
                         </div>
 
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          <div className="text-sm font-medium text-black dark:text-white">
                             {product.name}
                           </div>
                           <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -1222,27 +1368,27 @@ export default function ProductsPage({
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-black dark:text-gray-400">
                       {product.model_code}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-black dark:text-gray-400">
                       {product.category?.name || "-"}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-black dark:text-gray-400">
                       {product.brand?.name || "-"}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-black dark:text-gray-400">
                       $
                       {typeof product.price === "string"
                         ? parseFloat(product.price).toFixed(2)
                         : product.price.toFixed(2)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-black dark:text-gray-400">
                       {product.stock}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${product.stock_status === "Active"
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${product.stock_status === "Active"
                           ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                           : product.stock_status === "Inactive"
                             ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"

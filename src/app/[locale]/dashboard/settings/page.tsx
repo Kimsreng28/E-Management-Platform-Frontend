@@ -10,9 +10,11 @@ import TopCouponsPage from "@/components/ui/dashboard/settings/TopCouponsPage";
 import { getToken } from "@/lib/api/auth";
 import { API_BASE_URL } from "@/lib/config";
 import { useTranslations } from "@/utils/useTranslations";
+import { icon } from "leaflet";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { MdSaveAs } from "react-icons/md";
+import { CiDiscount1 } from "react-icons/ci";
+import { MdBusiness, MdDesignServices, MdDiscount, MdLocalOffer, MdNotifications, MdSaveAs, MdSecurity, MdSettings } from "react-icons/md";
 import Swal from "sweetalert2";
 
 interface UserData {
@@ -283,12 +285,12 @@ export default function SettingsPage({ locale }: { locale: "en" | "kh" }) {
   }, []);
 
   const tabs = [
-    { id: "general", label: t.settingSession.general },
-    { id: "notifications", label: t.settingSession.notification },
-    { id: "security", label: t.settingSession.security },
-    { id: "appearance", label: t.settingSession.appearance },
-    { id: "business", label: t.settingSession.business },
-    { id: "coupons", label: "Coupons" },
+    { id: "general", icon: <MdSettings />, label: t.settingSession.general },
+    { id: "notifications", icon: <MdNotifications />, label: t.settingSession.notification },
+    { id: "security", icon: <MdSecurity />, label: t.settingSession.security },
+    { id: "appearance", icon: <MdDesignServices />, label: t.settingSession.appearance },
+    { id: "business", icon: <MdBusiness />, label: t.settingSession.business },
+    { id: "coupons", icon: <MdDiscount />, label: t.coupon.coupons },
   ];
 
   return (

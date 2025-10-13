@@ -332,16 +332,16 @@ export default function CustomersPage({
   ]);
 
   return (
-    <div className="space-y-6 px-4 sm:px-6 lg:px-1 lg:py-1 py-6 sm:space-y-6 md:px-6 sm:py-6">
+    <div className="space-y-3 px-2 sm:px-2 lg:px-2 lg:py-2 py-2 sm:space-y-3 md:px-2 sm:py-2">
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6">
         {/* Title Section */}
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2 dark:text-white">
-            Customers
+            {t.customerPage.customers}
           </h1>
           <p className="text-sm sm:text-base text-gray-500 dark:text-gray-300">
-            Manage customer accounts and relationships
+            {t.customerPage.manageCustomers}
           </p>
         </div>
       </div>
@@ -349,7 +349,7 @@ export default function CustomersPage({
       {/* State Section */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <StatCard
-          title="Total Customers"
+          title={t.customerPage.totalCustomers}
           value={stats?.totalCustomers?.toString() || "0"}
           icon={
             <svg
@@ -371,7 +371,7 @@ export default function CustomersPage({
           gradientTo="to-[#5752cf]"
         />
         <StatCard
-          title="Active Customers"
+          title={t.customerPage.activeCustomers}
           value={stats?.activeCustomers?.toString() || "0"}
           icon={
             <svg
@@ -397,7 +397,7 @@ export default function CustomersPage({
           gradientTo="to-[#06b6d4]"
         />
         <StatCard
-          title="Inactive Customers"
+          title={t.customerPage.inactiveCustomers}
           value={stats?.inactiveCustomers?.toString() || "0"}
           icon={
             <svg
@@ -418,7 +418,7 @@ export default function CustomersPage({
           gradientTo="to-[#f97316]"
         />
         <StatCard
-          title="Total Revenue"
+          title={t.customerPage.totalRevenue}
           value={`$ ${stats?.totalRevenue?.toString() || "0"}`}
           icon={
             <svg
@@ -448,10 +448,10 @@ export default function CustomersPage({
         <div className=" p-2 m-2 ">
           <div className="mb-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              Customer Management
+              {t.customerPage.customerManagement}
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Search, filter, and manage customer accounts
+              {t.customerPage.searchFilterManage}
             </p>
           </div>
 
@@ -464,7 +464,7 @@ export default function CustomersPage({
                 </div>
                 <input
                   type="text"
-                  placeholder="Search orders..."
+                  placeholder={t.customerPage.searchCustomers}
                   className="w-full text-xs sm:text-sm md:text-base border shadow focus:border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-gray-300 border-gray-300 rounded-lg pl-8 sm:pl-10 py-1.5 sm:py-2 dark:bg-gray-800 dark:text-white dark:border-gray-600"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -504,7 +504,7 @@ export default function CustomersPage({
                   onClick={() => handleSort("name")}
                 >
                   <div className="flex items-center">
-                    Customer {getSortIndicator("name")}
+                    {t.customerPage.customer} {getSortIndicator("name")}
                   </div>
                 </th>
 
@@ -514,7 +514,7 @@ export default function CustomersPage({
                   onClick={() => handleSort("email")}
                 >
                   <div className="flex items-center">
-                    Contact {getSortIndicator("email")}
+                    {t.customerPage.contact} {getSortIndicator("email")}
                   </div>
                 </th>
 
@@ -524,7 +524,7 @@ export default function CustomersPage({
                   onClick={() => handleSort("orders_count")}
                 >
                   <div className="flex items-center">
-                    Orders Total {getSortIndicator("orders_count")}
+                    {t.customerPage.ordersTotal} {getSortIndicator("orders_count")}
                   </div>
                 </th>
 
@@ -534,7 +534,7 @@ export default function CustomersPage({
                   onClick={() => handleSort("total_spent")}
                 >
                   <div className="flex items-center">
-                    Total Spent {getSortIndicator("total_spent")}
+                    {t.customerPage.totalSpent} {getSortIndicator("total_spent")}
                   </div>
                 </th>
 
@@ -544,7 +544,7 @@ export default function CustomersPage({
                   onClick={() => handleSort("last_order_date")}
                 >
                   <div className="flex items-center">
-                    Last Order {getSortIndicator("last_order_date")}
+                    {t.customerPage.lastOrder} {getSortIndicator("last_order_date")}
                   </div>
                 </th>
 
@@ -554,7 +554,7 @@ export default function CustomersPage({
                   onClick={() => handleSort("is_active")}
                 >
                   <div className="flex items-center">
-                    Status {getSortIndicator("is_active")}
+                    {t.customerPage.status} {getSortIndicator("is_active")}
                   </div>
                 </th>
 
@@ -562,7 +562,7 @@ export default function CustomersPage({
                   scope="col"
                   className="px-6 py-3 text-left text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider flex items-center justify-end"
                 >
-                  Actions
+                  {t.customerPage.actions}
                 </th>
               </tr>
             </thead>
@@ -636,7 +636,7 @@ export default function CustomersPage({
                             )}
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            <div className="text-sm font-bold text-black dark:text-white">
                               {customer.name || "Unknown Customer"}
                             </div>
                             <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -665,7 +665,7 @@ export default function CustomersPage({
                       </td>
 
                       {/* Total Spent Column */}
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                      <td className="px-6 py-4 whitespace-nowrap font-bold text-sm text-gray-900 dark:text-white">
                         ${totalSpent.toFixed(2)}
                       </td>
 
@@ -684,7 +684,7 @@ export default function CustomersPage({
                             : "bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100"
                             }`}
                         >
-                          {customer.is_active ? "Active" : "Inactive"}
+                          {customer.is_active ? t.customerPage.active : t.customerPage.inactive}
                         </span>
                       </td>
 
@@ -720,7 +720,7 @@ export default function CustomersPage({
                                   }}
                                 >
                                   <MdVisibility className="mr-2" />
-                                  View Profile
+                                  {t.customerPage.viewProfile}
                                 </button>
 
                                 <button
@@ -732,7 +732,7 @@ export default function CustomersPage({
                                   }}
                                 >
                                   <MdVisibility className="mr-2" />
-                                  View Orders
+                                  {t.customerPage.viewOrders}
                                 </button>
 
 
@@ -819,6 +819,7 @@ export default function CustomersPage({
             isOpen={isOrderModalOpen}
             onClose={() => setIsOrderModalOpen(false)}
             orderIds={selectedOrderIds}
+            params={{ locale: language }}
           />
         </div>
       </div>

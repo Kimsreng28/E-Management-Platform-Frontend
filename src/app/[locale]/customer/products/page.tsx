@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 
 import ProductCard from "@/components/ui/customer/ProductCard";
 import { API_BASE_URL } from "@/lib/config";
 import { MdOutlineViewInAr } from "react-icons/md";
 import { usePathname, useRouter } from "next/navigation";
+import { useTranslations } from "@/utils/useTranslations";
 
 interface Product {
   id: number;
@@ -84,6 +85,10 @@ export default function ProductsPage({
   const pathname = usePathname();
   const currentLocale = pathname.split("/")[1] || "en";
   const locale = "en";
+
+  const unwrappedParams = use(params);
+  const language = unwrappedParams.locale || "en";
+  const t = useTranslations(language);
 
   useEffect(() => {
     fetchProducts();
@@ -287,8 +292,8 @@ export default function ProductsPage({
           key={i}
           onClick={() => handlePageChange(i)}
           className={`px-3 py-1 rounded border text-sm ${currentPage === i
-              ? "bg-blue-600 text-white border-blue-600"
-              : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+            ? "bg-blue-600 text-white border-blue-600"
+            : "border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             }`}
         >
           {i}
@@ -357,11 +362,10 @@ export default function ProductsPage({
       {/* Header */}
       <div className="text-center mb-8 md:mb-12">
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-          Our Products
+          {t.productsPage.ourProducts}
         </h1>
         <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-          Discover our wide range of high-quality products designed to meet your
-          needs.
+          {t.productsPage.discoverOurWide}
         </p>
       </div>
 
@@ -386,7 +390,7 @@ export default function ProductsPage({
               </div>
               <input
                 type="text"
-                placeholder="Search products..."
+                placeholder={t.productsPage.searchProducts}
                 className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 value={searchQuery}
                 onChange={(e) => {
@@ -409,7 +413,7 @@ export default function ProductsPage({
                   setCurrentPage(1); // Reset to first page when filtering
                 }}
               >
-                <option value="all">All Categories</option>
+                <option value="all">{t.productsPage.allCategories}</option>
                 {categories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
@@ -428,10 +432,10 @@ export default function ProductsPage({
                   setCurrentPage(1); // Reset to first page when filtering
                 }}
               >
-                <option value="all">All Status</option>
-                <option value="active">In Stock</option>
-                <option value="inactive">Low Stock</option>
-                <option value="out of stock">Out of Stock</option>
+                <option value="all">{t.productsPage.allStatus}</option>
+                <option value="active">{t.createProduct.inStock}</option>
+                <option value="inactive">{t.createProduct.lowStock}</option>
+                <option value="out of stock">{t.createProduct.outOfStock}</option>
               </select>
             </div>
 
@@ -445,9 +449,9 @@ export default function ProductsPage({
                   setCurrentPage(1); // Reset to first page when sorting
                 }}
               >
-                <option value="created_at">Newest</option>
-                <option value="name">Name</option>
-                <option value="price">Price</option>
+                <option value="created_at">{t.productsPage.newest}</option>
+                <option value="name">{t.productDashboard.name}</option>
+                <option value="price">{t.productDashboard.price}</option>
               </select>
             </div>
 
@@ -502,7 +506,7 @@ export default function ProductsPage({
       <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <p className="text-gray-600 dark:text-gray-300">
-            Showing {((currentPage - 1) * perPage) + 1} to {Math.min(currentPage * perPage, totalProducts)} of {totalProducts} products
+            {t.productsPage.showing} {((currentPage - 1) * perPage) + 1} {t.productsPage.to} {Math.min(currentPage * perPage, totalProducts)} {t.productsPage.of} {totalProducts} {t.productsPage.products}
           </p>
         </div>
 
@@ -510,7 +514,7 @@ export default function ProductsPage({
           {/* Items per page selector */}
           <div className="flex items-center">
             <span className="text-sm text-gray-600 dark:text-gray-300 mr-2">
-              Show:
+              {t.productsPage.show}:
             </span>
             <select
               value={perPage}
@@ -533,7 +537,7 @@ export default function ProductsPage({
             }}
             className="flex items-center text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
-            {sortOrder === "asc" ? "Ascending" : "Descending"}
+            {sortOrder === "asc" ? t.productsPage.ascending : t.productsPage.descending}
             <svg
               className={`ml-1 h-4 w-4 ${sortOrder === "asc" ? "rotate-180" : ""
                 }`}
@@ -586,7 +590,7 @@ export default function ProductsPage({
           >
             {filteredProducts.map((product) =>
               viewMode === "grid" ? (
-                <ProductCard key={product.id} product={product} locale={locale} />
+                <ProductCard key={product.id} product={product} locale={language} />
               ) : (
                 <div
                   key={product.id}
@@ -677,7 +681,7 @@ export default function ProductsPage({
              bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black text-white shadow-md transform hover:shadow-lg 
              dark:bg-gray-800 dark:hover:bg-gray-700">
                           <MdOutlineViewInAr className="text-lg" />
-                          View Details
+                          {t.productsPage.viewDetail}
                         </button>
                       </div>
                     </div>
@@ -691,7 +695,7 @@ export default function ProductsPage({
           {totalPages > 1 && (
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="text-sm text-gray-600 dark:text-gray-300">
-                Page {currentPage} of {totalPages}
+                {t.productsPage.page} {currentPage} {t.productsPage.of} {totalPages}
               </div>
 
               <div className="flex items-center space-x-2">
@@ -701,7 +705,7 @@ export default function ProductsPage({
                   disabled={currentPage === 1}
                   className="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Previous
+                  {t.productsPage.previous}
                 </button>
 
                 {/* Page number buttons */}
@@ -713,7 +717,7 @@ export default function ProductsPage({
                   disabled={currentPage === totalPages}
                   className="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Next
+                  {t.productsPage.next}
                 </button>
               </div>
             </div>

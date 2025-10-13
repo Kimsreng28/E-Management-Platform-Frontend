@@ -174,14 +174,14 @@ export default function DashboardPage({
         {/* State Section */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <StatCard
-            title="Total Revenue"
+            title={t.dashboardPage.totalRevenue}
             value={`$${stats?.currentMonthRevenue?.toString() || "0"}`}
             change={`${stats?.revenueChange?.toString() || "0"
-              } from last month`}
+              } ${t.dashboardPage.fromLastMonth}`}
             icon={
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="w-6 h-6"
+                className="w-10 h-10"
                 viewBox="0 0 24 24"
               >
                 <g
@@ -199,17 +199,17 @@ export default function DashboardPage({
             gradientTo="to-[#5752cf]"
           />
           <StatCard
-            title="Orders"
+            title={t.dashboardPage.orders}
             value={`+${stats?.currentMonthOrders?.toString() || "0"}`}
             change={
               stats
-                ? `${stats.orderChange > 0 ? '+' : ''}${stats.orderChange} from last month`
-                : "0 from last month"
+                ? `${stats.orderChange > 0 ? '+' : ''}${stats.orderChange} ${t.dashboardPage.fromLastMonth}`
+                : `0 ${t.dashboardPage.fromLastMonth}`
             }
             icon={
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="w-6 h-6"
+                className="w-10 h-10"
                 viewBox="0 0 24 24"
               >
                 <g fill="none" stroke="currentColor" stroke-width="1.5">
@@ -230,14 +230,14 @@ export default function DashboardPage({
             gradientTo="to-[#06b6d4]"
           />
           <StatCard
-            title="Products"
+            title={t.dashboardPage.products}
             value={stats?.totalProducts?.toString() || "0"}
             change={`+${stats?.productsChange?.toString() || "0"
-              } from last month`}
+              } ${t.dashboardPage.fromLastMonth}`}
             icon={
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="w-6 h-6"
+                className="w-10 h-10"
                 viewBox="0 0 24 24"
               >
                 <path
@@ -253,14 +253,14 @@ export default function DashboardPage({
             gradientTo="to-[#f97316]"
           />
           <StatCard
-            title="Active Customers"
+            title={t.dashboardPage.activeCustomers}
             value={`+${stats?.currentHourActive?.toString() || "0"}`}
             change={`+${stats?.activeCustomerChange?.toString() || "0"
-              } since last hour`}
+              } ${t.dashboardPage.sinceLastHour}`}
             icon={
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="w-6 h-6"
+                className="w-10 h-10"
                 viewBox="0 0 24 24"
               >
                 <path
@@ -281,7 +281,9 @@ export default function DashboardPage({
         {/* Recent Orders & Low Stock */}
         <div>
           {/* Orders */}
-          {stats?.recentOrders && <RecentOrders orders={stats.recentOrders} />}
+          {stats?.recentOrders && (
+            <RecentOrders orders={stats.recentOrders} params={{ locale: language }} />
+          )}
 
           {/* Low Stock */}
           {/* <LowStockAlert onRestock={handleRestock} lowStock={lowStock} /> */}
@@ -289,9 +291,9 @@ export default function DashboardPage({
 
         {/* Quick Actions */}
         <div className="bg-white rounded-lg shadow p-4 w-full border border-gray-200">
-          <h2 className="text-lg font-semibold">Quick Actions</h2>
+          <h2 className="text-lg font-semibold">{t.dashboardPage.quickActions}</h2>
           <p className="text-sm text-gray-600 mb-2">
-            Common tasks and shortcuts
+            {t.dashboardPage.commonShortcuts}
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-5">
@@ -314,7 +316,7 @@ export default function DashboardPage({
                   d="M15 12h-3m0 0H9m3 0V9m0 3v3M7 3.338A9.95 9.95 0 0 1 12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12c0-1.821.487-3.53 1.338-5"
                 />
               </svg>
-              Add Products
+              {t.dashboardPage.addProduct}
             </button>
 
             {/* Button View Orders */}
@@ -340,7 +342,7 @@ export default function DashboardPage({
                   />
                 </g>
               </svg>
-              View Orders
+              {t.dashboardPage.viewOrders}
             </button>
 
             {/* Button Manage Customer */}
@@ -363,7 +365,7 @@ export default function DashboardPage({
                   d="M21 19.75c0-2.09-1.67-5.068-4-5.727m-2 5.727c0-2.651-2.686-6-6-6s-6 3.349-6 6m9-12.5a3 3 0 1 1-6 0a3 3 0 0 1 6 0m3 3a3 3 0 1 0 0-6"
                 />
               </svg>
-              Manage Customers
+              {t.dashboardPage.manageCustomers}
             </button>
 
             {/* Button View Reports */}
@@ -385,7 +387,7 @@ export default function DashboardPage({
                   d="m19 15l-3.118-3.926c-.477-.602-.716-.903-.99-1.05a1.5 1.5 0 0 0-1.357-.029c-.28.135-.531.425-1.035 1.005s-.755.87-1.035 1.005a1.5 1.5 0 0 1-1.356-.03c-.274-.146-.513-.447-.99-1.048L6 7m16 15H12c-4.714 0-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12V9m0-7v3"
                 />
               </svg>
-              View Reports
+              {t.dashboardPage.viewReports}
             </button>
           </div>
         </div>

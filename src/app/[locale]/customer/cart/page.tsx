@@ -3,6 +3,7 @@
 
 import { useCart } from "@/contexts/CartContext";
 import { API_BASE_URL } from "@/lib/config";
+import { useTranslations } from "@/utils/useTranslations";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -63,6 +64,7 @@ export default function CartPage({
 }) {
   const unwrappedParams = use(params);
   const language = unwrappedParams.locale || "en";
+  const t = useTranslations(language);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [updatingItems, setUpdatingItems] = useState<number[]>([]);
   const [removingItems, setRemovingItems] = useState<number[]>([]);
@@ -166,10 +168,10 @@ export default function CartPage({
             </svg>
           </div>
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-            Your cart is empty
+            {t.cartPage.yourCartIsEmpty}
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
-            Looks like you haven't added any items to your cart yet.
+            {t.cartPage.looksLikeYou}
           </p>
           <Link
             href={`/${language}/customer/products`}
@@ -179,7 +181,7 @@ export default function CartPage({
               <path fill="currentColor" fillRule="evenodd" d="M3.04 2.292a.75.75 0 0 0-.497 1.416l.261.091c.668.235 1.107.39 1.43.549c.303.149.436.27.524.398c.09.132.16.314.2.677c.04.38.042.875.042 1.615V9.64c0 2.942.063 3.912.93 4.826c.866.914 2.26.914 5.05.914h5.302c1.561 0 2.342 0 2.893-.45c.552-.45.71-1.214 1.025-2.742l.5-2.425c.347-1.74.52-2.609.076-3.186S18.816 6 17.131 6H6.492a9 9 0 0 0-.043-.738c-.054-.497-.17-.95-.452-1.362c-.284-.416-.662-.682-1.103-.899c-.412-.202-.936-.386-1.552-.603zM13 8.25a.75.75 0 0 1 .75.75v1.25H15a.75.75 0 0 1 0 1.5h-1.25V13a.75.75 0 0 1-1.5 0v-1.25H11a.75.75 0 0 1 0-1.5h1.25V9a.75.75 0 0 1 .75-.75" clipRule="evenodd" />
               <path fill="currentColor" d="M7.5 18a1.5 1.5 0 1 1 0 3a1.5 1.5 0 0 1 0-3m9 0a1.5 1.5 0 1 1 0 3a1.5 1.5 0 0 1 0-3" />
             </svg>
-            Continue Shopping
+            {t.cartPage.continueShopping}
           </Link>
         </div>
       </div>
@@ -207,10 +209,10 @@ export default function CartPage({
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Shopping Cart
+            {t.cartPage.shoppingCart}
           </h1>
           <span className="text-sm text-gray-500 dark:text-gray-400">
-            {cart.items.length} {cart.items.length === 1 ? "item" : "items"}
+            {cart.items.length} {cart.items.length === 1 ? t.wishlistPage.item : t.wishlistPage.items}
           </span>
         </div>
 
@@ -219,7 +221,7 @@ export default function CartPage({
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg">
               <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                  Cart Items
+                  {t.cartPage.cartItems}
                 </h2>
                 <button
                   onClick={handleClearCart}
@@ -238,18 +240,19 @@ export default function CartPage({
                       d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                     />
                   </svg>
-                  Clear Cart
+                  {t.cartPage.clearCart}
                 </button>
               </div>
 
               <div className="divide-y divide-gray-200 dark:divide-gray-700">
                 {cart.items.map((item) => {
-                  const imageSrc = item.product?.images?.find(
-                    (img) => img.is_primary
-                  )?.path
-                    ? `${API_BASE_URL}/${item.product.images.find((img) => img.is_primary)?.path
-                    }`
-                    : "/images/placeholder.png";
+                  const primaryImage = item.product?.images?.find((img) => img.is_primary);
+                  const fallbackImage = item.product?.images?.[0];
+                  const imageSrc = primaryImage
+                    ? `${API_BASE_URL}/${primaryImage.path}`
+                    : fallbackImage
+                      ? `${API_BASE_URL}/${fallbackImage.path}`
+                      : "/images/placeholder.png";
 
                   const isUpdating = updatingItems.includes(item.id);
                   const isRemoving = removingItems.includes(item.id);
@@ -290,11 +293,11 @@ export default function CartPage({
                                     d="M5 13l4 4L19 7"
                                   />
                                 </svg>
-                                In Stock
+                                {t.createProduct.inStock}
                               </span>
                             ) : (
                               <span className="text-red-500 dark:text-red-400">
-                                Out of Stock
+                                {t.createProduct.outOfStock}
                               </span>
                             )}
                           </p>
@@ -387,7 +390,7 @@ export default function CartPage({
                                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                                 ></path>
                               </svg>
-                              Removing...
+                              {t.cartPage.removing}
                             </>
                           ) : (
                             <>
@@ -404,7 +407,7 @@ export default function CartPage({
                                   d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                                 />
                               </svg>
-                              Remove
+                              {t.cartPage.remove}
                             </>
                           )}
                         </button>
@@ -419,13 +422,13 @@ export default function CartPage({
           <div className="lg:col-span-1">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 sticky top-6 transition-all duration-300 hover:shadow-lg">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
-                Order Summary
+                {t.cartPage.orderSummary}
               </h2>
 
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between">
                   <span className="text-gray-600 dark:text-gray-400">
-                    Subtotal
+                    {t.cartPage.subtotal}
                   </span>
                   <span className="font-medium">${subtotal.toFixed(2)}</span>
                 </div>
@@ -433,7 +436,7 @@ export default function CartPage({
 
               <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mb-6">
                 <div className="flex justify-between font-semibold text-lg">
-                  <span className="text-gray-900 dark:text-white">Total</span>
+                  <span className="text-gray-900 dark:text-white">{t.cartPage.total}</span>
                   <span className="text-blue-600 dark:text-blue-400">
                     ${total.toFixed(2)}
                   </span>
@@ -448,12 +451,12 @@ export default function CartPage({
                 {isNavigating ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-2 border-t-white border-blue-300 mr-2"></div>
-                    Processing...
+                    {t.cartPage.processing}
                   </>
                 ) : (
                   <>
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 mr-2" viewBox="0 0 24 24"><path fill="currentColor" fill-rule="evenodd" d="M9.53 2.47a.75.75 0 0 0-1.06 1.06l.72.72H9a7.75 7.75 0 1 0 0 15.5h.5a.75.75 0 0 0 0-1.5H9a6.25 6.25 0 0 1 0-12.5h2a.75.75 0 0 0 .53-1.28z" clip-rule="evenodd" /><path fill="currentColor" d="M14.5 4.25a.75.75 0 0 0 0 1.5h.5a6.25 6.25 0 1 1 0 12.5h-2a.75.75 0 0 0-.53 1.28l2 2a.75.75 0 0 0 1.06-1.06l-.72-.72H15a7.75 7.75 0 0 0 0-15.5z" opacity="0.5" /></svg>
-                    Proceed to Checkout
+                    {t.cartPage.proceedToCheckout}
                   </>
                 )}
               </button>
@@ -463,7 +466,7 @@ export default function CartPage({
                   href={`/${language}/customer/products`}
                   className="inline-flex items-center cursor-pointer text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium transition-colors duration-200"
                 >
-                  Continue Shopping
+                  {t.cartPage.continueShopping}
                   <VscDebugContinue className="w-4 h-4 ml-2" />
                 </Link>
               </div>
@@ -473,4 +476,8 @@ export default function CartPage({
       </div>
     </div>
   );
+}
+
+function useTranslation(language: string) {
+  throw new Error("Function not implemented.");
 }

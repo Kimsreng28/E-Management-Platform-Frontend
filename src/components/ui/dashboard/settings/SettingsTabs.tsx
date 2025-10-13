@@ -3,6 +3,7 @@
 interface Tab {
   id: string;
   label: string;
+  icon?: React.ReactNode;
 }
 
 interface SettingsTabsProps {
@@ -25,13 +26,15 @@ export default function SettingsTabs({
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`flex-1 cursor-pointer text-center px-4 py-2 text-sm font-medium transition-all duration-300 rounded-lg ${
-                isActive
-                  ? "border border-gray-300 dark:border-gray-600 shadow-sm bg-white dark:bg-gray-100 font-semibold text-black"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-              }`}
+              className={`flex-1 flex items-center gap-1 justify-center cursor-pointer text-center px-4 py-2 text-sm font-medium transition-all duration-300 rounded-lg ${isActive
+                ? "border border-gray-300 dark:border-gray-600 shadow-sm bg-white dark:bg-gray-100 font-semibold text-black"
+                : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                }`}
             >
-              {tab.label}
+              {tab.icon && (
+                <span className="text-lg flex items-center">{tab.icon}</span>
+              )}
+              <span className="text-lg">{tab.label}</span>
             </button>
           );
         })}

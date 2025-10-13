@@ -309,7 +309,7 @@ export default function DashboardLayout({
           </div>
         </header>
 
-        <main className="relative p-4 sm:p-6 flex-1 overflow-x-hidden">
+        <main className="relative p-2 sm:p-2 flex-1 overflow-x-hidden">
           {children}
         </main>
       </div>

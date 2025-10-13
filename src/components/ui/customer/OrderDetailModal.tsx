@@ -4,6 +4,7 @@
 import { API_BASE_URL } from "@/lib/config";
 import { Address } from "@/types/address";
 import { Order } from "@/types/order";
+import { useTranslations } from "@/utils/useTranslations";
 import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
 import { HiOutlineDownload } from "react-icons/hi";
@@ -14,15 +15,17 @@ interface OrderDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   order: Order | null;
-  language: string;
+  params?: { locale: "en" | "kh" };
 }
 
 export default function OrderDetailModal({
   isOpen,
   onClose,
   order,
-  language,
+  params,
 }: OrderDetailModalProps) {
+  const language = params?.locale || "en";
+  const t = useTranslations(language);
   const [loading, setLoading] = useState(false);
   const [shippingAddress, setShippingAddress] = useState<Address | null>(null);
   const [billingAddress, setBillingAddress] = useState<Address | null>(null);
@@ -158,10 +161,10 @@ export default function OrderDetailModal({
         <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              Order #{order.order_number}
+              {t.orderDetail.order} #{order.order_number}
             </h2>
             <p className="text-gray-600 dark:text-gray-400">
-              Placed on {new Date(order.created_at).toLocaleDateString()}
+              {t.ordersDetail.placedOn} {new Date(order.created_at).toLocaleDateString()}
             </p>
           </div>
           <button
@@ -191,12 +194,12 @@ export default function OrderDetailModal({
             <div className="flex items-center">
               <span
                 className={`px-3 py-1 rounded-full text-sm font-medium ${order.status === "completed"
-                    ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                    : order.status === "processing"
-                      ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
-                      : order.status === "shipped"
-                        ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400"
-                        : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                  ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                  : order.status === "processing"
+                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400"
+                    : order.status === "shipped"
+                      ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400"
+                      : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
                   }`}
               >
                 {order.status.toUpperCase()}
@@ -210,7 +213,7 @@ export default function OrderDetailModal({
           {/* Order Items */}
           <div>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Order Items ({order.items?.length || 0})
+              {t.ordersDetail.orderItems} ({order.items?.length || 0})
             </h3>
             <div className="space-y-3">
               {order.items?.map((item) => {
@@ -225,7 +228,7 @@ export default function OrderDetailModal({
                           {item.product_name}
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Model: {item.product_model}
+                          {t.ordersDetail.model}: {item.product_model}
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                           Qty: {item.quantity} × ${item.unit_price}
@@ -245,7 +248,7 @@ export default function OrderDetailModal({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                Shipping Address
+                {t.checkOutPage.shippingAddress}
               </h3>
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 {loading ? (
@@ -264,7 +267,7 @@ export default function OrderDetailModal({
 
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                Billing Address
+                {t.checkOutPage.billingAddress}
               </h3>
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 {loading ? (
@@ -287,33 +290,33 @@ export default function OrderDetailModal({
           {/* Order Summary */}
           <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              Order Summary
+              {t.cartPage.orderSummary}
             </h3>
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-300">
-                  Subtotal:
+                  {t.cartPage.subtotal}:
                 </span>
                 <span className="font-medium">${order.subtotal}</span>
               </div>
               {Number(order.discount_amount) > 0 && (
                 <div className="flex justify-between text-green-600 dark:text-green-400">
-                  <span>Discount:</span>
+                  <span>{t.createProduct.discount}:</span>
                   <span>-${order.discount_amount}</span>
                 </div>
               )}
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-300">
-                  Shipping:
+                  {t.footer.shipping}:
                 </span>
                 <span className="font-medium">${order.shipping_cost}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-300">Tax:</span>
+                <span className="text-gray-600 dark:text-gray-300">{t.checkOutPage.tax}:</span>
                 <span className="font-medium">${order.tax_amount}</span>
               </div>
               <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-300 dark:border-gray-600">
-                <span>Total:</span>
+                <span>{t.cartPage.total}:</span>
                 <span className="text-blue-600 dark:text-blue-400">
                   ${order.total}
                 </span>
@@ -325,7 +328,7 @@ export default function OrderDetailModal({
           {order.payments && order.payments.length > 0 && (
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                Payment Information
+                {t.ordersDetail.paymentInformation}
               </h3>
               <div className="space-y-3">
                 {order.payments.map((payment) => (
@@ -339,21 +342,21 @@ export default function OrderDetailModal({
                       </span>
                       <span
                         className={`px-2 py-1 rounded text-xs font-medium ${payment.status === "completed"
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
-                            : payment.status === "pending"
-                              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
-                              : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400"
+                          : payment.status === "pending"
+                            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400"
+                            : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
                           }`}
                       >
                         {payment.status.toUpperCase()}
                       </span>
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-300">
-                      Amount: ${payment.amount}
+                      {t.orderDetail.amount}: ${payment.amount}
                       {payment.paid_at && (
                         <span>
                           {" "}
-                          • Paid on{" "}
+                          • {t.orderDetail.paidOn} {" "}
                           {new Date(payment.paid_at).toLocaleDateString()}
                         </span>
                       )}
@@ -368,7 +371,7 @@ export default function OrderDetailModal({
           {order.notes && (
             <div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-                Order Notes
+                {t.ordersDetail.orderNotes}
               </h3>
               <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                 <p className="text-gray-600 dark:text-gray-300">
@@ -386,7 +389,7 @@ export default function OrderDetailModal({
                 size={128}
               />
               <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
-                Scan to view this order
+                {t.orderDetail.scanToViewThisOrder}
               </p>
             </div>
           </div>
@@ -398,7 +401,7 @@ export default function OrderDetailModal({
             onClick={shareOrder}
             className="px-4 py-2 flex items-center cursor-pointer bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
           >
-            Share Order
+            {t.orderDetail.shareOrder}
             <PiShareFatDuotone className="ml-2 w-5 h-5" />
           </button>
           <button
@@ -406,13 +409,13 @@ export default function OrderDetailModal({
             className={`px-6 flex items-center cursor-pointer justify-center gap-2 py-3 rounded-lg font-medium text-white transition-all duration-300 bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black shadow-md hover:shadow-lg`}
           >
             <HiOutlineDownload className="mr-2 w-5 h-5" />
-            Download Invoice
+            {t.checkOutPage.downloadInvoice}
           </button>
           <button
             onClick={onClose}
             className="px-4 py-2 flex items-center cursor-pointer border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
-            Close
+            {t.productDashboard.close}
             <IoMdCloseCircleOutline className="ml-2 w-5 h-5" />
           </button>
         </div>

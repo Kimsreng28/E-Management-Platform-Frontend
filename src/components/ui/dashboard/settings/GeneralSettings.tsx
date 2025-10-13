@@ -154,7 +154,7 @@ export default function GeneralSettings({
           {/* Upload Controls */}
           <div className="flex-1">
             <div className="mb-3">
-              <h4 className="font-medium text-gray-900 dark:text-white">
+              <h4 className="font-bold text-gray-900 dark:text-white">
                 {formData.user.name}
               </h4>
               <p className="text-sm text-gray-500 dark:text-gray-400">

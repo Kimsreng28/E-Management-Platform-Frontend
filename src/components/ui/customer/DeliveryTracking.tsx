@@ -14,6 +14,7 @@ import Image from "next/image";
 import initializeEcho, { disconnectEcho } from "@/lib/echo";
 import ChatModal from "./ChatModal";
 import Swal from "sweetalert2";
+import { useTranslations } from "@/utils/useTranslations";
 
 interface Delivery {
     id: number;
@@ -73,13 +74,17 @@ interface DeliveryTrackingModalProps {
     isOpen: boolean;
     onClose: () => void;
     orderId: number;
+    params?: { locale: "en" | "kh" };
 }
 
 export default function DeliveryTrackingModal({
     isOpen,
     onClose,
     orderId,
+    params
 }: DeliveryTrackingModalProps) {
+    const language = params?.locale || "en";
+    const t = useTranslations(language);
     const [delivery, setDelivery] = useState<Delivery | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -100,32 +105,32 @@ export default function DeliveryTrackingModal({
     const statusSteps = [
         {
             status: "assigned",
-            label: "Order Assigned",
-            description: "Delivery agent has been assigned to your order",
+            label: t.deliveryTrack.orderAssigned,
+            description: t.deliveryTrack.deliveryAgent,
             icon: <RiCustomerService2Line className="w-5 h-5" />,
         },
         {
             status: "picked_up",
-            label: "Picked Up",
-            description: "Your order has been picked up from the store",
+            label: t.deliveryTrack.pickedUp,
+            description: t.deliveryTrack.yourOrder,
             icon: <TbTruckDelivery className="w-5 h-5" />,
         },
         {
             status: "out_for_delivery",
-            label: "Out for Delivery",
-            description: "Your order is on the way to you",
+            label: t.deliveryTrack.outForDelivery,
+            description: t.deliveryTrack.yourOrderIsOnTheWay,
             icon: <MdOutlineDeliveryDining className="w-5 h-5" />,
         },
         {
             status: "delivered",
-            label: "Delivered",
-            description: "Your order has been delivered",
+            label: t.deliveryTrack.delivered,
+            description: t.deliveryTrack.yourOrderHasBeenDelivered,
             icon: <IoIosCheckmarkCircle className="w-5 h-5" />,
         },
         {
             status: "completed",
-            label: "Completed",
-            description: "Order completed successfully",
+            label: t.deliveryTrack.completed,
+            description: t.deliveryTrack.orderCompletedSuccessfully,
             icon: <IoIosCheckmarkCircle className="w-5 h-5" />,
         },
     ];
@@ -443,7 +448,7 @@ export default function DeliveryTrackingModal({
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center sticky top-0 bg-white dark:bg-gray-800 z-10">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                        Delivery Tracking
+                        {t.deliveryTrack.deliveryTracking}
                     </h2>
                     <button
                         onClick={onClose}
@@ -477,7 +482,7 @@ export default function DeliveryTrackingModal({
                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                                     <div>
                                         <p className="text-sm text-gray-500 dark:text-gray-500">
-                                            Tracking #: {delivery.tracking_number}
+                                            {t.deliveryTrack.tracking} #: {delivery.tracking_number}
                                         </p>
                                     </div>
                                     <span
@@ -494,13 +499,13 @@ export default function DeliveryTrackingModal({
                             {!delivery.customer_accepted_at && delivery.status === "assigned" && (
                                 <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl">
                                     <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-4">
-                                        Delivery Options
+                                        {t.deliveryTrack.deliveryOptions}
                                     </h3>
 
                                     <div className="space-y-4">
                                         <div>
                                             <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-white">
-                                                Preferred Delivery Time
+                                                {t.deliveryTrack.preferredDeliveryTime}
                                             </label>
                                             <input
                                                 type="datetime-local"
@@ -515,7 +520,7 @@ export default function DeliveryTrackingModal({
 
                                         <div>
                                             <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-white">
-                                                Special Instructions
+                                                {t.deliveryTrack.specialInstructions}
                                             </label>
                                             <textarea
                                                 value={deliveryOptions.delivery_instructions}
@@ -524,7 +529,7 @@ export default function DeliveryTrackingModal({
                                                 }
                                                 className="w-full p-3 border rounded-lg dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                                 rows={3}
-                                                placeholder="Any special delivery instructions..."
+                                                placeholder={t.checkOutPage.anySpecialInstructions}
                                             />
                                         </div>
 
@@ -540,7 +545,7 @@ export default function DeliveryTrackingModal({
                                                     className="hidden peer"
                                                 />
                                                 <span className="w-5 h-5 flex items-center justify-center rounded-full border-2 border-gray-400 peer-checked:bg-green-500 peer-checked:border-green-500 transition-colors duration-200"></span>
-                                                <span className="text-sm text-gray-900 dark:text-white">Leave at door</span>
+                                                <span className="text-sm text-gray-900 dark:text-white">{t.deliveryTrack.leaveAtDoor}</span>
                                             </label>
 
                                             {/* Signature required */}
@@ -554,7 +559,7 @@ export default function DeliveryTrackingModal({
                                                     className="hidden peer"
                                                 />
                                                 <span className="w-5 h-5 flex items-center justify-center rounded-full border-2 border-gray-400 peer-checked:bg-green-500 peer-checked:border-green-500 transition-colors duration-200"></span>
-                                                <span className="text-sm text-gray-900 dark:text-white">Signature required</span>
+                                                <span className="text-sm text-gray-900 dark:text-white">{t.deliveryTrack.signatureRequired}</span>
                                             </label>
                                         </div>
 
@@ -562,7 +567,7 @@ export default function DeliveryTrackingModal({
                                             onClick={handleAcceptDelivery}
                                             className="w-full bg-blue-600 cursor-pointer text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
                                         >
-                                            Accept Delivery Options
+                                            {t.deliveryTrack.acceptDelivery}
                                         </button>
                                     </div>
                                 </div>
@@ -571,7 +576,7 @@ export default function DeliveryTrackingModal({
                             {/* Delivery Progress */}
                             <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                                    Delivery Status
+                                    {t.deliveryTrack.deliveryStatus}
                                 </h3>
 
                                 {/* Progress Steps */}
@@ -627,7 +632,7 @@ export default function DeliveryTrackingModal({
                                         <BsClockHistory className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-3" />
                                         <div>
                                             <h3 className="font-medium text-blue-800 dark:text-blue-300">
-                                                Estimated Arrival
+                                                {t.deliveryTrack.estimatedArrival}
                                             </h3>
                                             <p className="text-blue-600 dark:text-blue-400">
                                                 {getEstimatedTime()}
@@ -646,7 +651,7 @@ export default function DeliveryTrackingModal({
                             {delivery.agent && (
                                 <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 mb-6">
                                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                                        Your Delivery Agent
+                                        {t.deliveryTrack.yourDeliveryAgent}
                                     </h3>
 
                                     <div className="flex items-center space-x-4 p-4 bg-white dark:bg-gray-600 rounded-lg">
