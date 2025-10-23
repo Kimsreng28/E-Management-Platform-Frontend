@@ -211,7 +211,7 @@ export default function RegisterPage({
                   placeholder="Your full name"
                   value={formData.name}
                   onChange={(e) => handleInputChange("name", e.target.value)}
-                  className={`pl-10 ${errors.name ? "border-red-500" : ""}`}
+                  className={`pl-10 bg-white ${errors.name ? "border-red-500" : ""}`}
                   required
                 />
               </div>
@@ -233,7 +233,7 @@ export default function RegisterPage({
                   placeholder="Enter your email"
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
-                  className={`pl-10 ${errors.email ? "border-red-500" : ""}`}
+                  className={`pl-10 bg-white ${errors.email ? "border-red-500" : ""}`}
                   required
                 />
               </div>
@@ -255,7 +255,7 @@ export default function RegisterPage({
                   placeholder="+855 12 345 678"
                   value={formData.phone}
                   onChange={(e) => handleInputChange("phone", e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-white"
                 />
               </div>
             </div>
@@ -275,9 +275,8 @@ export default function RegisterPage({
                   onChange={(e) =>
                     handleInputChange("password", e.target.value)
                   }
-                  className={`pl-10 pr-10 ${
-                    errors.password ? "border-red-500" : ""
-                  }`}
+                  className={`pl-10 pr-10 bg-white ${errors.password ? "border-red-500" : ""
+                    }`}
                   required
                   minLength={8}
                 />
@@ -313,9 +312,8 @@ export default function RegisterPage({
                   onChange={(e) =>
                     handleInputChange("password_confirmation", e.target.value)
                   }
-                  className={`pl-10 pr-10 ${
-                    errors.password_confirmation ? "border-red-500" : ""
-                  }`}
+                  className={`pl-10 pr-10 bg-white ${errors.password_confirmation ? "border-red-500" : ""
+                    }`}
                   required
                   minLength={8}
                 />
@@ -349,9 +347,8 @@ export default function RegisterPage({
               />
               <Label
                 htmlFor="terms"
-                className={`text-sm font-combo ${
-                  errors.agreeToTerms ? "text-red-500" : ""
-                }`}
+                className={`text-sm font-combo ${errors.agreeToTerms ? "text-red-500" : ""
+                  }`}
               >
                 {t.login.agree}{" "}
                 <Link

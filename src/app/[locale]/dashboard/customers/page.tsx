@@ -629,19 +629,20 @@ export default function CustomersPage({
                             ) : (
                               <div className="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
                                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                  {customer.name?.charAt(0).toUpperCase() ||
-                                    "C"}
+                                  {customer.name?.charAt(0).toUpperCase() || "C"}
                                 </span>
                               </div>
                             )}
                           </div>
                           <div className="ml-4">
-                            <div className="text-sm font-bold text-black dark:text-white">
+                            <button
+                              onClick={() => handleViewCustomer(customer)}
+                              className="text-sm font-bold text-black dark:text-white hover:text-blue-600 dark:hover:text-blue-400 hover:underline cursor-pointer transition-colors duration-200 text-left"
+                            >
                               {customer.name || "Unknown Customer"}
-                            </div>
+                            </button>
                             <div className="text-xs text-gray-500 dark:text-gray-400">
-                              {customer.addresses &&
-                                customer.addresses.length > 0
+                              {customer.addresses && customer.addresses.length > 0
                                 ? `${customer.addresses[0].city}, ${customer.addresses[0].state}`
                                 : "No address"}
                             </div>

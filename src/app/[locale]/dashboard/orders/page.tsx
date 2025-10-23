@@ -602,9 +602,12 @@ export default function OrdersPage({
                     className="hover:bg-gray-50 dark:hover:bg-gray-700"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-xs font-semibold text-black dark:text-white">
+                      <button
+                        onClick={() => handleViewDetails(order)}
+                        className="text-xs font-semibold text-black dark:text-white hover:text-blue-600 dark:hover:text-blue-400 hover:underline cursor-pointer transition-colors duration-200 text-left"
+                      >
                         #{order.order_number || order.id}
-                      </div>
+                      </button>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>

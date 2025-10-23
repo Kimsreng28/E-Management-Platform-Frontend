@@ -185,7 +185,7 @@ export default function LoginPage({
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className={`pl-12 ${errors.email ? "border-red-500" : ""}`}
+                  className={`pl-12 bg-white ${errors.email ? "border-red-500" : ""}`}
                   autoComplete="email"
                 />
               </div>
@@ -209,9 +209,8 @@ export default function LoginPage({
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={`pl-12 pr-12 ${
-                    errors.password ? "border-red-500" : ""
-                  }`}
+                  className={`pl-12 pr-12 bg-white ${errors.password ? "border-red-500" : ""
+                    }`}
                   autoComplete="current-password"
                 />
                 <button

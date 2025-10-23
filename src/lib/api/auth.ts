@@ -77,6 +77,12 @@ export const loginUser = async (data: {
 
   if (!response.ok) {
     let errorMessage = "Login failed";
+
+    // Handle email verification error specifically
+    if (response.status === 403 && responseData.email_verified === false) {
+      throw new Error("EMAIL_NOT_VERIFIED");
+    }
+
     if (responseData.message) {
       errorMessage = responseData.message;
     }
