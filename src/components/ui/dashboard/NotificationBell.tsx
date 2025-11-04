@@ -6,7 +6,7 @@ import { useTranslations } from "@/utils/useTranslations";
 import Echo from "laravel-echo";
 import { Bell, Check, Trash2 } from "lucide-react";
 import Pusher from "pusher-js";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 let echo: Echo<any> | null = null;
 
@@ -42,48 +42,51 @@ export default function NotificationBell({
   const [isLoading, setIsLoading] = useState(false);
   const t = useTranslations(language);
 
- useEffect(() => {
-  console.log("[NotificationBell] useEffect triggered");
+  // Ref for the notification dropdown
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  fetchNotifications();
+  useEffect(() => {
+    console.log("[NotificationBell] useEffect triggered");
 
-  const token = localStorage.getItem("token");
-  console.log("[NotificationBell] token from localStorage:", token);
-  if (!token) return;
+    fetchNotifications();
 
-  const userId = getUserId();
-  console.log("[NotificationBell] userId:", userId);
-  if (!userId) return;
+    const token = localStorage.getItem("token");
+    console.log("[NotificationBell] token from localStorage:", token);
+    if (!token) return;
 
-  (window as any).Pusher = Pusher;
+    const userId = getUserId();
+    console.log("[NotificationBell] userId:", userId);
+    if (!userId) return;
 
-  echo = new Echo({
-    broadcaster: "reverb",
-    key: process.env.NEXT_PUBLIC_REVERB_APP_KEY!,
-    wsHost: process.env.NEXT_PUBLIC_REVERB_HOST!,
-    wsPort: Number(process.env.NEXT_PUBLIC_REVERB_PORT!),
-    wssPort: Number(process.env.NEXT_PUBLIC_REVERB_PORT!),
-    forceTLS: process.env.NEXT_PUBLIC_REVERB_SCHEME === "https",
-    disableStats: true,
-    enabledTransports: ["ws", "wss"],
-    authEndpoint: `${process.env.NEXT_PUBLIC_API_BASE_URL}/broadcasting/auth`,
-    auth: {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+    (window as any).Pusher = Pusher;
+
+    echo = new Echo({
+      broadcaster: "reverb",
+      key: process.env.NEXT_PUBLIC_REVERB_APP_KEY!,
+      wsHost: process.env.NEXT_PUBLIC_REVERB_HOST!,
+      wsPort: Number(process.env.NEXT_PUBLIC_REVERB_PORT!),
+      wssPort: Number(process.env.NEXT_PUBLIC_REVERB_PORT!),
+      forceTLS: process.env.NEXT_PUBLIC_REVERB_SCHEME === "https",
+      disableStats: true,
+      enabledTransports: ["ws", "wss"],
+      authEndpoint: `${process.env.NEXT_PUBLIC_API_BASE_URL}/broadcasting/auth`,
+      auth: {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
       },
-    },
-  });
+    });
 
-  console.log("[NotificationBell] Echo instance created:", echo);
+    console.log("[NotificationBell] Echo instance created:", echo);
 
-  const channel = echo.private(`user.notifications.${userId}`);
-  console.log("[NotificationBell] Joined channel:", channel);
+    const channel = echo.private(`user.notifications.${userId}`);
+    console.log("[NotificationBell] Joined channel:", channel);
 
-  // Listen to event
-  channel.listen(".NotificationCreated", (payload: any) => {
-    console.log("[NotificationBell] Realtime Notification Received:", payload);
+    // Listen to event
+    channel.listen(".NotificationCreated", (payload: any) => {
+      console.log("[NotificationBell] Realtime Notification Received:", payload);
 
-    const notification: Notification = {
+      const notification: Notification = {
         id: payload.id,
         type: payload.type,
         data: typeof payload.data === "string" ? JSON.parse(payload.data) : payload.data,
@@ -92,27 +95,43 @@ export default function NotificationBell({
       };
 
 
-    console.log("[NotificationBell] Parsed notification:", notification);
+      console.log("[NotificationBell] Parsed notification:", notification);
 
-    setNotifications((prev) => [notification, ...prev]);
-    if (!notification.read_at) {
-      setUnreadCount((prev) => prev + 1);
-    }
-  });
+      setNotifications((prev) => [notification, ...prev]);
+      if (!notification.read_at) {
+        setUnreadCount((prev) => prev + 1);
+      }
+    });
 
-  // Log connection state every 2 seconds
-  // const interval = setInterval(() => {
-  //   console.log("[NotificationBell] Echo connection state:", echo?.connector.pusher.connection.state);
-  // }, 2000);
+    // Log connection state every 2 seconds
+    // const interval = setInterval(() => {
+    //   console.log("[NotificationBell] Echo connection state:", echo?.connector.pusher.connection.state);
+    // }, 2000);
 
-  return () => {
-    // clearInterval(interval);
-    echo?.leave(`user.notifications.${userId}`);
-    echo = null;
-  };
+    return () => {
+      // clearInterval(interval);
+      echo?.leave(`user.notifications.${userId}`);
+      echo = null;
+    };
 
-}, []);
+  }, []);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const getUserId = () => {
     const user = localStorage.getItem("user");
@@ -383,7 +402,7 @@ export default function NotificationBell({
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="relative cursor-pointer flex items-center justify-center p-2 rounded-full border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 h-10 w-10"
