@@ -77,7 +77,7 @@ export default function SearchResults({
   const getItemLink = (item: any) => {
     switch (item.type) {
       case "product":
-        return `/${language}/dashboard/products/${item.id}`;
+        return `/${language}/dashboard/products/view/product/${item.slug}`;
       case "order":
         return `/${language}/dashboard/orders/${item.id}`;
       case "customer":

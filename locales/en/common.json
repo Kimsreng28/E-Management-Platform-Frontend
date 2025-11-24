@@ -501,7 +501,24 @@
     "orderNothing": "No Orders",
     "ordersNotFound": "No Orders Found",
     "thisCustomerHasNo": "This customer has no order history.",
-    "orderNotFountForThisCustomer": "No orders found for this customer."
+    "orderNotFountForThisCustomer": "No orders found for this customer.",
+    "writeReview": "Write Review",
+    "selectProduct": "Select Product to Review",
+    "selectProductToReview": "Select a product from your order to write a review",
+    "yourRating": "Your Rating",
+    "yourReview": "Your Review",
+    "shareExperience": "Share your experience with this product...",
+    "back": "Back",
+    "submitReview": "Submit Review",
+    "submitting": "Submitting...",
+    "excellent": "Excellent",
+    "veryGood": "Very Good",
+    "good": "Good",
+    "fair": "Fair",
+    "poor": "Poor",
+    "allReviewed": "All Reviewed",
+    "reviewSubmitted": "Review submitted successfully!",
+    "rateProducts": "Rate Products"
   },
 
   "reportsPage": {

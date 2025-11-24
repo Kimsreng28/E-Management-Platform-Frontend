@@ -1,4 +1,3 @@
-
 "use client";
 
 import { API_BASE_URL } from "@/lib/config";
@@ -22,7 +21,9 @@ import { FaBoxOpen, FaSearch } from "react-icons/fa";
 import { format } from "date-fns";
 import Image from "next/image";
 import OrderDetailModal from "@/components/ui/customer/OrderDetailModal";
+import ReviewModal from "@/components/ui/customer/ReviewModal"; // Import the ReviewModal
 import { useTranslations } from "@/utils/useTranslations";
+import { PiStarDuotone } from "react-icons/pi";
 
 interface OrdersResponse {
     data: Order[];
@@ -48,6 +49,7 @@ export default function OrderHistoryPage({
     const router = useRouter();
     const [showOrderDetail, setShowOrderDetail] = useState(false);
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+    const [showReviewModal, setShowReviewModal] = useState(false);
     const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 
     const unwrappedParams = use(params);
@@ -66,6 +68,17 @@ export default function OrderHistoryPage({
     const handleViewOrderDetails = (order: Order) => {
         setSelectedOrder(order);
         setShowOrderDetail(true);
+    };
+
+    const handleOpenReviewModal = (order: Order) => {
+        setSelectedOrder(order);
+        setShowReviewModal(true);
+    };
+
+    const handleReviewSubmitted = () => {
+        // Refresh orders to reflect any changes after review submission
+        fetchOrders(currentPage, searchTerm, statusFilter);
+        setShowReviewModal(false);
     };
 
     const fetchOrders = async (page = 1, search = "", status = "all") => {
@@ -109,7 +122,6 @@ export default function OrderHistoryPage({
             setLoading(false);
         }
     };
-
 
     useEffect(() => {
         if (searchTimeout.current) clearTimeout(searchTimeout.current);
@@ -301,18 +313,35 @@ export default function OrderHistoryPage({
                                 {/* Order Items Preview */}
                                 <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
                                     <div className="flex items-center space-x-4 overflow-x-auto pb-2">
-                                        {order.items.slice(0, 3).map((item) => (
-                                            <div key={item.id} className="flex-shrink-0">
-                                                <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
-                                                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                                        {item.product_name.charAt(0).toUpperCase()}
-                                                    </span>
+                                        {order.items.slice(0, 3).map((item) => {
+                                            const primaryImage = item.product?.images?.find(img => img.is_primary) || item.product?.images?.[0];
+
+                                            return (
+                                                <div key={item.id} className="flex-shrink-0">
+                                                    <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center overflow-hidden">
+                                                        {primaryImage ? (
+                                                            <Image
+                                                                src={`${API_BASE_URL}/${primaryImage.path}`}
+                                                                alt={item.product_name}
+                                                                width={64}
+                                                                height={64}
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            // Fallback to gradient with initial
+                                                            <div className="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-700 flex items-center justify-center">
+                                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                                    {item.product_name.charAt(0).toUpperCase()}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 text-center">
+                                                        {item.quantity} × ${item.unit_price}
+                                                    </p>
                                                 </div>
-                                                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 text-center">
-                                                    {item.quantity} × ${item.unit_price}
-                                                </p>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                         {order.items.length > 3 && (
                                             <div className="flex-shrink-0 flex items-center justify-center w-16 h-16 bg-gray-100 dark:bg-gray-600 rounded-lg">
                                                 <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
@@ -324,7 +353,16 @@ export default function OrderHistoryPage({
                                 </div>
 
                                 {/* Actions */}
-                                <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4 flex justify-end">
+                                <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4 flex justify-end space-x-3">
+                                    {(order.status === 'completed' || order.status === 'delivered') && (
+                                        <button
+                                            onClick={() => handleOpenReviewModal(order)}
+                                            className={`px-4 w-fit flex items-center cursor-pointer justify-center gap-2 py-2 rounded-lg font-medium text-white transition-all duration-300 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600 shadow-md hover:shadow-lg`}
+                                        >
+                                            <PiStarDuotone className="ml-2 w-5 h-5" />
+                                            {t.ordersDetail.rateProducts}
+                                        </button>
+                                    )}
                                     <button
                                         onClick={() => handleViewOrderDetails(order)}
                                         className={`px-4 w-fit flex items-center cursor-pointer justify-center gap-2 py-2 rounded-lg font-medium text-white transition-all duration-300 bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black shadow-md hover:shadow-lg`}
@@ -379,6 +417,14 @@ export default function OrderHistoryPage({
                 isOpen={showOrderDetail}
                 onClose={() => setShowOrderDetail(false)}
                 order={selectedOrder}
+                params={{ locale: language }}
+            />
+
+            <ReviewModal
+                isOpen={showReviewModal}
+                onClose={() => setShowReviewModal(false)}
+                order={selectedOrder}
+                onReviewSubmitted={handleReviewSubmitted}
                 params={{ locale: language }}
             />
         </div>

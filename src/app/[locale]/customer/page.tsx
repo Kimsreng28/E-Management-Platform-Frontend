@@ -60,6 +60,11 @@ interface Review {
     email: string;
     avatar?: string;
   };
+  product?: {
+    id: number;
+    name: string;
+    slug: string;
+  };
 }
 
 interface ProductImage {
@@ -212,7 +217,7 @@ export default function CustomerHomePage({
   useEffect(() => {
     const fetchRecentReviews = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/reviews/recent?limit=6`);
+        const res = await fetch(`${API_BASE_URL}/api/reviews/recent?limit=6&include=product`);
         const data = await res.json();
         if (data.success) {
           setRecentReviews(data.data);
@@ -602,6 +607,19 @@ export default function CustomerHomePage({
                       {renderStars(review.rating)}
                     </div>
                   </div>
+
+                  {/* Product Name */}
+                  {review.product && (
+                    <div className="mb-3">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        Review for:
+                      </span>
+                      <div className="font-medium text-sm text-gray-800 dark:text-white mt-1">
+                        {review.product.name}
+                      </div>
+                    </div>
+                  )}
+
                   <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
                     "{review.comment}"
                   </p>

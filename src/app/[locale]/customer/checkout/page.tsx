@@ -153,83 +153,216 @@ function StripePaymentForm({
   );
 }
 
-// KHQR Modal Component
+// KHQR Modal Component 
 function KhqrModal({
   qrPayload,
   onSuccess,
   onCancel,
   paymentId,
+  md5Hash,
+  amount,
+  currency = "USD"
 }: {
   paymentId: number;
   qrPayload: string;
+  md5Hash: string;
+  amount: number;
+  currency?: string;
   onSuccess: () => void;
   onCancel: () => void;
 }) {
-  const [paymentVerified, setPaymentVerified] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<"pending" | "completed" | "failed">(
+    "pending"
+  );
+  const [isChecking, setIsChecking] = useState(false);
+  const [checkCount, setCheckCount] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const [lastCheckTime, setLastCheckTime] = useState<number>(0);
 
+  const checkPaymentStatus = async (manual = false) => {
+    if (isChecking || paymentStatus === "completed") return;
 
-  // Polling mechanism to verify payment status
-  useEffect(() => {
-    if (!paymentId) return;
+    const now = Date.now();
+    if (!manual && now - lastCheckTime < 5000) return; // Rate limit 5s
 
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/payments/${paymentId}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
+    setIsChecking(true);
+    setLastCheckTime(now);
 
-        if (!res.ok) throw new Error("Failed to fetch payment status");
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/payments/check-khqr-status`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          payment_id: paymentId,
+          md5_hash: md5Hash,
+        }),
+      });
 
-        const data = await res.json();
-        const payment = data.payment || data;
+      if (!response.ok) throw new Error("Failed request");
 
-        if (payment.status === "completed") {
-          clearInterval(interval);
-          setPaymentVerified(true);
+      const result = await response.json();
+
+      // Check completion from multiple indicators
+      const isCompleted =
+        result.payment_status === "completed" ||
+        result.transaction_status === "completed" ||
+        result.status === "completed";
+
+      if (isCompleted) {
+        setPaymentStatus("completed");
+
+        setTimeout(() => {
           onSuccess();
-        }
-      } catch (err) {
-        console.error("Error checking payment:", err);
-      }
-    }, 5000); // check every 5s
+        }, 1200);
 
-    return () => clearInterval(interval);
-  }, [paymentId, onSuccess]);
+        return;
+      }
+
+      setCheckCount((prev) => prev + 1);
+      setError(null);
+
+      if (checkCount > 8) {
+        setError(
+          "Payment is taking longer than expected. Please ensure you've completed payment in your bank app."
+        );
+      }
+    } catch {
+      setError("Network error while checking payment status. Please try again.");
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  // Auto polling
+  useEffect(() => {
+    if (!paymentId || paymentStatus === "completed") return;
+
+    let timeoutId: NodeJS.Timeout;
+    let mounted = true;
+
+    const schedule = () => {
+      if (!mounted) return;
+
+      const delay = Math.min(20000, 8000 + checkCount * 4000);
+
+      timeoutId = setTimeout(() => {
+        if (mounted && checkCount < 20) {
+          checkPaymentStatus();
+          schedule();
+        } else if (mounted) {
+          setError("Payment timeout. Please contact support if payment was completed.");
+        }
+      }, delay);
+    };
+
+    const initialCheck = setTimeout(() => {
+      if (mounted) {
+        checkPaymentStatus();
+        schedule();
+      }
+    }, 2500);
+
+    return () => {
+      mounted = false;
+      clearTimeout(initialCheck);
+      clearTimeout(timeoutId);
+    };
+  }, [paymentId, md5Hash, paymentStatus, checkCount]);
+
+  const formatAmount = (amt: number) => {
+    return new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amt);
+  };
 
   return (
-    <div className="p-6 bg-white dark:bg-gray-800 rounded-lg text-center">
-      <h3 className="text-lg font-medium mb-4">Scan KHQR Code to Pay</h3>
-      <div className="mb-4 p-4 bg-white flex justify-center">
-        {qrPayload ? (
-          <QRCodeCanvas value={qrPayload} size={192} />
+    <div className="p-0 rounded-2xl shadow-2xl bg-white dark:bg-gray-900 overflow-hidden max-w-xs mx-auto border border-gray-200 dark:border-gray-700">
+      {/* Header - Red Theme */}
+      <div className="bg-gradient-to-r from-red-600 to-red-700 text-white py-4 px-6 text-center">
+        <div className="flex items-center justify-center space-x-2">
+          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center p-1">
+            <img
+              src="/images/KHQR_logo.png"
+              alt="KHQR"
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <h2 className="text-lg font-bold tracking-wide">KHQR PAYMENT</h2>
+        </div>
+      </div>
+
+      {/* Amount Section */}
+      <div className="px-6 py-4 text-center bg-gray-50 dark:bg-gray-800">
+        <p className="text-gray-600 dark:text-gray-400 text-sm mb-1">Amount to pay</p>
+        <div className="flex items-center justify-center space-x-1">
+          <span className="text-2xl font-bold text-gray-900 dark:text-white">$</span>
+          <p className="text-3xl font-bold text-gray-900 dark:text-white">
+            {formatAmount(amount)}
+          </p>
+          <span className="text-lg font-medium text-gray-600 dark:text-gray-400 ml-1">{currency}</span>
+        </div>
+      </div>
+
+      {/* QR Code Section */}
+      <div className="px-4 py-4 bg-white dark:bg-gray-900">
+        <div className="relative bg-white p-4 rounded-xl border-2 border-black shadow-lg mx-auto" style={{ width: '240px', height: '240px' }}>
+          <QRCodeCanvas
+            value={qrPayload}
+            size={208}
+            includeMargin={false}
+            style={{ width: '208px', height: '208px' }}
+          />
+          {/* Simple Dollar Icon Overlay - No Background */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-8 h-8 bg-white rounded-full border-2 border-red-600 flex items-center justify-center shadow-lg">
+              <svg className="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1.41 16.09V20h-2.67v-1.93c-1.71-.36-3.16-1.46-3.27-3.4h1.96c.1 1.05.82 1.87 2.65 1.87 1.96 0 2.4-.98 2.4-1.59 0-.83-.44-1.61-2.67-2.14-2.48-.6-4.18-1.62-4.18-3.67 0-1.72 1.39-2.84 3.11-3.21V4h2.67v1.95c1.86.45 2.79 1.86 2.85 3.39H14.3c-.05-1.11-.64-1.87-2.22-1.87-1.5 0-2.4.68-2.4 1.64 0 .84.65 1.39 2.67 1.91 2.56.62 4.18 1.63 4.18 3.71 0 1.76-1.38 2.83-3.13 3.16z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Payment Status */}
+      <div className="px-6 pb-6">
+        {paymentStatus === "completed" ? (
+          <div className="p-3 bg-green-100 border border-green-400 text-green-700 rounded-lg text-center text-sm font-medium">
+            <div className="flex items-center justify-center space-x-2">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              <span>Payment verified successfully!</span>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="p-3 bg-yellow-100 border border-yellow-400 text-yellow-700 rounded-lg text-center text-sm">
+            {error}
+          </div>
         ) : (
-          <span>QR Code would appear here</span>
+          <div className="p-3 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-center text-sm">
+            <div className="flex items-center justify-center space-x-2">
+              <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
+              <span>{isChecking ? "Checking payment status..." : "Waiting for payment..."}</span>
+            </div>
+            <div className="text-xs mt-1 opacity-75">Auto-checking... ({checkCount + 1}/20)</div>
+          </div>
         )}
       </div>
 
-      <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        Open your mobile banking app and scan the QR code to complete your
-        payment.
-      </p>
-
-      {paymentVerified ? (
-        <div className="p-3 bg-green-100 text-green-700 rounded-lg mb-4">
-          Payment verified successfully!
-        </div>
-      ) : (
-        <div className="p-3 bg-blue-100 text-blue-700 rounded-lg mb-4">
-          Waiting for payment confirmation...
-        </div>
-      )}
-
-      <button
-        onClick={onCancel}
-        className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg"
-      >
-        Cancel
-      </button>
+      {/* Footer - Minimal action buttons */}
+      <div className="px-6 pb-4">
+        <button
+          onClick={onCancel}
+          disabled={isChecking}
+          className="w-full py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 disabled:opacity-50 transition-colors"
+        >
+          Close
+        </button>
+      </div>
     </div>
   );
 }
@@ -1768,15 +1901,14 @@ export default function CheckoutPage({
                 </Elements>
               )}
 
-              {paymentMethod === "khqr" && paymentData.khqr_payload && (
+              {paymentMethod === "khqr" && (
                 <KhqrModal
-                  paymentId={paymentData.id}
+                  paymentId={paymentData.payment?.id || paymentData.id}
                   qrPayload={paymentData.khqr_payload}
-                  onSuccess={() => {
-                    if (orderId && paymentData?.payment?.id) {
-                      completeOrder(orderId, paymentData.payment.id);
-                    }
-                  }}
+                  md5Hash={paymentData.md5_hash}
+                  amount={paymentData.payment?.amount || paymentData.amount}
+                  currency={paymentData.payment?.currency || "USD"}
+                  onSuccess={handlePaymentSuccess}
                   onCancel={handlePaymentCancel}
                 />
               )}

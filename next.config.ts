@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   reactStrictMode: true,
   images: {
     domains: ["localhost", "127.0.0.1", "cdn-icons-png.flaticon.com"],

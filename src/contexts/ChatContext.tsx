@@ -833,24 +833,84 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         setIsUploading(true);
         try {
+            // Debug: Log what's in the FormData
+            console.log('Sending FormData with:');
+            for (let [key, value] of formData.entries()) {
+                console.log(`${key}:`, value);
+            }
+
             const res = await fetch(`${API_BASE_URL}/api/conversations/${activeConversation.id}/messages`, {
                 method: "POST",
-                headers: { Authorization: `Bearer ${token}` },
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    // Don't set Content-Type for FormData - let browser set it with boundary
+                },
                 body: formData,
             });
 
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "Failed to send message with attachment");
+            // Get the raw response text first
+            const responseText = await res.text();
+            console.log('Raw server response:', {
+                status: res.status,
+                statusText: res.statusText,
+                headers: Object.fromEntries(res.headers.entries()),
+                body: responseText
+            });
+
+            // Check if response is OK first
+            if (!res.ok) {
+                // Try to get error message from response
+                let errorMessage = "Failed to send message with attachment";
+
+                // Check if response is JSON
+                const contentType = res.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    try {
+                        const errorData = JSON.parse(responseText);
+                        errorMessage = errorData.error || errorData.message || errorMessage;
+                    } catch (e) {
+                        errorMessage = `Server error: ${res.status} ${res.statusText}`;
+                    }
+                } else {
+                    // If not JSON, use text response
+                    console.error('Non-JSON error response:', responseText);
+                    errorMessage = `Server error: ${res.status} ${res.statusText}. Response: ${responseText.substring(0, 100)}`;
+                }
+
+                throw new Error(errorMessage);
+            }
+
+            // If response is OK, parse JSON
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('Failed to parse JSON response:', parseError);
+                throw new Error('Invalid server response format');
+            }
 
             const message = transformMessage(data.message);
             setMessages((prev) => [...prev, message]);
+
         } catch (err) {
             console.error("[ChatProvider] Error sending message with attachment", err);
+
+            // Show user-friendly error
+            Swal.fire({
+                icon: 'error',
+                title: 'Failed to send file',
+                text: err instanceof Error ? err.message : 'Please try again',
+                timer: 3000,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end'
+            });
+
+            throw err; // Re-throw to let caller handle it
         } finally {
             setIsUploading(false);
         }
     };
-
 
     // Mark conversation as read
     const markAsRead = async (conversationId: number) => {

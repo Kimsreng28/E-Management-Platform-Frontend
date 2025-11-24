@@ -31,6 +31,16 @@ export interface OrderItem {
   options: any[]; // if you have a structure for options, replace 'any'
   created_at: string;
   updated_at: string;
+  product?: {
+    id: number;
+    name: string;
+    images?: Array<{
+      id: number;
+      path: string;
+      is_primary: boolean;
+      url?: string; // Add this for full image URL
+    }>;
+  };
 }
 
 export interface OrderUser {

@@ -724,10 +724,10 @@ export default function ProductsPage({
           {/* Import Button */}
           <button
             onClick={() => document.getElementById('import-file')?.click()}
-            className="flex items-center justify-center cursor-pointer shadow-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800 transition-all duration-200 rounded-lg py-2 px-3 sm:py-2 sm:px-4 text-sm sm:text-base"
+            className="flex items-center justify-center cursor-pointer shadow-md border border-gray-300 bg-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800 transition-all duration-200 rounded-lg py-2 px-3 sm:py-2 sm:px-4 text-sm sm:text-base"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M11 16V7.85l-2.6 2.6L7 9l5-5l5 5l-1.4 1.45l-2.6-2.6V16h-2Zm-7 4v-5h2v3h12v-3h2v5H4Z" />
+              <path fill="currentColor" d="M6 20q-.825 0-1.413-.588T4 18v-3h2v3h12v-3h2v3q0 .825-.588 1.413T18 20H6Zm6-4l-5-5l1.4-1.45l2.6 2.6V4h2v8.15l2.6-2.6L17 11l-5 5Z" />
             </svg>
             <span className="whitespace-nowrap">{t.productDashboard.import}</span>
           </button>
@@ -744,8 +744,9 @@ export default function ProductsPage({
             onClick={handleExportProducts}
             className="flex items-center justify-center cursor-pointer shadow-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800 transition-all duration-200 rounded-lg py-2 px-3 sm:py-2 sm:px-4 text-sm sm:text-base"
           >
+
             <svg xmlns="http://www.w3.org/2000/svg" className="mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M6 20q-.825 0-1.413-.588T4 18v-3h2v3h12v-3h2v3q0 .825-.588 1.413T18 20H6Zm6-4l-5-5l1.4-1.45l2.6 2.6V4h2v8.15l2.6-2.6L17 11l-5 5Z" />
+              <path fill="currentColor" d="M11 16V7.85l-2.6 2.6L7 9l5-5l5 5l-1.4 1.45l-2.6-2.6V16h-2Zm-7 4v-5h2v3h12v-3h2v5H4Z" />
             </svg>
             <span className="whitespace-nowrap">{t.productDashboard.export}</span>
           </button>
@@ -1090,7 +1091,7 @@ export default function ProductsPage({
 
       {/* Products Table */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-        {/* Search, filter by status and categories, and manage your products */}
+        {/* Search, filter by status, category, brand, and stock, and range price  */}
         <div className=" p-2 m-2 ">
           <div className="mb-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
@@ -1104,7 +1105,7 @@ export default function ProductsPage({
           <div className="space-y-4">
             <div className="flex flex-col md:flex-row gap-4">
               {/* Search Bar */}
-              <div className="relative flex-1 max-w-sm">
+              <div className="relative w-[400px] md:w-[500px]">
                 <div className="absolute inset-y-0 left-0 flex justify-center items-center pl-2 pointer-events-none">
                   <IoIosSearch className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 dark:text-gray-500" />
                 </div>
@@ -1117,7 +1118,7 @@ export default function ProductsPage({
                 />
               </div>
 
-              {/* Filter by Status (Dropdown) */}
+              {/* Filter by Status (Dropdown)
               <div className="relative w-full md:w-48">
                 <select
                   id="status"
@@ -1135,7 +1136,7 @@ export default function ProductsPage({
                   ))}
                 </select>
                 <IoIosArrowDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none w-4 h-4" />
-              </div>
+              </div> */}
 
               {/* Filter by Categories (Dropdown) */}
               <div className="relative w-full md:w-52">

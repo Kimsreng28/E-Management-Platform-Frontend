@@ -193,11 +193,10 @@ export default function ProductListPage({
       <button
         key={i}
         onClick={() => setCurrentPage(i)}
-        className={`px-3 py-1 rounded ${
-          currentPage === i
+        className={`px-3 py-1 rounded ${currentPage === i
             ? "bg-indigo-600 text-white"
             : "bg-gray-200 hover:bg-gray-300"
-        }`}
+          }`}
       >
         {i}
       </button>
@@ -241,7 +240,7 @@ export default function ProductListPage({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2">
+        {/* <div className="flex items-center gap-2">
           <button
             onClick={() =>
               router.push(`/${currentLocale}/dashboard/products/new/product`)
@@ -251,7 +250,7 @@ export default function ProductListPage({
             <MdAdd className="mr-2 w-5 h-5" />
             {t.createProduct.addNewProduct}
           </button>
-        </div>
+        </div> */}
       </div>
 
       {/* Products Table */}
@@ -397,13 +396,12 @@ export default function ProductListPage({
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            product.stock_status === "Active"
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${product.stock_status === "Active"
                               ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                               : product.stock_status === "Inactive"
-                              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                              : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                          }`}
+                                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                                : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                            }`}
                         >
                           {product.stock_status === "Active"
                             ? t.createProduct.active

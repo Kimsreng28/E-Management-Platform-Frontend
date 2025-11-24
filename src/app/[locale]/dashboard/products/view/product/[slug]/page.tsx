@@ -281,7 +281,7 @@ export default function ProductViewPage({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
-          <button
+          {/* <button
             onClick={() =>
               router.push(
                 `/${currentLocale}/dashboard/products/${product.slug}/edit/product`
@@ -291,7 +291,7 @@ export default function ProductViewPage({
           >
             <MdEdit className="mr-2 w-4 h-4" />
             {t.createProduct.editProduct}
-          </button>
+          </button> */}
           <button
             onClick={handleDelete}
             className="flex items-center justify-center shadow-md border border-gray-300 bg-red-100 text-red-500 hover:bg-red-200 dark:bg-gray-800 dark:hover:bg-gray-700 transition-all duration-200 rounded-lg py-1.5 px-2 sm:py-2 sm:px-3 md:px-4 text-xs sm:text-sm md:text-base w-full sm:w-auto"

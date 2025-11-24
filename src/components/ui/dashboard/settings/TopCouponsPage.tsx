@@ -591,6 +591,7 @@ export default function TopCouponsPage({ locale }: { locale: "en" | "kh" }) {
                     type="date"
                     name="start_date"
                     value={formData.start_date}
+                    min={new Date().toISOString().split("T")[0]}
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                     required

@@ -1,4 +1,3 @@
-// components/OrderDetailModal.tsx
 "use client";
 
 import { API_BASE_URL } from "@/lib/config";
@@ -10,6 +9,7 @@ import { useEffect, useState } from "react";
 import { HiOutlineDownload } from "react-icons/hi";
 import { IoMdCloseCircleOutline } from "react-icons/io";
 import { PiShareFatDuotone } from "react-icons/pi";
+import Image from "next/image";
 
 interface OrderDetailModalProps {
   isOpen: boolean;
@@ -217,12 +217,34 @@ export default function OrderDetailModal({
             </h3>
             <div className="space-y-3">
               {order.items?.map((item) => {
+                const primaryImage = item.product?.images?.find(img => img.is_primary) || item.product?.images?.[0];
+
                 return (
                   <div
                     key={item.id}
                     className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg"
                   >
                     <div className="flex items-center space-x-4">
+                      {/* Product Image */}
+                      <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {primaryImage ? (
+                          <Image
+                            src={`${API_BASE_URL}/${primaryImage.path}`}
+                            alt={item.product_name}
+                            width={64}
+                            height={64}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-700 flex items-center justify-center">
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                              {item.product_name.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Product Details */}
                       <div>
                         <p className="font-medium text-gray-900 dark:text-white">
                           {item.product_name}

@@ -282,7 +282,13 @@ const ChatInterface: React.FC = () => {
                 formData.append('attachment', attachment.file);
 
                 // Add type based on file type
-                formData.append('type', attachment.type);
+                if (attachment.type === 'image') {
+                    formData.append('type', 'image');
+                } else if (attachment.type === 'video') {
+                    formData.append('type', 'video');
+                } else {
+                    formData.append('type', 'file');
+                }
 
                 await sendMessageWithAttachment(formData);
             } else {
@@ -304,15 +310,7 @@ const ChatInterface: React.FC = () => {
             }
         } catch (error) {
             console.error('Failed to send message:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Failed to send message',
-                text: error instanceof Error ? error.message : 'Please try again',
-                timer: 2000,
-                showConfirmButton: false,
-                toast: true,
-                position: 'top-end'
-            });
+            // Error is now handled in the sendMessageWithAttachment function
         }
     };
 
@@ -370,24 +368,32 @@ const ChatInterface: React.FC = () => {
             return;
         }
 
-        // Check if it's an image
+        // Determine file type more accurately
+        let fileType: 'image' | 'video' | 'file' = 'file';
+
         if (file.type.startsWith('image/')) {
-            // For images, we can preview them
+            fileType = 'image';
             const reader = new FileReader();
             reader.onload = (e) => {
                 setAttachment({
                     file,
                     preview: e.target?.result as string,
-                    type: 'image'
+                    type: fileType
                 });
             };
             reader.readAsDataURL(file);
-        } else {
-            // For other files
+        } else if (file.type.startsWith('video/')) {
+            fileType = 'video';
             setAttachment({
                 file,
                 preview: null,
-                type: 'file'
+                type: fileType
+            });
+        } else {
+            setAttachment({
+                file,
+                preview: null,
+                type: fileType
             });
         }
     };

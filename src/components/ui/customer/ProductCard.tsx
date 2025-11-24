@@ -153,6 +153,17 @@ export default function ProductCard({ product, locale, showRating = false }: Pro
     setShowQuickView(false);
   };
 
+  // Handle qr code view
+  const handleQrCodeView = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowQr(true);
+  };
+
+  // Handle close qr code view
+  const handleCloseQrCodeView = () => {
+    setShowQr(false);
+  };
+
   // Navigate to product detail page
   const handleProductClick = () => {
     setIsNavigating(true);
@@ -351,7 +362,7 @@ export default function ProductCard({ product, locale, showRating = false }: Pro
           </button>
 
           <button
-            onClick={() => setShowQr(true)}
+            onClick={handleQrCodeView}
             className="w-8 h-8 cursor-pointer sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center bg-white dark:bg-gray-800 rounded-full shadow-md hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-500 transition-colors"
             aria-label="Quick view"
           >
@@ -364,7 +375,7 @@ export default function ProductCard({ product, locale, showRating = false }: Pro
               <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-6 w-full max-w-sm flex flex-col items-center relative">
                 {/* Close Button */}
                 <button
-                  onClick={() => setShowQr(false)}
+                  onClick={handleCloseQrCodeView}
                   className="absolute cursor-pointer top-4 right-4 p-2 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition"
                 >
                   <MdOutlineCancel className="w-5 h-5 text-red-500 dark:text-red-500" />
@@ -710,11 +721,11 @@ export default function ProductCard({ product, locale, showRating = false }: Pro
         </div>
       )}
 
-      {showRating && (product.average_rating ?? 0) > 0 && (
+      {/* {showRating && (product.average_rating ?? 0) > 0 && (
         <div className="px-4 pb-3">
           {renderStars(product.average_rating ?? 0)}
         </div>
-      )}
+      )} */}
 
     </div>
   );
