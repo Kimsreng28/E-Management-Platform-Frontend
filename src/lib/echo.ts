@@ -1,7 +1,6 @@
 import Echo from "laravel-echo";
 import Pusher from "pusher-js";
 
-// In lib/echo.ts
 let echoInstance: Echo<any> | null = null;
 
 const initializeEcho = (token: string) => {
