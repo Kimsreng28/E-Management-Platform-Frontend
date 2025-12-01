@@ -9,7 +9,7 @@ export default function ProtectedRoute({
   role,
 }: {
   children: React.ReactNode;
-  role: "admin" | "customer";
+  role: "admin" | "customer" | "vendor" | "delivery";
 }) {
   const router = useRouter();
   const token = getToken();
@@ -40,16 +40,36 @@ export default function ProtectedRoute({
         const user = await response.json();
         const isAdmin = user.role_id === 1;
         const isCustomer = user.role_id === 2;
+        const isVendor = user.role_id === 4;
+        const isDelivery = user.role_id === 5;
 
-        if (
-          (role === "admin" && !isAdmin) ||
-          (role === "customer" && !isCustomer)
-        ) {
-          router.push(
-            isAdmin
-              ? `/${currentLocale}/dashboard`
-              : `/${currentLocale}/customer`
-          );
+        let hasAccess = false;
+
+        // Check if user has access to the requested role
+        switch (role) {
+          case "admin":
+            hasAccess = isAdmin;
+            break;
+          case "customer":
+            hasAccess = isCustomer;
+            break;
+          case "vendor":
+            hasAccess = isVendor;
+            break;
+          case "delivery":
+            hasAccess = isDelivery;
+            break;
+        }
+
+        if (!hasAccess) {
+          // Redirect to appropriate page based on user's actual role
+          if (isAdmin || isVendor || isDelivery) {
+            router.push(`/${currentLocale}/dashboard`);
+          } else if (isCustomer) {
+            router.push(`/${currentLocale}/customer`);
+          } else {
+            router.push("/login");
+          }
         }
       } catch (error) {
         localStorage.removeItem("token");
@@ -58,10 +78,14 @@ export default function ProtectedRoute({
     };
 
     verify();
-  }, [token, router, role]);
+  }, [token, router, role, currentLocale]);
 
   if (!token) {
-    return null; // or a loading spinner
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-t-black border-gray-200"></div>
+      </div>
+    );
   }
 
   return <>{children}</>;

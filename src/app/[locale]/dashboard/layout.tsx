@@ -13,6 +13,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { use, useEffect, useRef, useState } from "react";
 import { AiFillSun, AiOutlineClose, AiOutlineMenu } from "react-icons/ai";
 import { MdNightlightRound } from "react-icons/md";
+import { getCurrentUser } from "@/lib/api/auth";
 
 const inriaSans = Inria_Sans({
   subsets: ["latin"],
@@ -25,6 +26,27 @@ const kantumruyPro = Kantumruy_Pro({
   weight: ["400", "700"],
   variable: "--font-kantumruy-pro",
 });
+
+const getFilteredNavItems = (userRole: number, localizedNavItems: any[]) => {
+  return localizedNavItems.filter(item => item.roles.includes(userRole));
+};
+
+// Skeleton loader component for navigation items
+const NavItemSkeleton = () => (
+  <div className="flex items-center gap-3 w-full text-left px-4 py-2 rounded-lg border bg-gray-100 border-gray-200 dark:bg-gray-800 dark:border-gray-700 animate-pulse">
+    <div className="w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded"></div>
+    <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded flex-1"></div>
+  </div>
+);
+
+// Skeleton loader for multiple navigation items
+const NavigationSkeleton = ({ count = 6 }: { count?: number }) => (
+  <div className="space-y-2">
+    {Array.from({ length: count }).map((_, index) => (
+      <NavItemSkeleton key={index} />
+    ))}
+  </div>
+);
 
 export default function DashboardLayout({
   children,
@@ -45,6 +67,10 @@ export default function DashboardLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  const [user, setUser] = useState<any>(null);
+  const [filteredNavItems, setFilteredNavItems] = useState<any[]>([]);
+  const [navLoading, setNavLoading] = useState(true);
 
   const t = useTranslations(language);
 
@@ -138,6 +164,35 @@ export default function DashboardLayout({
     setIsNavigating(false);
   }, [pathname]);
 
+  useEffect(() => {
+    const fetchUserAndNavItems = async () => {
+      try {
+        setNavLoading(true);
+        const userData = await getCurrentUser();
+        setUser(userData);
+
+        // Prepare nav items with locale
+        const localizedNavItems = navItems.map((item) => ({
+          ...item,
+          href: `/${language}${item.href}`,
+        }));
+
+        // Filter nav items based on user role
+        const filtered = getFilteredNavItems(userData.role_id, localizedNavItems);
+        setFilteredNavItems(filtered);
+
+        // Add a small delay to show loading state (for better UX)
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (error) {
+        console.error("Failed to fetch user:", error);
+      } finally {
+        setNavLoading(false);
+      }
+    };
+
+    fetchUserAndNavItems();
+  }, [language]);
+
   return (
     <div
       className={`flex min-h-screen ${inriaSans.variable} ${kantumruyPro.variable} font-combo antialiased`}
@@ -191,26 +246,71 @@ export default function DashboardLayout({
             </div>
           </div>
 
-          {/* Navigation */}
+          {/* Navigation with Loading State */}
           <nav className="flex-1 space-y-2">
-            {localizedNavItems.map((item) => (
-              <button
-                key={item.name}
-                onClick={() => handleNavClick(item.href)}
-                className={cn(
-                  "flex items-center cursor-pointer gap-3 w-full text-left text-sm sm:text-base px-4 py-2 rounded-lg border transition-colors font-combo",
-                  // Default styles
-                  "bg-gray-100 border-gray-200 text-black hover:bg-green-700 hover:text-white dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:bg-gray-700",
-                  // Active styles
-                  activeNav?.href === item.href &&
-                  "bg-red-800 text-white dark:bg-white dark:text-black"
-                )}
-              >
-                {item.icon}
-                {t[item.name]}
-              </button>
-            ))}
+            {navLoading ? (
+              <NavigationSkeleton count={8} />
+            ) : (
+              filteredNavItems.map((item) => (
+                <button
+                  key={item.name}
+                  onClick={() => handleNavClick(item.href)}
+                  className={cn(
+                    "flex items-center cursor-pointer gap-3 w-full text-left text-sm sm:text-base px-4 py-2 rounded-lg border transition-colors font-combo",
+                    // Default styles
+                    "bg-gray-100 border-gray-200 text-black hover:bg-green-700 hover:text-white dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:bg-gray-700",
+                    // Active styles
+                    activeNav?.href === item.href &&
+                    "bg-red-800 text-white dark:bg-white dark:text-black"
+                  )}
+                >
+                  {item.icon}
+                  {t[item.name as keyof typeof t]}
+                </button>
+              ))
+            )}
           </nav>
+
+          {/* User info in sidebar (optional) */}
+          {!navLoading && user && (
+            <div className="mt-auto pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-3 px-2 py-2">
+                <div className="flex-shrink-0">
+                  {user.avatar || user.photo_url ? (
+                    <img
+                      src={
+                        user.avatar?.startsWith("http")
+                          ? user.avatar
+                          : `${process.env.NEXT_PUBLIC_API_BASE_URL || ''}/storage/${user.avatar}`
+                      }
+                      alt={user.name || "User"}
+                      className="h-8 w-8 rounded-full object-cover"
+                      onError={(e) => {
+                        const target = e.currentTarget as HTMLImageElement;
+                        if (user.photo_url && user.photo_url.startsWith("http")) {
+                          target.src = user.photo_url;
+                        } else {
+                          target.src = "/default-avatar.png";
+                        }
+                      }}
+                    />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium">
+                      {user.name?.charAt(0).toUpperCase() || "U"}
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    {user.name || "User"}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                    {user.role?.name || "User"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </aside>
 

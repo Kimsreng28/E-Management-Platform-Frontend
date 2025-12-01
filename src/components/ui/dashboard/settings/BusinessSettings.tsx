@@ -57,6 +57,12 @@ interface BusinessData {
   paypalSandbox: boolean;
 }
 
+interface UserRole {
+  role_id: number;
+  is_admin: boolean;
+  is_vendor: boolean;
+}
+
 interface Props {
   currentLanguage: "en" | "kh";
 }
@@ -90,21 +96,39 @@ export default function BusinessSettings({ currentLanguage }: Props) {
   });
 
   const [isLoading, setIsLoading] = useState(true);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const t = useTranslations(currentLanguage);
 
-  // Load business settings
-  const loadBusinessSettings = async () => {
+  // Load user role and business settings
+  const loadUserRoleAndSettings = async () => {
     try {
       const token = getToken();
-      const response = await fetch(`${API_BASE_URL}/api/business-settings`, {
+
+      // Load user role first
+      const roleResponse = await fetch(`${API_BASE_URL}/api/business-settings/user-role`, {
+        method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      const data = await response.json();
-      if (response.ok && data.settings) {
-        const s = data.settings;
+      if (roleResponse.ok) {
+        const roleData = await roleResponse.json();
+        if (roleData.success) {
+          setUserRole(roleData);
+        }
+      }
+
+      // Then load business settings
+      const settingsResponse = await fetch(`${API_BASE_URL}/api/business-settings`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const settingsData = await settingsResponse.json();
+      if (settingsResponse.ok && settingsData.settings) {
+        const s = settingsData.settings;
         setBusinessData({
           businessName: s.business_name || "",
           taxId: s.tax_id || "",
@@ -132,7 +156,7 @@ export default function BusinessSettings({ currentLanguage }: Props) {
           paypalSandbox: s.paypal_sandbox !== false,
         });
       } else {
-        console.error("Failed to load settings:", data);
+        console.error("Failed to load settings:", settingsData);
       }
     } catch (error) {
       console.error("Error loading business settings:", error);
@@ -145,38 +169,43 @@ export default function BusinessSettings({ currentLanguage }: Props) {
   const saveBusinessSettings = async () => {
     try {
       const token = getToken();
+
+      // Prepare data - both admin and vendor can save payment settings
+      const requestData: any = {
+        business_name: businessData.businessName,
+        tax_id: businessData.taxId,
+        currency: businessData.currency,
+        tax_rate: Number(businessData.taxRate),
+        invoice_prefix: businessData.invoicePrefix,
+        invoice_starting_number: Number(businessData.invoiceStartingNumber),
+        inventory_management: Boolean(businessData.inventoryManagement),
+        low_stock_threshold: Number(businessData.lowStockThreshold),
+        business_hours: {
+          open: businessData.businessHours.open,
+          close: businessData.businessHours.close,
+          days_open: businessData.businessHours.daysOpen,
+        },
+        // Payment settings - available for both admin and vendors
+        stripe_enabled: Boolean(businessData.stripeEnabled),
+        stripe_public_key: businessData.stripePublicKey,
+        stripe_secret_key: businessData.stripeSecretKey,
+        stripe_webhook_secret: businessData.stripeWebhookSecret,
+        khqr_enabled: Boolean(businessData.khqrEnabled),
+        khqr_merchant_name: businessData.khqrMerchantName,
+        khqr_merchant_account: businessData.khqrMerchantAccount,
+        paypal_enabled: Boolean(businessData.paypalEnabled),
+        paypal_client_id: businessData.paypalClientId,
+        paypal_client_secret: businessData.paypalClientSecret,
+        paypal_sandbox: Boolean(businessData.paypalSandbox),
+      };
+
       const response = await fetch(`${API_BASE_URL}/api/business-settings`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          business_name: businessData.businessName,
-          tax_id: businessData.taxId,
-          currency: businessData.currency,
-          tax_rate: Number(businessData.taxRate),
-          invoice_prefix: businessData.invoicePrefix,
-          invoice_starting_number: Number(businessData.invoiceStartingNumber),
-          inventory_management: Boolean(businessData.inventoryManagement),
-          low_stock_threshold: Number(businessData.lowStockThreshold),
-          business_hours: {
-            open: businessData.businessHours.open,
-            close: businessData.businessHours.close,
-            days_open: businessData.businessHours.daysOpen,
-          },
-          stripe_enabled: Boolean(businessData.stripeEnabled),
-          stripe_public_key: businessData.stripePublicKey,
-          stripe_secret_key: businessData.stripeSecretKey,
-          stripe_webhook_secret: businessData.stripeWebhookSecret,
-          khqr_enabled: Boolean(businessData.khqrEnabled),
-          khqr_merchant_name: businessData.khqrMerchantName,
-          khqr_merchant_account: businessData.khqrMerchantAccount,
-          paypal_enabled: Boolean(businessData.paypalEnabled),
-          paypal_client_id: businessData.paypalClientId,
-          paypal_client_secret: businessData.paypalClientSecret,
-          paypal_sandbox: Boolean(businessData.paypalSandbox),
-        }),
+        body: JSON.stringify(requestData),
       });
 
       const data = await response.json();
@@ -246,7 +275,7 @@ export default function BusinessSettings({ currentLanguage }: Props) {
 
   // Load settings on mount
   useEffect(() => {
-    loadBusinessSettings();
+    loadUserRoleAndSettings();
   }, []);
 
   const daysOfWeek = [
@@ -276,15 +305,28 @@ export default function BusinessSettings({ currentLanguage }: Props) {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h2 className="text-xl flex items-center font-semibold text-black dark:text-white">
-          <MdBusinessCenter className="mr-2" />
-          {t.settingSession.businessSettings}
-        </h2>
-        <p className="text-gray-500 dark:text-gray-300">
-          {t.settingSession.businessSettingsDescription}
-        </p>
+      {/* Header with Role Badge */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-xl flex items-center font-semibold text-black dark:text-white">
+            <MdBusinessCenter className="mr-2" />
+            {t.settingSession.businessSettings}
+          </h2>
+          <p className="text-gray-500 dark:text-gray-300">
+            {userRole?.is_admin
+              ? "Admin Business Settings - Configure global payment and business settings"
+              : "Vendor Business Settings - Configure your personal payment and business preferences"
+            }
+          </p>
+        </div>
+        {userRole && (
+          <div className={`px-3 py-1 rounded-full text-xs font-medium ${userRole.is_admin
+            ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+            : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+            }`}>
+            {userRole.is_admin ? "Administrator" : "Vendor"}
+          </div>
+        )}
       </div>
 
       {/* Business Information */}
@@ -410,7 +452,6 @@ export default function BusinessSettings({ currentLanguage }: Props) {
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="relative flex items-center">
-            {/* Hidden default checkbox (for functionality) */}
             <input
               type="checkbox"
               name="inventoryManagement"
@@ -419,23 +460,17 @@ export default function BusinessSettings({ currentLanguage }: Props) {
               onChange={handleCheckboxChange}
               className="absolute opacity-0 h-5 w-5 cursor-pointer"
             />
-
-            {/* Custom checkbox appearance */}
             <div
               className={`h-4 w-4 border rounded-sm flex items-center justify-center 
-                   ${
-                     businessData.inventoryManagement
-                       ? "bg-blue-600 border-blue-600"
-                       : "bg-white border-gray-300"
-                   }`}
+                   ${businessData.inventoryManagement
+                  ? "bg-blue-600 border-blue-600"
+                  : "bg-white border-gray-300"
+                }`}
             >
-              {/* Icon (only visible when checked) */}
               {businessData.inventoryManagement && (
                 <MdOutlineDone className="text-white w-3 h-3" />
               )}
             </div>
-
-            {/* Label */}
             <label
               htmlFor="inventoryManagement"
               className="ml-2 text-gray-700 dark:text-gray-300 cursor-pointer"
@@ -500,8 +535,6 @@ export default function BusinessSettings({ currentLanguage }: Props) {
               {t.settingSession.selectAllThatApply}
             </span>
           </label>
-
-          {/* Select All Button */}
           <button
             type="button"
             onClick={() => {
@@ -523,7 +556,6 @@ export default function BusinessSettings({ currentLanguage }: Props) {
               ? t.settingSession.deselectAll
               : t.settingSession.selectAll}
           </button>
-
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
             {daysOfWeek.map((day) => (
               <div key={day.id} className="group relative">
@@ -538,11 +570,10 @@ export default function BusinessSettings({ currentLanguage }: Props) {
                   htmlFor={`day-${day.id}`}
                   className={`
             flex flex-col items-center justify-center p-3 rounded-lg border-2 cursor-pointer transition-all duration-200
-            ${
-              businessData.businessHours.daysOpen.includes(day.id)
-                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-200"
-                : "border-gray-200 hover:border-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
-            }
+            ${businessData.businessHours.daysOpen.includes(day.id)
+                      ? "border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-200"
+                      : "border-gray-200 hover:border-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+                    }
             peer-focus-visible:ring-2 peer-focus-visible:ring-blue-500 peer-focus-visible:ring-offset-2
           `}
                 >
@@ -572,20 +603,42 @@ export default function BusinessSettings({ currentLanguage }: Props) {
         </div>
       </div>
 
-      {/* Payment & Integration Settings */}
+      {/* Payment & Integration Settings - For Both Admin and Vendors */}
       <div className="bg-white dark:bg-gray-700 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
         <h3 className="text-xl font-bold mb-6 flex items-center text-gray-800 dark:text-white">
           <MdPayment className="mr-3 text-blue-500 text-2xl" />
           {t.settingSession.paymentIntegration}
+          <span className={`ml-2 text-xs px-2 py-1 rounded-full ${userRole?.is_admin
+            ? "bg-blue-100 text-blue-800"
+            : "bg-green-100 text-green-800"
+            }`}>
+            {userRole?.is_admin ? "Admin" : "Vendor"} Settings
+          </span>
         </h3>
+
+        {/* Vendor Notice */}
+        {userRole?.is_vendor && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+            <div className="flex items-center">
+              <FiInfo className="text-blue-600 dark:text-blue-400 mr-3 text-lg" />
+              <div>
+                <h4 className="font-semibold text-blue-800 dark:text-blue-200 text-sm">
+                  Vendor Payment Settings
+                </h4>
+                <p className="text-blue-700 dark:text-blue-300 text-xs mt-1">
+                  Configure your personal payment integration settings. These settings will only affect your vendor account.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Stripe Settings */}
         <div
-          className={`mb-6 p-5 rounded-xl transition-all duration-300 ${
-            businessData.stripeEnabled
-              ? "border-2 border-blue-100 dark:border-blue-900 bg-blue-50/30 dark:bg-blue-900/10"
-              : "border border-gray-200 dark:border-gray-500"
-          }`}
+          className={`mb-6 p-5 rounded-xl transition-all duration-300 ${businessData.stripeEnabled
+            ? "border-2 border-blue-100 dark:border-blue-900 bg-blue-50/30 dark:bg-blue-900/10"
+            : "border border-gray-200 dark:border-gray-500"
+            }`}
         >
           <div className="flex items-center mb-4">
             <label className="relative inline-flex items-center cursor-pointer">
@@ -674,11 +727,10 @@ export default function BusinessSettings({ currentLanguage }: Props) {
 
         {/* KHQR Settings */}
         <div
-          className={`mb-6 p-5 rounded-xl transition-all duration-300 ${
-            businessData.khqrEnabled
-              ? "border-2 border-green-100 dark:border-green-900 bg-green-50/30 dark:bg-green-900/10"
-              : "border border-gray-200 dark:border-gray-500"
-          }`}
+          className={`mb-6 p-5 rounded-xl transition-all duration-300 ${businessData.khqrEnabled
+            ? "border-2 border-green-100 dark:border-green-900 bg-green-50/30 dark:bg-green-900/10"
+            : "border border-gray-200 dark:border-gray-500"
+            }`}
         >
           <div className="flex items-center mb-4">
             <label className="relative inline-flex items-center cursor-pointer">
@@ -739,11 +791,10 @@ export default function BusinessSettings({ currentLanguage }: Props) {
 
         {/* PayPal Settings */}
         <div
-          className={`p-5 rounded-xl transition-all duration-300 ${
-            businessData.paypalEnabled
-              ? "border-2 border-yellow-100 dark:border-yellow-900 bg-yellow-50/30 dark:bg-yellow-900/10"
-              : "border border-gray-200 dark:border-gray-500"
-          }`}
+          className={`p-5 rounded-xl transition-all duration-300 ${businessData.paypalEnabled
+            ? "border-2 border-yellow-100 dark:border-yellow-900 bg-yellow-50/30 dark:bg-yellow-900/10"
+            : "border border-gray-200 dark:border-gray-500"
+            }`}
         >
           <div className="flex items-center mb-4">
             <label className="relative inline-flex items-center cursor-pointer">

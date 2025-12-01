@@ -38,6 +38,7 @@
     "react-leaflet": "^5.0.0",
     "react-qr-scanner": "^1.0.0-alpha.11",
     "react-quill": "^2.0.0",
+    "recharts": "^3.5.1",
     "sonner": "^2.0.7",
     "sweetalert2": "^11.22.3",
     "tailwind-merge": "^3.3.1"

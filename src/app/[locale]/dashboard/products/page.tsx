@@ -33,6 +33,12 @@ interface Product {
   stock_status: string;
   is_active: boolean;
   is_featured: boolean;
+  vendor_id?: number;
+  vendor?: {
+    id: number;
+    name: string;
+    email: string;
+  };
   category: {
     id: number;
     name: string;
@@ -61,7 +67,6 @@ interface Category {
   updated_at: string;
 }
 
-// Import Preview Types
 interface ImportPreviewData {
   imported: number;
   skipped: number;
@@ -89,6 +94,14 @@ interface Brand {
   updated_at: string;
 }
 
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role_id: number;
+  is_active: boolean;
+}
+
 export default function ProductsPage({
   params,
 }: {
@@ -100,11 +113,17 @@ export default function ProductsPage({
   const language = unwrappedParams.locale || "en";
   const currentLocale = pathname.split("/")[1] || "en";
   const t = useTranslations(language);
+
+  // State management
   const [stats, setStats] = useState<ProductStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
   const [products, setProducts] = useState<Product[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [isVendor, setIsVendor] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Filter and search states
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -112,12 +131,10 @@ export default function ProductsPage({
   const [sortField, setSortField] = useState("created_at");
   const [sortOrder, setSortOrder] = useState("desc");
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
-
   const [priceRange, setPriceRange] = useState<[number, number] | null>([1, 300]);
   const [selectedBrand, setSelectedBrand] = useState<number | null>(null);
   const [stockFilter, setStockFilter] = useState<string | null>(null);
   const [brands, setBrands] = useState<any[]>([]);
-
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -147,6 +164,33 @@ export default function ProductsPage({
     { value: "Inactive", label: t.createProduct.inactive },
     { value: "Out of Stock", label: t.createProduct.outOfStock },
   ];
+
+  // Fetch current user info
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        });
+
+        if (res.ok) {
+          const userData = await res.json();
+          console.log('User data:', userData);
+          setUser(userData);
+          setIsVendor(userData.role_id === 4);
+          setIsAdmin(userData.role_id === 1);
+        }
+      } catch (error) {
+        console.error("Error fetching user info:", error);
+      }
+    };
+
+    fetchUserInfo();
+  }, []);
 
   // Fetch categories from API
   useEffect(() => {
@@ -236,17 +280,24 @@ export default function ProductsPage({
         }),
       });
 
-      const res = await fetch(
-        `${API_BASE_URL}/api/products?${queryParams.toString()}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        }
-      );
+      // Use vendor-specific endpoint if user is vendor
+      const endpoint = isVendor
+        ? `${API_BASE_URL}/api/vendor/products?${queryParams.toString()}`
+        : `${API_BASE_URL}/api/products?${queryParams.toString()}`;
 
-      if (!res.ok) throw new Error("Failed to fetch products");
+      console.log('Fetching from:', endpoint);
+
+      const res = await fetch(endpoint, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to fetch products");
+      }
 
       const data = await res.json();
       setProducts(data.data || data.items || []);
@@ -257,6 +308,7 @@ export default function ProductsPage({
         position: "top-end",
         icon: "error",
         title: "Failed to load products",
+        text: (error as Error).message,
         showConfirmButton: false,
         timer: 2000,
         toast: true,
@@ -278,10 +330,41 @@ export default function ProductsPage({
     selectedCategory,
     selectedBrand,
     stockFilter,
-    priceRange
+    priceRange,
+    user,
   ]);
 
+  // Fetch product statistics from backend
+  useEffect(() => {
+    if (!user) return;
 
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const statsEndpoint = isVendor
+          ? `${API_BASE_URL}/api/vendor/products/stats`
+          : `${API_BASE_URL}/api/products/stats`;
+
+        const response = await fetch(statsEndpoint, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setStats(data);
+        }
+      } catch (err) {
+        console.error("Error fetching product stats:", err);
+      }
+    };
+
+    fetchStats();
+  }, [user, isVendor]);
 
   // Handle delete product
   const handleDelete = async (productId: number, productSlug: string, productName: string) => {
@@ -319,6 +402,18 @@ export default function ProductsPage({
 
         // Refresh the product list
         setProducts(products.filter((product) => product.id !== productId));
+
+        // Refresh stats
+        const statsResponse = await fetch(`${API_BASE_URL}/api/products/stats`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        });
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          setStats(statsData);
+        }
       }
     } catch (error) {
       console.error("Error deleting product:", error);
@@ -428,42 +523,6 @@ export default function ProductsPage({
       </button>
     );
   }
-
-  // Fetch product statistics from backend
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        const token = localStorage.getItem("token");
-
-        if (!token) {
-          throw new Error("No authentication token found");
-        }
-
-        const response = await fetch(`${API_BASE_URL}/api/products/stats`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to fetch statistics");
-        }
-
-        const data = await response.json();
-        setStats(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
-        console.error("Error fetching product stats:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, []);
 
   const handleExportProducts = async () => {
     try {
@@ -690,6 +749,33 @@ export default function ProductsPage({
     window.location.reload();
   };
 
+  // Helper functions for role-based content
+  const getPageTitle = () => {
+    if (isVendor) {
+      return t.productDashboard.myProducts || "My Products";
+    }
+    return t.productDashboard.products;
+  };
+
+  const getPageDescription = () => {
+    if (isVendor) {
+      return t.productDashboard.manageYourOwnProducts || "Manage your own products";
+    }
+    return t.productDashboard.manageYourProducts;
+  };
+
+  const canEditProduct = (product: Product) => {
+    if (isAdmin) return true;
+    if (isVendor && product.vendor_id === user?.id) return true;
+    return false;
+  };
+
+  const canDeleteProduct = (product: Product) => {
+    if (isAdmin) return true;
+    if (isVendor && product.vendor_id === user?.id) return true;
+    return false;
+  };
+
   if (error) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -712,10 +798,15 @@ export default function ProductsPage({
         {/* Title Section */}
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2 dark:text-white">
-            {t.productDashboard.products}
+            {getPageTitle()}
           </h1>
           <p className="text-sm sm:text-base text-gray-500 dark:text-gray-300">
-            {t.productDashboard.manageYourProducts}
+            {getPageDescription()}
+            {isVendor && (
+              <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                {t.productDashboard.vendorAccount}
+              </span>
+            )}
           </p>
         </div>
 
@@ -744,34 +835,37 @@ export default function ProductsPage({
             onClick={handleExportProducts}
             className="flex items-center justify-center cursor-pointer shadow-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800 transition-all duration-200 rounded-lg py-2 px-3 sm:py-2 sm:px-4 text-sm sm:text-base"
           >
-
             <svg xmlns="http://www.w3.org/2000/svg" className="mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24">
               <path fill="currentColor" d="M11 16V7.85l-2.6 2.6L7 9l5-5l5 5l-1.4 1.45l-2.6-2.6V16h-2Zm-7 4v-5h2v3h12v-3h2v5H4Z" />
             </svg>
             <span className="whitespace-nowrap">{t.productDashboard.export}</span>
           </button>
 
-          {/* Add Category Button (secondary) */}
-          <button
-            onClick={handleAddCategory}
-            className="flex items-center justify-center cursor-pointer shadow-md border border-gray-300 bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 transition-all duration-200 rounded-lg py-2 px-3 sm:py-2 sm:px-4 text-sm sm:text-base"
-          >
-            <MdAdd className="mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="whitespace-nowrap">
-              {t.productDashboard.addCategory}
-            </span>
-          </button>
+          {/* Add Category Button (secondary) - Only for Admin */}
+          {isAdmin && (
+            <button
+              onClick={handleAddCategory}
+              className="flex items-center justify-center cursor-pointer shadow-md border border-gray-300 bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 transition-all duration-200 rounded-lg py-2 px-3 sm:py-2 sm:px-4 text-sm sm:text-base"
+            >
+              <MdAdd className="mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="whitespace-nowrap">
+                {t.productDashboard.addCategory}
+              </span>
+            </button>
+          )}
 
-          {/* Add Brand Button (outline/tertiary) */}
-          <button
-            onClick={handleAddBrand}
-            className="flex items-center justify-center cursor-pointer shadow-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800 transition-all duration-200 rounded-lg py-2 px-3 sm:py-2 sm:px-4 text-sm sm:text-base"
-          >
-            <MdAdd className="mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="whitespace-nowrap">
-              {t.createProduct.addBrand}
-            </span>
-          </button>
+          {/* Add Brand Button (outline/tertiary) - Only for Admin */}
+          {isAdmin && (
+            <button
+              onClick={handleAddBrand}
+              className="flex items-center justify-center cursor-pointer shadow-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800 transition-all duration-200 rounded-lg py-2 px-3 sm:py-2 sm:px-4 text-sm sm:text-base"
+            >
+              <MdAdd className="mr-1 sm:mr-2 w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="whitespace-nowrap">
+                {t.createProduct.addBrand}
+              </span>
+            </button>
+          )}
 
           {/* Add Product Button (primary) */}
           <button
@@ -1095,10 +1189,10 @@ export default function ProductsPage({
         <div className=" p-2 m-2 ">
           <div className="mb-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              {t.createProduct.manageYourProducts}
+              {isVendor ? "Manage Your Products" : t.createProduct.manageYourProducts}
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              {t.createProduct.searchFilterManage}
+              {isVendor ? "Search, filter and manage your product inventory" : t.createProduct.searchFilterManage}
             </p>
           </div>
 
@@ -1117,26 +1211,6 @@ export default function ProductsPage({
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-
-              {/* Filter by Status (Dropdown)
-              <div className="relative w-full md:w-48">
-                <select
-                  id="status"
-                  value={selectedStatus || ""}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="w-full text-sm sm:text-base border shadow focus:border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-gray-300 border-gray-300 rounded-lg px-3 py-2 pr-8 dark:bg-gray-800 dark:text-white dark:border-gray-600 appearance-none"
-                >
-                  {statusOptions.map((option) => (
-                    <option
-                      key={option.value || "all"}
-                      value={option.value || ""}
-                    >
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <IoIosArrowDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none w-4 h-4" />
-              </div> */}
 
               {/* Filter by Categories (Dropdown) */}
               <div className="relative w-full md:w-52">
@@ -1278,6 +1352,14 @@ export default function ProductsPage({
                 >
                   {t.createProduct.brand}
                 </th>
+                {isAdmin && (
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-left text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider"
+                  >
+                    {t.productDashboard.vendor}
+                  </th>
+                )}
                 <th
                   scope="col"
                   className="px-6 py-3 text-left text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider cursor-pointer"
@@ -1314,7 +1396,7 @@ export default function ProductsPage({
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-5 text-center">
+                  <td colSpan={isAdmin ? 9 : 8} className="px-5 py-5 text-center">
                     <div className="flex items-center justify-center gap-1">
                       <div className="w-2 h-2 rounded-full bg-black animate-bounce dark:bg-white"></div>
                       <div className="w-2 h-2 rounded-full bg-black animate-bounce [animation-delay:-.2s] dark:bg-white"></div>
@@ -1325,10 +1407,10 @@ export default function ProductsPage({
               ) : products.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={isAdmin ? 9 : 8}
                     className="px-6 py-4 text-center text-gray-500 dark:text-gray-400"
                   >
-                    {t.createProduct.noProductFound}
+                    {isVendor ? "You haven't created any products yet." : t.createProduct.noProductFound}
                   </td>
                 </tr>
               ) : (
@@ -1365,6 +1447,11 @@ export default function ProductsPage({
                                 {t.createProduct.featured}
                               </span>
                             )}
+                            {isVendor && product.vendor_id === user?.id && (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 ml-1">
+                                {t.productDashboard.yourProduct}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1378,6 +1465,11 @@ export default function ProductsPage({
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-black dark:text-gray-400">
                       {product.brand?.name || "-"}
                     </td>
+                    {isAdmin && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-black dark:text-gray-400">
+                        {product.vendor?.name || "N/A"}
+                      </td>
+                    )}
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-black dark:text-gray-400">
                       $
                       {typeof product.price === "string"
@@ -1438,18 +1530,22 @@ export default function ProductsPage({
                                 <MdVisibility className="mr-2" />
                                 {t.createProduct.viewDetail}
                               </button>
-                              <button
-                                className="flex items-center cursor-pointer px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 w-full text-left"
-                                role="menuitem"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleEditProduct(product);
-                                  setDropdownOpen(null);
-                                }}
-                              >
-                                <RiEditLine className="mr-2" />
-                                {t.createProduct.edit}
-                              </button>
+
+                              {canEditProduct(product) && (
+                                <button
+                                  className="flex items-center cursor-pointer px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 w-full text-left"
+                                  role="menuitem"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditProduct(product);
+                                    setDropdownOpen(null);
+                                  }}
+                                >
+                                  <RiEditLine className="mr-2" />
+                                  {t.createProduct.edit}
+                                </button>
+                              )}
+
                               <button
                                 className="flex items-center cursor-pointer px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 w-full text-left"
                                 role="menuitem"
@@ -1462,18 +1558,21 @@ export default function ProductsPage({
                                 <IoQrCodeOutline className="mr-2" />
                                 QRCode
                               </button>
-                              <button
-                                className="flex items-center cursor-pointer px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600 w-full text-left"
-                                role="menuitem"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDelete(product.id, product.slug, product.name);
-                                  setDropdownOpen(null);
-                                }}
-                              >
-                                <MdDelete className="mr-2" />
-                                {t.createProduct.delete}
-                              </button>
+
+                              {canDeleteProduct(product) && (
+                                <button
+                                  className="flex items-center cursor-pointer px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600 w-full text-left"
+                                  role="menuitem"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDelete(product.id, product.slug, product.name);
+                                    setDropdownOpen(null);
+                                  }}
+                                >
+                                  <MdDelete className="mr-2" />
+                                  {t.createProduct.delete}
+                                </button>
+                              )}
                             </div>
                           </div>
                         )}

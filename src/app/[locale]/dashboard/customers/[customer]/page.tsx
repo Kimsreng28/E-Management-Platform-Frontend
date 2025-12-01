@@ -8,6 +8,8 @@ import {
   FaEdit,
   FaMapMarkerAlt,
   FaShoppingCart,
+  FaStore,
+  FaTruck,
 } from "react-icons/fa";
 import { FaAddressBook, FaPhone } from "react-icons/fa6";
 import { IoIosArrowBack } from "react-icons/io";
@@ -20,8 +22,14 @@ interface Customer {
   phone: string;
   avatar: string | null;
   is_active: boolean;
+  role_id: number;
+  role?: {
+    id: number;
+    name: string;
+  };
   addresses: Address[];
   orders: Order[];
+  shop?: any;
 }
 
 interface Address {
@@ -64,6 +72,11 @@ interface Payment {
   amount: string;
   status: string;
 }
+
+// Role constants
+const ROLE_CUSTOMER = 2;
+const ROLE_VENDOR = 4;
+const ROLE_DELIVERY = 5;
 
 export default function CustomerViewPage() {
   const { customer } = useParams();
@@ -110,6 +123,42 @@ export default function CustomerViewPage() {
     fetchCustomer();
   }, [customer]);
 
+  // Get role name for display
+  const getRoleName = (roleId: number) => {
+    switch (roleId) {
+      case ROLE_CUSTOMER: return "Customer";
+      case ROLE_VENDOR: return "Vendor";
+      case ROLE_DELIVERY: return "Delivery";
+      default: return "Unknown";
+    }
+  };
+
+  // Get role badge color
+  const getRoleBadgeColor = (roleId: number) => {
+    switch (roleId) {
+      case ROLE_CUSTOMER:
+        return "bg-blue-100 text-blue-800 dark:bg-blue-800/30 dark:text-blue-400";
+      case ROLE_VENDOR:
+        return "bg-purple-100 text-purple-800 dark:bg-purple-800/30 dark:text-purple-400";
+      case ROLE_DELIVERY:
+        return "bg-orange-100 text-orange-800 dark:bg-orange-800/30 dark:text-orange-400";
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800/30 dark:text-gray-400";
+    }
+  };
+
+  // Get role icon
+  const getRoleIcon = (roleId: number) => {
+    switch (roleId) {
+      case ROLE_VENDOR:
+        return <FaStore className="w-4 h-4" />;
+      case ROLE_DELIVERY:
+        return <FaTruck className="w-4 h-4" />;
+      default:
+        return <FaShoppingCart className="w-4 h-4" />;
+    }
+  };
+
   if (loading || !customerData) {
     return (
       <div className="flex justify-center items-center h-screen ">
@@ -126,10 +175,10 @@ export default function CustomerViewPage() {
   const lastOrder =
     customerData.orders.length > 0
       ? new Date(
-          customerData.orders.reduce((latest, o) =>
-            new Date(o.created_at) > new Date(latest.created_at) ? o : latest
-          ).created_at
-        )
+        customerData.orders.reduce((latest, o) =>
+          new Date(o.created_at) > new Date(latest.created_at) ? o : latest
+        ).created_at
+      )
       : null;
 
   const getStatusColor = (status: string) => {
@@ -158,6 +207,20 @@ export default function CustomerViewPage() {
     });
   };
 
+  // Determine available tabs based on user role
+  const getAvailableTabs = () => {
+    const baseTabs = ["overview", "orders", "addresses", "activity"];
+
+    // For vendors, add shop tab
+    if (customerData.role_id === ROLE_VENDOR) {
+      return [...baseTabs, "shop"];
+    }
+
+    return baseTabs;
+  };
+
+  const availableTabs = getAvailableTabs();
+
   return (
     <div className="space-y-6 px-4 sm:px-6 lg:px-1 lg:py-1 py-6 sm:space-y-6 md:px-6 sm:py-6">
       {/* Header */}
@@ -170,7 +233,7 @@ export default function CustomerViewPage() {
             <IoIosArrowBack className="w-5 h-5" />
           </button>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
-            Customer Details
+            User Details
           </h1>
         </div>
 
@@ -192,9 +255,8 @@ export default function CustomerViewPage() {
                 )}
               </div>
               <div
-                className={`absolute bottom-0 right-0 w-6 h-6 rounded-full border-2 border-white dark:border-gray-800 ${
-                  customerData.is_active ? "bg-green-500" : "bg-red-500"
-                }`}
+                className={`absolute bottom-0 right-0 w-6 h-6 rounded-full border-2 border-white dark:border-gray-800 ${customerData.is_active ? "bg-green-500" : "bg-red-500"
+                  }`}
               ></div>
             </div>
 
@@ -208,15 +270,24 @@ export default function CustomerViewPage() {
                     {customerData.email}
                   </p>
                 </div>
-                <span
-                  className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                    customerData.is_active
-                      ? "bg-green-100 text-green-800 dark:bg-green-800/30 dark:text-green-400"
-                      : "bg-red-100 text-red-800 dark:bg-red-800/30 dark:text-red-400"
-                  }`}
-                >
-                  {customerData.is_active ? "Active" : "Inactive"}
-                </span>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <span
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getRoleBadgeColor(
+                      customerData.role_id
+                    )}`}
+                  >
+                    {getRoleIcon(customerData.role_id)}
+                    <span className="ml-1">{getRoleName(customerData.role_id)}</span>
+                  </span>
+                  <span
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${customerData.is_active
+                        ? "bg-green-100 text-green-800 dark:bg-green-800/30 dark:text-green-400"
+                        : "bg-red-100 text-red-800 dark:bg-red-800/30 dark:text-red-400"
+                      }`}
+                  >
+                    {customerData.is_active ? "Active" : "Inactive"}
+                  </span>
+                </div>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
@@ -228,6 +299,12 @@ export default function CustomerViewPage() {
                   <FaAddressBook className="w-4 h-4" />
                   <span>{customerData.addresses.length} Addresses</span>
                 </div>
+                {customerData.role_id === ROLE_VENDOR && customerData.shop && (
+                  <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+                    <FaStore className="w-4 h-4" />
+                    <span>{customerData.shop.name}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -237,15 +314,14 @@ export default function CustomerViewPage() {
       {/* Tabs */}
       <div className="mb-8 border-b border-gray-200 dark:border-gray-700">
         <nav className="flex space-x-8 ">
-          {["overview", "orders", "addresses", "activity"].map((tab) => (
+          {availableTabs.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`py-4 px-1 cursor-pointer text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab
+              className={`py-4 px-1 cursor-pointer text-sm font-medium border-b-2 transition-colors ${activeTab === tab
                   ? "border-blue-500 font-semibold text-blue-600 dark:text-blue-400 dark:border-blue-400"
                   : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
-              } capitalize`}
+                } capitalize`}
             >
               {tab}
             </button>
@@ -354,6 +430,44 @@ export default function CustomerViewPage() {
               )}
             </div>
           </div>
+
+          {/* Shop Info for Vendors */}
+          {customerData.role_id === ROLE_VENDOR && customerData.shop && (
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Shop Information
+                </h3>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Shop Name</p>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {customerData.shop.name}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Shop Slug</p>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {customerData.shop.slug}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Status</p>
+                    <span
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${customerData.shop.is_active
+                          ? "bg-green-100 text-green-800 dark:bg-green-800/30 dark:text-green-400"
+                          : "bg-red-100 text-red-800 dark:bg-red-800/30 dark:text-red-400"
+                        }`}
+                    >
+                      {customerData.shop.is_active ? "Active" : "Inactive"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -489,10 +603,71 @@ export default function CustomerViewPage() {
                 No addresses
               </h3>
               <p className="text-gray-500 dark:text-gray-400">
-                This customer hasn't added any addresses yet.
+                This user hasn't added any addresses yet.
               </p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Shop Tab - Only for Vendors */}
+      {activeTab === "shop" && customerData.role_id === ROLE_VENDOR && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Shop Management
+            </h3>
+          </div>
+          <div className="p-6">
+            {customerData.shop ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Shop Name</p>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {customerData.shop.name}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Shop URL</p>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    /shop/{customerData.shop.slug}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Status</p>
+                  <span
+                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${customerData.shop.is_active
+                        ? "bg-green-100 text-green-800 dark:bg-green-800/30 dark:text-green-400"
+                        : "bg-red-100 text-red-800 dark:bg-red-800/30 dark:text-red-400"
+                      }`}
+                  >
+                    {customerData.shop.is_active ? "Active" : "Inactive"}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Created</p>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {customerData.shop.created_at ? formatDate(customerData.shop.created_at) : "N/A"}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="mx-auto w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+                  <FaStore className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                  No Shop Created
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-4">
+                  This vendor doesn't have a shop setup yet.
+                </p>
+                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                  Create Shop
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -501,7 +676,7 @@ export default function CustomerViewPage() {
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Customer Activity
+              User Activity
             </h3>
           </div>
           <div className="p-6">
@@ -516,13 +691,13 @@ export default function CustomerViewPage() {
                   </div>
                   <div className="flex-1 pb-8">
                     <p className="font-medium text-gray-900 dark:text-white">
-                      Account created
+                      Account created as {getRoleName(customerData.role_id)}
                     </p>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      Customer joined on{" "}
+                      User joined on{" "}
                       {formatDate(
                         customerData.orders[0]?.created_at ||
-                          new Date().toISOString()
+                        new Date().toISOString()
                       )}
                     </p>
                   </div>

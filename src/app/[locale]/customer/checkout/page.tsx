@@ -35,6 +35,7 @@ import {
 import { RiCoupon3Fill } from "react-icons/ri";
 import { TbReport } from "react-icons/tb";
 import { VscDebugContinue } from "react-icons/vsc";
+import Swal from "sweetalert2";
 
 // Initialize Stripe
 const stripePromise = loadStripe(
@@ -747,15 +748,16 @@ export default function CheckoutPage({
 
   const completeOrder = async (orderId: number, paymentId?: number) => {
     try {
-      // 1. Update payment status for COD (create a payment record if needed)
-      if (paymentMethod === "cod" && !paymentId) {
-        // Create a COD payment record
+      setShowFullScreenLoading(true);
+
+      // 1. Handle payment creation for COD
+      if (paymentMethod === "cod") {
         const codPaymentData = {
           order_id: orderId,
           payment_method: "cod",
           amount: total,
           currency: "USD",
-          status: "pending", // COD is pending until delivered
+          status: "pending",
         };
 
         const paymentRes = await fetch(`${API_BASE_URL}/api/payments`, {
@@ -767,10 +769,12 @@ export default function CheckoutPage({
           body: JSON.stringify(codPaymentData),
         });
 
-        if (!paymentRes.ok) throw new Error("Failed to create COD payment");
-      }
-      // If payment ID was provided, update existing payment
-      else if (paymentId) {
+        if (!paymentRes.ok) {
+          const errorData = await paymentRes.json();
+          throw new Error(errorData.message || "Failed to create COD payment");
+        }
+      } else if (paymentId) {
+        // For online payments, mark as completed
         const paymentRes = await fetch(
           `${API_BASE_URL}/api/payments/${paymentId}`,
           {
@@ -786,44 +790,75 @@ export default function CheckoutPage({
           }
         );
 
-        if (!paymentRes.ok) throw new Error("Failed to update payment status");
+        if (!paymentRes.ok) {
+          const errorData = await paymentRes.json();
+          throw new Error(errorData.message || "Failed to update payment status");
+        }
       }
 
-      // 2. Update order status
-      //   const orderRes = await fetch(`${API_BASE_URL}/api/orders/${orderId}`, {
-      //     method: "PUT",
-      //     headers: {
-      //       "Content-Type": "application/json",
-      //       Authorization: `Bearer ${localStorage.getItem("token")}`,
-      //     },
-      //     body: JSON.stringify({
-      //       status: "completed",
-      //     }),
-      //   });
-
-      const deliveryRes = await fetch(`${API_BASE_URL}/api/orders/${orderId}/assign-delivery`, {
+      // 2. Use the dedicated completeOrder endpoint
+      const orderRes = await fetch(`${API_BASE_URL}/api/orders/${orderId}/complete`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
-        body: JSON.stringify({ auto_assign: true }),
       });
 
-      // Show delivery tracking modal
-      setShowDeliveryTracking(true);
-
-      if (deliveryRes.ok) {
-        const deliveryData = await deliveryRes.json();
-        setDelivery(deliveryData.delivery);
+      if (!orderRes.ok) {
+        const errorData = await orderRes.json();
+        throw new Error(errorData.message || "Failed to complete order");
       }
 
-      // 3. Clear cart and show success
+      const result = await orderRes.json();
+
+      // 3. Try to assign delivery agent
+      try {
+        const deliveryRes = await fetch(`${API_BASE_URL}/api/orders/${orderId}/assign-delivery`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({ auto_assign: true }),
+        });
+
+        if (deliveryRes.ok) {
+          const deliveryData = await deliveryRes.json();
+          setDelivery(deliveryData.delivery);
+        }
+      } catch (deliveryError) {
+        console.warn("Delivery assignment failed, but order was created:", deliveryError);
+      }
+
+      // 4. Clear cart and show success
       await clearCart();
       setStep(3);
-    } catch (error) {
+
+      // Show success message
+      Swal.fire({
+        position: "top-end",
+        icon: "success",
+        title: result.message || "Order completed successfully!",
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true,
+      });
+
+    } catch (error: any) {
       console.error("Error completing order:", error);
-      setError("Failed to complete order");
+      Swal.fire({
+        position: "top-end",
+        icon: "error",
+        title: "Failed to complete order",
+        text: error.message || "Please try again",
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true,
+      });
+      setError(error.message || "Failed to complete order");
+    } finally {
+      setShowFullScreenLoading(false);
       setLoading(false);
     }
   };
@@ -832,55 +867,36 @@ export default function CheckoutPage({
     setShowPaymentModal(false);
     setShowFullScreenLoading(true);
 
-    if (orderId && paymentData?.payment?.id) {
-      await completeOrder(orderId, paymentData.payment.id);
-
-      await fetchDeliveryInfo(orderId);
-    }
-
-    setShowFullScreenLoading(false);
-
     try {
-      if (paymentData?.id) {
-        // Update payment status to completed
-        const res = await fetch(
-          `${API_BASE_URL}/api/payments/${paymentData.id}`,
-          {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-            body: JSON.stringify({
-              status: "completed",
-              paid_at: new Date().toISOString(),
-            }),
-          }
-        );
+      if (orderId && paymentData?.payment?.id) {
+        await completeOrder(orderId, paymentData.payment.id);
 
-        if (!res.ok) throw new Error("Failed to update payment");
+        // Fetch delivery info after successful payment
+        try {
+          await fetchDeliveryInfo(orderId);
+        } catch (deliveryError) {
+          console.warn("Delivery info fetch failed:", deliveryError);
+          // Don't block success for delivery info issues
+        }
+      } else {
+        throw new Error("Missing order ID or payment data");
       }
+    } catch (error: any) {
+      console.error("Payment success handling error:", error);
 
-      if (orderId) {
-        // Fetch the updated order after payment
-        const orderRes = await fetch(`${API_BASE_URL}/api/orders/${orderId}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
+      Swal.fire({
+        position: "top-end",
+        icon: "error",
+        title: "Payment completed but order update failed",
+        text: error.message || "Please contact support",
+        showConfirmButton: false,
+        timer: 4000,
+        toast: true,
+      });
 
-        if (!orderRes.ok) throw new Error("Failed to fetch updated order");
-
-        const updatedOrder = await orderRes.json();
-
-        // Clear cart and show success
-        await clearCart();
-        setOrderSummary(updatedOrder);
-        setStep(3);
-      }
-    } catch (err) {
-      console.error("Payment success handling error:", err);
-      setError("Failed to complete order after payment");
+      setError("Payment completed but order update failed");
+    } finally {
+      setShowFullScreenLoading(false);
     }
   };
 

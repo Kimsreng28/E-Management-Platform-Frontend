@@ -207,7 +207,7 @@ export default function ProductViewPage({
 
       if (result.isConfirmed) {
         const token = localStorage.getItem("token");
-        const res = await fetch(`${API_BASE_URL}/api/products/${product.id}`, {
+        const res = await fetch(`${API_BASE_URL}/api/products/${product.slug}`, {
           method: "DELETE",
           headers: {
             Authorization: `Bearer ${token}`,

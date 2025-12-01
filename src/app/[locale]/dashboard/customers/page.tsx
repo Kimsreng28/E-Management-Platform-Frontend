@@ -6,7 +6,7 @@ import { useTranslations } from "@/utils/useTranslations";
 import { usePathname, useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import { IoIosArrowDown, IoIosArrowUp, IoIosSearch } from "react-icons/io";
-import { MdMoreVert, MdVisibility } from "react-icons/md";
+import { MdMoreVert, MdVisibility, MdSwapHoriz } from "react-icons/md";
 import Swal from "sweetalert2";
 
 interface CustomerStats {
@@ -23,10 +23,16 @@ interface Customer {
   phone: string;
   avatar: string;
   is_active: boolean;
+  role_id: number;
+  role?: {
+    id: number;
+    name: string;
+  };
   addresses: Address[];
   carts: Cart[];
   orders: Order[];
   notification_settings: NotificationSettings;
+  shop?: any;
 }
 
 interface Address {
@@ -97,6 +103,13 @@ const statusOptions = [
   { value: "inactive", label: "Inactive" },
 ];
 
+// Role constants
+const ROLE_CUSTOMER = 2;
+const ROLE_VENDOR = 4;
+const ROLE_DELIVERY = 5;
+
+type TabType = 'customers' | 'vendors' | 'deliveries';
+
 export default function CustomersPage({
   params,
 }: {
@@ -138,6 +151,9 @@ export default function CustomersPage({
   const [sortField, setSortField] = useState<string>("created_at");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
+  // Tabs state
+  const [activeTab, setActiveTab] = useState<TabType>('customers');
+
   // fetch data customer state
   const fetchStats = async () => {
     try {
@@ -172,12 +188,24 @@ export default function CustomersPage({
     }
   };
 
-  // fetch data customer
-  const fetchCustomers = async () => {
+  // fetch data based on active tab
+  const fetchUsers = async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) throw new Error("No authentication token found");
+
+      let endpoint = '';
+      switch (activeTab) {
+        case 'vendors':
+          endpoint = '/api/customers/vendors';
+          break;
+        case 'deliveries':
+          endpoint = '/api/customers/deliveries';
+          break;
+        default:
+          endpoint = '/api/customers';
+      }
 
       const params = new URLSearchParams();
       if (searchTerm) params.append("search", searchTerm);
@@ -188,7 +216,7 @@ export default function CustomersPage({
       params.append("sort_direction", sortDirection);
 
       const response = await fetch(
-        `${API_BASE_URL}/api/customers?${params.toString()}`,
+        `${API_BASE_URL}${endpoint}?${params.toString()}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -197,14 +225,14 @@ export default function CustomersPage({
       );
 
       if (!response.ok) {
-        throw new Error("Failed to fetch customers");
+        throw new Error(`Failed to fetch ${activeTab}`);
       }
 
       const data = await response.json();
 
-      const customersData = data.data.map((customer: any) => ({
-        ...customer,
-        orders: (customer.orders || []).map((o: any) => ({
+      const usersData = data.data.map((user: any) => ({
+        ...user,
+        orders: (user.orders || []).map((o: any) => ({
           ...o,
           items: Array.isArray(o.items || o.order_items)
             ? o.items || o.order_items
@@ -213,11 +241,17 @@ export default function CustomersPage({
         })),
       }));
 
-      setCustomers(customersData);
+      setCustomers(usersData);
       setTotal(data.total);
       setTotalPages(data.last_page || 1);
     } catch (error) {
-      console.error("Error fetching customers:", error);
+      console.error(`Error fetching ${activeTab}:`, error);
+      Swal.fire({
+        title: "Error!",
+        text: `Failed to load ${activeTab}. Please try again later.`,
+        icon: "error",
+        confirmButtonText: "OK",
+      });
     } finally {
       setLoading(false);
     }
@@ -233,6 +267,69 @@ export default function CustomersPage({
     const orderIds = customer.orders.map((o: any) => o.id);
     setSelectedOrderIds(orderIds);
     setIsOrderModalOpen(true);
+  };
+
+  // handle assign role
+  const handleAssignRole = async (customerId: number, newRoleId: number) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("No authentication token found");
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/customers/${customerId}/assign-role`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            role_id: newRoleId,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to assign role");
+      }
+
+      const result = await response.json();
+
+      // Update local state
+      setCustomers(prev => prev.map(customer =>
+        customer.id === customerId
+          ? { ...customer, role_id: newRoleId, role: result.user.role }
+          : customer
+      ));
+
+      Swal.fire({
+        title: "Success!",
+        text: `Role assigned successfully to ${result.user.role?.name || 'new role'}`,
+        icon: "success",
+        confirmButtonText: "OK",
+      });
+
+      setDropdownOpen(null);
+    } catch (error) {
+      console.error("Error assigning role:", error);
+      Swal.fire({
+        title: "Error!",
+        text: "Failed to assign role. Please try again later.",
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    }
+  };
+
+  // Get available role options based on current role
+  const getAvailableRoles = (currentRoleId: number) => {
+    const roles = [
+      { id: ROLE_CUSTOMER, name: "Customer", label: t.customerPage.assignToCustomer },
+      { id: ROLE_VENDOR, name: "Vendor", label: t.customerPage.assignToVendor },
+      { id: ROLE_DELIVERY, name: "Delivery", label: t.customerPage.assignToDelivery },
+    ];
+
+    return roles.filter(role => role.id !== currentRoleId);
   };
 
   // handle sort
@@ -264,8 +361,8 @@ export default function CustomersPage({
     );
   };
 
-  const DROPDOWN_WIDTH = 160; // Tailwind w-40 = 10rem = 160px
-  const DROPDOWN_EST_HEIGHT = 160; // rough height of menu; adjust if needed
+  const DROPDOWN_WIDTH = 180;
+  const DROPDOWN_EST_HEIGHT = 200;
   const PADDING = 8;
 
   const toggleDropdown = (id: number, e: React.MouseEvent) => {
@@ -279,14 +376,12 @@ export default function CustomersPage({
 
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
 
-    // Horizontal: right-align to button, clamp to viewport
     let left = rect.right - DROPDOWN_WIDTH;
     if (left < PADDING) left = PADDING;
     if (left + DROPDOWN_WIDTH + PADDING > window.innerWidth) {
       left = Math.max(window.innerWidth - DROPDOWN_WIDTH - PADDING, PADDING);
     }
 
-    // Vertical: open below; flip above if not enough space
     const spaceBelow = window.innerHeight - rect.bottom;
     let top =
       spaceBelow >= DROPDOWN_EST_HEIGHT
@@ -297,7 +392,7 @@ export default function CustomersPage({
     setDropdownPosition({ top, left });
   };
 
-  // Close on outside click, scroll, or resize (use capture to catch inner scrollables)
+  // Close on outside click, scroll, or resize
   useEffect(() => {
     if (dropdownOpen === null) return;
     const close = () => {
@@ -314,14 +409,15 @@ export default function CustomersPage({
     };
   }, [dropdownOpen]);
 
-  // Fetch data customer state
+  // Fetch data when tab changes
   useEffect(() => {
-    fetchStats();
-  }, []);
+    setCurrentPage(1);
+    fetchUsers();
+  }, [activeTab]);
 
-  // Fetch data customer
+  // Fetch data when filters change
   useEffect(() => {
-    fetchCustomers();
+    fetchUsers();
   }, [
     searchTerm,
     selectedStatus,
@@ -330,6 +426,21 @@ export default function CustomersPage({
     sortField,
     sortDirection,
   ]);
+
+  // Fetch stats on mount
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  // Get role name for display
+  const getRoleName = (roleId: number) => {
+    switch (roleId) {
+      case ROLE_CUSTOMER: return "Customer";
+      case ROLE_VENDOR: return "Vendor";
+      case ROLE_DELIVERY: return "Delivery";
+      default: return "Unknown";
+    }
+  };
 
   return (
     <div className="space-y-3 px-2 sm:px-2 lg:px-2 lg:py-2 py-2 sm:space-y-3 md:px-2 sm:py-2">
@@ -442,13 +553,47 @@ export default function CustomersPage({
         />
       </div>
 
-      {/* Customers Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-        {/* Search, filter by status and payment, and manage your order */}
-        <div className=" p-2 m-2 ">
+      {/* Tab Navigation */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div className="border-b border-gray-200 dark:border-gray-700">
+          <nav className="flex -mb-px">
+            <button
+              onClick={() => setActiveTab('customers')}
+              className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${activeTab === 'customers'
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                }`}
+            >
+              {t.customerPage.allCustomers}
+            </button>
+            <button
+              onClick={() => setActiveTab('vendors')}
+              className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${activeTab === 'vendors'
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                }`}
+            >
+              {t.customerPage.allVendors}
+            </button>
+            <button
+              onClick={() => setActiveTab('deliveries')}
+              className={`py-4 px-6 text-center border-b-2 font-medium text-sm ${activeTab === 'deliveries'
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                }`}
+            >
+              {t.customerPage.allDeliveries}
+            </button>
+          </nav>
+        </div>
+
+        {/* Search and Filter Section */}
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="mb-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              {t.customerPage.customerManagement}
+              {activeTab === 'customers' && t.customerPage.customerManagement}
+              {activeTab === 'vendors' && t.customerPage.vendorManagement}
+              {activeTab === 'deliveries' && t.customerPage.deliveryManagement}
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               {t.customerPage.searchFilterManage}
@@ -464,7 +609,11 @@ export default function CustomersPage({
                 </div>
                 <input
                   type="text"
-                  placeholder={t.customerPage.searchCustomers}
+                  placeholder={
+                    activeTab === 'customers' ? t.customerPage.searchCustomers :
+                      activeTab === 'vendors' ? t.customerPage.searchVendors :
+                        t.customerPage.searchDeliveries
+                  }
                   className="w-full text-xs sm:text-sm md:text-base border shadow focus:border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-gray-300 border-gray-300 rounded-lg pl-8 sm:pl-10 py-1.5 sm:py-2 dark:bg-gray-800 dark:text-white dark:border-gray-600"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -494,6 +643,7 @@ export default function CustomersPage({
           </div>
         </div>
 
+        {/* Table Section */}
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-700">
@@ -504,7 +654,10 @@ export default function CustomersPage({
                   onClick={() => handleSort("name")}
                 >
                   <div className="flex items-center">
-                    {t.customerPage.customer} {getSortIndicator("name")}
+                    {activeTab === 'customers' ? t.customerPage.customer :
+                      activeTab === 'vendors' ? t.customerPage.vendor :
+                        t.customerPage.delivery}
+                    {getSortIndicator("name")}
                   </div>
                 </th>
 
@@ -516,6 +669,13 @@ export default function CustomersPage({
                   <div className="flex items-center">
                     {t.customerPage.contact} {getSortIndicator("email")}
                   </div>
+                </th>
+
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-sm font-semibold text-black dark:text-gray-300 uppercase tracking-wider"
+                >
+                  {t.customerPage.role}
                 </th>
 
                 <th
@@ -580,10 +740,10 @@ export default function CustomersPage({
               ) : customers.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-6 py-4 text-center text-gray-500 dark:text-gray-400"
                   >
-                    No customers found matching your criteria.
+                    No {activeTab} found matching your criteria.
                   </td>
                 </tr>
               ) : (
@@ -610,6 +770,8 @@ export default function CustomersPage({
                         ).created_at
                       )
                       : null;
+
+                  const availableRoles = getAvailableRoles(customer.role_id);
 
                   return (
                     <tr
@@ -660,6 +822,20 @@ export default function CustomersPage({
                         </div>
                       </td>
 
+                      {/* Role Column */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-2 py-1 text-xs font-semibold rounded-full ${customer.role_id === ROLE_VENDOR
+                            ? "bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100"
+                            : customer.role_id === ROLE_DELIVERY
+                              ? "bg-orange-100 text-orange-800 dark:bg-orange-800 dark:text-orange-100"
+                              : "bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100"
+                            }`}
+                        >
+                          {getRoleName(customer.role_id)}
+                        </span>
+                      </td>
+
                       {/* Orders Total Column */}
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                         {orderCount}
@@ -704,7 +880,7 @@ export default function CustomersPage({
                           {/* Dropdown */}
                           {dropdownOpen === customer.id && dropdownPosition && (
                             <div
-                              className="fixed z-20 w-40 rounded-md shadow-lg bg-white dark:bg-gray-700 
+                              className="fixed z-20 w-48 rounded-md shadow-lg bg-white dark:bg-gray-700 
                  border border-gray-200 dark:border-gray-600"
                               style={{
                                 top: dropdownPosition.top,
@@ -736,7 +912,25 @@ export default function CustomersPage({
                                   {t.customerPage.viewOrders}
                                 </button>
 
-
+                                {/* Role Assignment Options */}
+                                {availableRoles.length > 0 && (
+                                  <div className="border-t border-gray-200 dark:border-gray-600">
+                                    <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                                      {t.customerPage.assignRole}
+                                    </div>
+                                    {availableRoles.map((role) => (
+                                      <button
+                                        key={role.id}
+                                        className="flex items-center cursor-pointer px-4 py-2 text-sm w-full text-left 
+                         text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                        onClick={() => handleAssignRole(customer.id, role.id)}
+                                      >
+                                        <MdSwapHoriz className="mr-2" />
+                                        {role.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           )}

@@ -20,6 +20,7 @@ import {
   FiChevronRight,
   FiHeart,
   FiHome,
+  FiMessageSquare,
   FiMinus,
   FiPlus,
   FiSend,
@@ -84,14 +85,27 @@ interface ProductVideo {
   is_primary: boolean;
 }
 
+interface ReviewReply {
+  id: number;
+  user: {
+    name: string;
+    avatar?: string;
+  };
+  comment: string;
+  created_at: string;
+  is_vendor_reply: boolean;
+}
+
 interface Review {
   id: number;
   user: {
     name: string;
+    avatar?: string;
   };
   rating: number;
   comment: string;
   created_at: string;
+  replies: ReviewReply[];
 }
 
 interface ProductDetailPageProps {
@@ -1045,22 +1059,11 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                 key={review.id}
                 className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm"
               >
+                {/* Review Header */}
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div className="flex">
-                      {Array.from({ length: 5 }, (_, i) => (
-                        <svg
-                          key={i}
-                          className={`w-4 h-4 ${i < Math.round(product.average_rating || 0)
-                            ? "text-yellow-400"
-                            : "text-gray-300"
-                            }`}
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.967a1 1 0 00.95.69h4.17c.969 0 1.371 1.24.588 1.81l-3.37 2.448a1 1 0 00-.364 1.118l1.286 3.967c.3.921-.755 1.688-1.54 1.118l-3.37-2.448a1 1 0 00-1.176 0l-3.37 2.448c-.784.57-1.838-.197-1.539-1.118l1.285-3.967a1 1 0 00-.364-1.118L2.049 9.394c-.783-.57-.38-1.81.588-1.81h4.17a1 1 0 00.95-.69l1.286-3.967z" />
-                        </svg>
-                      ))}
+                      {renderStars(review.rating)}
                     </div>
                     <span className="text-sm font-semibold text-gray-900 dark:text-white">
                       {review.user.name}
@@ -1078,9 +1081,50 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                     })}
                   </span>
                 </div>
-                <p className="text-gray-700 dark:text-gray-300">
+
+                {/* Review Comment */}
+                <p className="text-gray-700 dark:text-gray-300 mb-4">
                   {review.comment}
                 </p>
+
+                {/* Vendor Replies */}
+                {review.replies && review.replies.length > 0 && (
+                  <div className="ml-6 pl-4 border-l-2 border-blue-200 dark:border-blue-700 space-y-3">
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center">
+                      <FiMessageSquare className="w-4 h-4 mr-2 text-blue-500" />
+                      Vendor Replies
+                    </h4>
+                    {review.replies.map((reply) => (
+                      <div
+                        key={reply.id}
+                        className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                              {reply.user?.name || 'Vendor'}
+                            </span>
+                            {reply.is_vendor_reply && (
+                              <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full dark:bg-blue-900/30 dark:text-blue-300">
+                                Vendor
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {new Date(reply.created_at).toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-gray-700 dark:text-gray-300 text-sm">
+                          {reply.comment}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>

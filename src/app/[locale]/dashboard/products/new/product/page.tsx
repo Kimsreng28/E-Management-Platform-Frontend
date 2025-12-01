@@ -566,16 +566,14 @@ export default function CreateProductPage({
                 <button
                   type="button"
                   onClick={() => setIsFeatured(!isFeatured)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${
-                    isFeatured
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${isFeatured
                       ? "bg-indigo-600"
                       : "bg-gray-300 dark:bg-gray-600"
-                  }`}
+                    }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-300 ${
-                      isFeatured ? "translate-x-6" : "translate-x-1"
-                    }`}
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-300 ${isFeatured ? "translate-x-6" : "translate-x-1"
+                      }`}
                   />
                 </button>
               </div>
@@ -591,14 +589,12 @@ export default function CreateProductPage({
                 <button
                   type="button"
                   onClick={() => setIsActive(!isActive)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${
-                    isActive ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"
-                  }`}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${isActive ? "bg-green-500" : "bg-gray-300 dark:bg-gray-600"
+                    }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-300 ${
-                      isActive ? "translate-x-6" : "translate-x-1"
-                    }`}
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-300 ${isActive ? "translate-x-6" : "translate-x-1"
+                      }`}
                   />
                 </button>
               </div>
@@ -684,8 +680,8 @@ export default function CreateProductPage({
                   {stock <= 0
                     ? t.createProduct.markOutOfStock
                     : stock <= (lowStockThreshold || 10)
-                    ? `${t.createProduct.markLowOfStock}: ${stock} ${t.createProduct.remaining}`
-                    : `${t.createProduct.markInStock}: ${stock} ${t.createProduct.available}`}
+                      ? `${t.createProduct.markLowOfStock}: ${stock} ${t.createProduct.remaining}`
+                      : `${t.createProduct.markInStock}: ${stock} ${t.createProduct.available}`}
                 </p>
               </div>
             </div>

@@ -8,6 +8,14 @@ const locales = ["en", "kh"];
 const protectedAdminRoutes = ["/dashboard", "/admin"];
 const protectedCustomerRoutes = ["/customer"];
 
+// Define role-based route access
+const roleBasedRoutes = {
+  1: ["/dashboard", "/admin"], // Admin - full access
+  4: ["/dashboard"], // Vendor - limited dashboard access
+  5: ["/dashboard"], // Delivery - limited dashboard access
+  2: ["/customer"], // Customer - customer routes
+};
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const token = request.cookies.get("token")?.value;
@@ -51,19 +59,35 @@ export async function middleware(request: NextRequest) {
       try {
         // Verify token and get user role
         const user = await verifyToken(token);
-        const isAdmin = user.role_id === 1; // Assuming 1 is admin role
-        const isCustomer = user.role_id === 2; // Assuming 2 is customer role
+        const userRole = user.role_id;
 
-        // Redirect if role doesn't match route
-        if (isAdminRoute && !isAdmin) {
-          return NextResponse.redirect(
-            new URL(`/${locale}/customer`, request.url)
-          );
+        // Check if user has access to the requested route based on role
+        let hasAccess = false;
+
+        if (isAdminRoute) {
+          // For admin routes, check if user role is allowed
+          hasAccess = [1, 4, 5].includes(userRole); // admin, vendor, delivery
+        } else if (isCustomerRoute) {
+          // For customer routes, only customers allowed
+          hasAccess = userRole === 2;
         }
-        if (isCustomerRoute && !isCustomer) {
-          return NextResponse.redirect(
-            new URL(`/${locale}/dashboard`, request.url)
-          );
+
+        if (!hasAccess) {
+          // Redirect to appropriate dashboard based on role
+          if ([1, 4, 5].includes(userRole)) {
+            return NextResponse.redirect(
+              new URL(`/${locale}/dashboard`, request.url)
+            );
+          } else if (userRole === 2) {
+            return NextResponse.redirect(
+              new URL(`/${locale}/customer`, request.url)
+            );
+          } else {
+            // Fallback for unknown roles
+            return NextResponse.redirect(
+              new URL(`/${locale}/login`, request.url)
+            );
+          }
         }
       } catch (error) {
         // Invalid token - clear cookie and redirect to login

@@ -307,7 +307,7 @@ export function UserProfileDropdown() {
                 Register
               </Link>
             </>
-          ) : user.role?.name === "admin" ? (
+          ) : user.role?.name === "admin" || user.role?.name === "vendor" || user.role?.name === "delivery" ? (
             <>
               <div className="relative">
                 <button
