@@ -371,7 +371,13 @@
     "publicKey": "សោសាធារណៈ",
     "secretKey": "សោសម្ងាត់",
     "webHook": "Webhook Secret",
-    "markStripeWebhook": "សូមប្រាកដថាបានកំណត់ webhooks នៅក្នុងផ្ទាំងគ្រប់គ្រង Stripe របស់អ្នក"
+    "markStripeWebhook": "សូមប្រាកដថាបានកំណត់ webhooks នៅក្នុងផ្ទាំងគ្រប់គ្រង Stripe របស់អ្នក",
+
+    "khqrApiTokenLabel": "កូដ API សម្រាប់ KHQR",
+    "khqrApiTokenRequired": "* ត្រូវការសម្រាប់ KHQR",
+    "khqrApiTokenHint": "អញ្ជើញយក Token ពីផ្ទាំងគ្រប់គ្រង Bakong KHQR API",
+    "khqrApiTokenExpireInfo": "Token API មានអាយុកាល។ សូមធ្វើការអាប់ដេត Token ថ្មីនៅពេលវាផុតកំណត់។",
+    "khqrApiTokenPlaceholder": "បញ្ចូល Token API របស់ Bakong KHQR..."
   },
 
   "dashboardPage": {

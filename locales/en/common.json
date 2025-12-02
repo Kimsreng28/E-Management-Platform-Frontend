@@ -374,7 +374,13 @@
     "publicKey": "Public Key",
     "secretKey": "Secret Key",
     "webHook": "Webhook Secret",
-    "markStripeWebhook": "Make sure to configure webhooks in your Stripe dashboard"
+    "markStripeWebhook": "Make sure to configure webhooks in your Stripe dashboard",
+
+    "khqrApiTokenLabel": "KHQR API Token",
+    "khqrApiTokenRequired": "* Required for KHQR",
+    "khqrApiTokenHint": "Get your token from Bakong KHQR API dashboard",
+    "khqrApiTokenExpireInfo": "API tokens expire periodically. Update this field when your token expires.",
+    "khqrApiTokenPlaceholder": "Enter your Bakong KHQR API token..."
   },
 
   "dashboardPage": {

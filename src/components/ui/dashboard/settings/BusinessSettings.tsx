@@ -51,6 +51,7 @@ interface BusinessData {
   khqrEnabled: boolean;
   khqrMerchantName: string;
   khqrMerchantAccount: string;
+  khqrApiToken: string;
   paypalEnabled: boolean;
   paypalClientId: string;
   paypalClientSecret: string;
@@ -89,6 +90,7 @@ export default function BusinessSettings({ currentLanguage }: Props) {
     khqrEnabled: false,
     khqrMerchantName: "",
     khqrMerchantAccount: "",
+    khqrApiToken: "",
     paypalEnabled: false,
     paypalClientId: "",
     paypalClientSecret: "",
@@ -97,6 +99,7 @@ export default function BusinessSettings({ currentLanguage }: Props) {
 
   const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [showToken, setShowToken] = useState(false);
   const t = useTranslations(currentLanguage);
 
   // Load user role and business settings
@@ -150,6 +153,7 @@ export default function BusinessSettings({ currentLanguage }: Props) {
           khqrEnabled: s.khqr_enabled || false,
           khqrMerchantName: s.khqr_merchant_name || "",
           khqrMerchantAccount: s.khqr_merchant_account || "",
+          khqrApiToken: s.khqr_api_token || "",
           paypalEnabled: s.paypal_enabled || false,
           paypalClientId: s.paypal_client_id || "",
           paypalClientSecret: s.paypal_client_secret || "",
@@ -193,6 +197,7 @@ export default function BusinessSettings({ currentLanguage }: Props) {
         khqr_enabled: Boolean(businessData.khqrEnabled),
         khqr_merchant_name: businessData.khqrMerchantName,
         khqr_merchant_account: businessData.khqrMerchantAccount,
+        khqr_api_token: businessData.khqrApiToken,
         paypal_enabled: Boolean(businessData.paypalEnabled),
         paypal_client_id: businessData.paypalClientId,
         paypal_client_secret: businessData.paypalClientSecret,
@@ -783,6 +788,55 @@ export default function BusinessSettings({ currentLanguage }: Props) {
                     placeholder="Bank account number"
                   />
                   <FiCopy className="absolute right-3 top-3 text-gray-400 hover:text-green-500 cursor-pointer" />
+                </div>
+              </div>
+
+              {/* KHQR API Token field */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <span className="flex items-center">
+                    <RiKey2Fill className="mr-1" /> {t.settingSession.khqrApiTokenLabel}
+                    <span className="ml-2 text-xs text-red-500">{t.settingSession.khqrApiTokenRequired}</span>
+                  </span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {t.settingSession.khqrApiTokenHint}
+                  </span>
+                </label>
+                <div className="relative">
+                  <textarea
+                    name="khqrApiToken"
+                    value={showToken ? businessData.khqrApiToken : "•".repeat(businessData.khqrApiToken.length)}
+                    onChange={(e) => setBusinessData({ ...businessData, khqrApiToken: e.target.value })}
+                    rows={3}
+                    className="w-full text-sm border bg-white dark:bg-gray-700 focus:border-transparent transition-all duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500/30 border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 dark:text-white shadow-sm"
+                    placeholder={t.settingSession.khqrApiTokenPlaceholder}
+                  />
+                  {businessData.khqrApiToken && (
+                    <div className="absolute right-3 top-3 flex gap-2">
+                      <FiEye
+                        className="text-gray-400 hover:text-green-500 cursor-pointer"
+                        onClick={() => setShowToken(!showToken)}
+                      />
+                      <FiCopy
+                        className="text-gray-400 hover:text-green-500 cursor-pointer"
+                        onClick={() => {
+                          navigator.clipboard.writeText(businessData.khqrApiToken);
+                          Swal.fire({
+                            position: "top-end",
+                            icon: "success",
+                            title: "Token copied!",
+                            showConfirmButton: false,
+                            timer: 1500,
+                            toast: true,
+                          });
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+                <div className="mt-2 text-xs text-yellow-600 dark:text-yellow-400 flex items-center">
+                  <FiInfo className="mr-1" />
+                  <span>{t.settingSession.khqrApiTokenExpireInfo}</span>
                 </div>
               </div>
             </div>
