@@ -13,6 +13,7 @@ import { BiSupport } from "react-icons/bi";
 import { FaRegStar, FaStar, FaUsers } from "react-icons/fa";
 import { IoIosArrowForward } from "react-icons/io";
 import { MdDeliveryDining, MdOutlineReviews } from "react-icons/md";
+import { motion, Variants } from "framer-motion";
 
 interface Category {
   id: number;
@@ -88,6 +89,77 @@ interface PlatformStats {
   total_reviews: number;
   total_orders: number;
 }
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2
+    }
+  }
+};
+
+const itemVariants: Variants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 12
+    }
+  }
+};
+
+const cardVariants: Variants = {
+  hidden: { scale: 0.9, opacity: 0 },
+  visible: {
+    scale: 1,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 15
+    }
+  }
+};
+
+const fadeInUpVariants: Variants = {
+  hidden: { y: 30, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      duration: 0.6,
+      ease: "easeOut"
+    }
+  }
+};
+
+const staggerContainer: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+      delayChildren: 0.1
+    }
+  }
+};
+
+// Add a separate fade in variant for simpler animations
+const fadeInVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      duration: 0.5
+    }
+  }
+};
 
 export default function CustomerHomePage({
   params,
@@ -308,8 +380,17 @@ export default function CustomerHomePage({
 
       {/* Categories Section */}
       {categories.length > 0 && (
-        <div className="w-full py-2 px-2 sm:px-6 lg:px-2 mt-6">
-          <div className="px-4 mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ margin: "-100px" }}
+          variants={fadeInUpVariants}
+          className="w-full py-2 px-2 sm:px-6 lg:px-2 mt-6"
+        >
+          <motion.div
+            variants={itemVariants}
+            className="px-4 mx-auto flex flex-col sm:flex-row items-center justify-between gap-4"
+          >
             <div>
               <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
                 {t.homePage.categories}
@@ -319,27 +400,41 @@ export default function CustomerHomePage({
               </p>
             </div>
 
-            <Link
-              href={`/${language}/customer/categories`}
-              className="flex items-center bg-gradient-to-r from-black to-gray-800 dark:from-gray-900 dark:to-gray-700 hover:from-gray-900 hover:to-gray-700 dark:hover:from-gray-800 dark:hover:to-gray-600 text-white px-6 py-3 rounded-lg shadow-lg shadow-black/25 dark:shadow-gray-900/50 transition-all duration-300 hover:shadow-xl hover:shadow-black/40 dark:hover:shadow-gray-800/60"
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              {t.homePage.viewAllCategories}
-              <IoIosArrowForward className="ml-2 text-xl" />
-            </Link>
-          </div>
+              <Link
+                href={`/${language}/customer/categories`}
+                className="flex items-center bg-gradient-to-r from-black to-gray-800 dark:from-gray-900 dark:to-gray-700 hover:from-gray-900 hover:to-gray-700 dark:hover:from-gray-800 dark:hover:to-gray-600 text-white px-6 py-3 rounded-lg shadow-lg shadow-black/25 dark:shadow-gray-900/50 transition-all duration-300 hover:shadow-xl hover:shadow-black/40 dark:hover:shadow-gray-800/60"
+              >
+                {t.homePage.viewAllCategories}
+                <IoIosArrowForward className="ml-2 text-xl" />
+              </Link>
+            </motion.div>
+          </motion.div>
 
           <CategoryList
             categories={categories}
             loading={loading}
             error={error}
           />
-        </div>
+        </motion.div>
       )}
 
       {/* Featured Products Section */}
       {products.length > 0 && (
-        <div className="w-full py-2 px-2 sm:px-6 lg:px-2 mt-6">
-          <div className="px-4 mb-4 mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ margin: "-50px" }}
+          variants={fadeInUpVariants}
+          className="w-full py-2 px-2 sm:px-6 lg:px-2 mt-6"
+        >
+          <motion.div
+            variants={itemVariants}
+            className="px-4 mb-4 mx-auto flex flex-col sm:flex-row items-center justify-between gap-4"
+          >
             <div>
               <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
                 {t.homePage.feature}
@@ -349,33 +444,58 @@ export default function CustomerHomePage({
               </p>
             </div>
 
-            <Link
-              href={`/${language}/customer/products`}
-              className="flex items-center bg-gradient-to-r from-black to-gray-800 dark:from-gray-900 dark:to-gray-700 hover:from-gray-900 hover:to-gray-700 dark:hover:from-gray-800 dark:hover:to-gray-600 text-white px-6 py-3 rounded-lg shadow-lg shadow-black/25 dark:shadow-gray-900/50 transition-all duration-300 hover:shadow-xl hover:shadow-black/40 dark:hover:shadow-gray-800/60"
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              {t.homePage.viewAllProducts}
-              <IoIosArrowForward className="ml-2 text-xl" />
-            </Link>
-          </div>
+              <Link
+                href={`/${language}/customer/products`}
+                className="flex items-center bg-gradient-to-r from-black to-gray-800 dark:from-gray-900 dark:to-gray-700 hover:from-gray-900 hover:to-gray-700 dark:hover:from-gray-800 dark:hover:to-gray-600 text-white px-6 py-3 rounded-lg shadow-lg shadow-black/25 dark:shadow-gray-900/50 transition-all duration-300 hover:shadow-xl hover:shadow-black/40 dark:hover:shadow-gray-800/60"
+              >
+                {t.homePage.viewAllProducts}
+                <IoIosArrowForward className="ml-2 text-xl" />
+              </Link>
+            </motion.div>
+          </motion.div>
 
           {/* Products Card List */}
-          <div className="px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            {products.map((product) => (
-              <ProductCard
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ margin: "-50px" }}
+            className="px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"
+          >
+            {products.map((product, index) => (
+              <motion.div
                 key={product.id}
-                locale={language}
-                product={product}
-                showRating={true}
-              />
+                variants={cardVariants}
+                custom={index}
+              >
+                <ProductCard
+                  locale={language}
+                  product={product}
+                  showRating={true}
+                />
+              </motion.div>
             ))}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
 
       {/* New Products Section */}
       {newProducts.length > 0 && (
-        <div className="w-full py-2 px-2 sm:px-6 lg:px-2 mt-6">
-          <div className="px-4 mb-4 mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ margin: "-50px" }}
+          variants={fadeInUpVariants}
+          className="w-full py-2 px-2 sm:px-6 lg:px-2 mt-6"
+        >
+          <motion.div
+            variants={itemVariants}
+            className="px-4 mb-4 mx-auto flex flex-col sm:flex-row items-center justify-between gap-4"
+          >
             <div>
               <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
                 {t.homePage.newProducts}
@@ -385,32 +505,57 @@ export default function CustomerHomePage({
               </p>
             </div>
 
-            <Link
-              href={`/${language}/customer/products`}
-              className="flex items-center bg-gradient-to-r from-black to-gray-800 dark:from-gray-900 dark:to-gray-700 hover:from-gray-900 hover:to-gray-700 dark:hover:from-gray-800 dark:hover:to-gray-600 text-white px-6 py-3 rounded-lg shadow-lg shadow-black/25 dark:shadow-gray-900/50 transition-all duration-300 hover:shadow-xl hover:shadow-black/40 dark:hover:shadow-gray-800/60"
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              {t.homePage.viewAllProducts}
-              <IoIosArrowForward className="ml-2 text-xl" />
-            </Link>
-          </div>
+              <Link
+                href={`/${language}/customer/products`}
+                className="flex items-center bg-gradient-to-r from-black to-gray-800 dark:from-gray-900 dark:to-gray-700 hover:from-gray-900 hover:to-gray-700 dark:hover:from-gray-800 dark:hover:to-gray-600 text-white px-6 py-3 rounded-lg shadow-lg shadow-black/25 dark:shadow-gray-900/50 transition-all duration-300 hover:shadow-xl hover:shadow-black/40 dark:hover:shadow-gray-800/60"
+              >
+                {t.homePage.viewAllProducts}
+                <IoIosArrowForward className="ml-2 text-xl" />
+              </Link>
+            </motion.div>
+          </motion.div>
 
           {/* Products Card List */}
-          <div className="px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            {newProducts.map((product) => (
-              <ProductCard
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ margin: "-50px" }}
+            className="px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"
+          >
+            {newProducts.map((product, index) => (
+              <motion.div
                 key={product.id}
-                locale={language}
-                product={product}
-              />
+                variants={cardVariants}
+                custom={index}
+              >
+                <ProductCard
+                  locale={language}
+                  product={product}
+                />
+              </motion.div>
             ))}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
 
       {/* Popular Products Section */}
       {popularProducts.length > 0 && (
-        <div className="w-full py-2 px-2 sm:px-6 lg:px-2 mt-6">
-          <div className="px-4 mb-4 mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ margin: "-50px" }}
+          variants={fadeInUpVariants}
+          className="w-full py-2 px-2 sm:px-6 lg:px-2 mt-6"
+        >
+          <motion.div
+            variants={itemVariants}
+            className="px-4 mb-4 mx-auto flex flex-col sm:flex-row items-center justify-between gap-4"
+          >
             <div>
               <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
                 {t.homePage.popularProducts}
@@ -419,30 +564,55 @@ export default function CustomerHomePage({
                 {t.homePage.ourBestSelling}
               </p>
             </div>
-            <Link
-              href={`/${language}/customer/products`}
-              className="flex items-center bg-gradient-to-r from-black to-gray-800 dark:from-gray-900 dark:to-gray-700 hover:from-gray-900 hover:to-gray-700 dark:hover:from-gray-800 dark:hover:to-gray-600 text-white px-6 py-3 rounded-lg shadow-lg shadow-black/25 dark:shadow-gray-900/50 transition-all duration-300 hover:shadow-xl hover:shadow-black/40 dark:hover:shadow-gray-800/60"
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              {t.homePage.viewAllProducts}
-              <IoIosArrowForward className="ml-2 text-xl" />
-            </Link>
-          </div>
-          <div className="px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            {popularProducts.map((product) => (
-              <ProductCard
+              <Link
+                href={`/${language}/customer/products`}
+                className="flex items-center bg-gradient-to-r from-black to-gray-800 dark:from-gray-900 dark:to-gray-700 hover:from-gray-900 hover:to-gray-700 dark:hover:from-gray-800 dark:hover:to-gray-600 text-white px-6 py-3 rounded-lg shadow-lg shadow-black/25 dark:shadow-gray-900/50 transition-all duration-300 hover:shadow-xl hover:shadow-black/40 dark:hover:shadow-gray-800/60"
+              >
+                {t.homePage.viewAllProducts}
+                <IoIosArrowForward className="ml-2 text-xl" />
+              </Link>
+            </motion.div>
+          </motion.div>
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ margin: "-50px" }}
+            className="px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"
+          >
+            {popularProducts.map((product, index) => (
+              <motion.div
                 key={product.id}
-                locale={language}
-                product={product}
-              />
+                variants={cardVariants}
+                custom={index}
+              >
+                <ProductCard
+                  locale={language}
+                  product={product}
+                />
+              </motion.div>
             ))}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
 
       {/* Recommended Products Section */}
       {recommendedProducts.length > 0 && (
-        <div className="w-full py-2 px-2 sm:px-6 lg:px-2 mt-6">
-          <div className="px-4 mb-4 mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ margin: "-50px" }}
+          variants={fadeInUpVariants}
+          className="w-full py-2 px-2 sm:px-6 lg:px-2 mt-6"
+        >
+          <motion.div
+            variants={itemVariants}
+            className="px-4 mb-4 mx-auto flex flex-col sm:flex-row items-center justify-between gap-4"
+          >
             <div>
               <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
                 {t.homePage.recommendedForYou}
@@ -451,30 +621,55 @@ export default function CustomerHomePage({
                 {t.homePage.productsYouMightLike}
               </p>
             </div>
-            <Link
-              href={`/${language}/customer/products`}
-              className="flex items-center bg-gradient-to-r from-black to-gray-800 dark:from-gray-900 dark:to-gray-700 hover:from-gray-900 hover:to-gray-700 dark:hover:from-gray-800 dark:hover:to-gray-600 text-white px-6 py-3 rounded-lg shadow-lg shadow-black/25 dark:shadow-gray-900/50 transition-all duration-300 hover:shadow-xl hover:shadow-black/40 dark:hover:shadow-gray-800/60"
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              {t.homePage.viewAllProducts}
-              <IoIosArrowForward className="ml-2 text-xl" />
-            </Link>
-          </div>
-          <div className="px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            {recommendedProducts.map((product) => (
-              <ProductCard
+              <Link
+                href={`/${language}/customer/products`}
+                className="flex items-center bg-gradient-to-r from-black to-gray-800 dark:from-gray-900 dark:to-gray-700 hover:from-gray-900 hover:to-gray-700 dark:hover:from-gray-800 dark:hover:to-gray-600 text-white px-6 py-3 rounded-lg shadow-lg shadow-black/25 dark:shadow-gray-900/50 transition-all duration-300 hover:shadow-xl hover:shadow-black/40 dark:hover:shadow-gray-800/60"
+              >
+                {t.homePage.viewAllProducts}
+                <IoIosArrowForward className="ml-2 text-xl" />
+              </Link>
+            </motion.div>
+          </motion.div>
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ margin: "-50px" }}
+            className="px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"
+          >
+            {recommendedProducts.map((product, index) => (
+              <motion.div
                 key={product.id}
-                locale={language}
-                product={product}
-              />
+                variants={cardVariants}
+                custom={index}
+              >
+                <ProductCard
+                  locale={language}
+                  product={product}
+                />
+              </motion.div>
             ))}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
 
       {/* Highly Rated Products Section */}
       {highlyRatedProducts.length > 0 && (
-        <div className="w-full py-2 px-2 sm:px-6 lg:px-2 mt-6">
-          <div className="px-4 mb-4 mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ margin: "-50px" }}
+          variants={fadeInUpVariants}
+          className="w-full py-2 px-2 sm:px-6 lg:px-2 mt-6"
+        >
+          <motion.div
+            variants={itemVariants}
+            className="px-4 mb-4 mx-auto flex flex-col sm:flex-row items-center justify-between gap-4"
+          >
             <div>
               <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
                 Highly Rated
@@ -483,41 +678,75 @@ export default function CustomerHomePage({
                 Customer favorites with top ratings
               </p>
             </div>
-            <Link
-              href={`/${language}/customer/products`}
-              className="flex items-center bg-gradient-to-r from-black to-gray-800 dark:from-gray-900 dark:to-gray-700 hover:from-gray-900 hover:to-gray-700 dark:hover:from-gray-800 dark:hover:to-gray-600 text-white px-6 py-3 rounded-lg shadow-lg shadow-black/25 dark:shadow-gray-900/50 transition-all duration-300 hover:shadow-xl hover:shadow-black/40 dark:hover:shadow-gray-800/60"
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              {t.homePage.viewAllProducts}
-              <IoIosArrowForward className="ml-2 text-xl" />
-            </Link>
-          </div>
-          <div className="px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-            {highlyRatedProducts.map((product) => (
-              <ProductCard
+              <Link
+                href={`/${language}/customer/products`}
+                className="flex items-center bg-gradient-to-r from-black to-gray-800 dark:from-gray-900 dark:to-gray-700 hover:from-gray-900 hover:to-gray-700 dark:hover:from-gray-800 dark:hover:to-gray-600 text-white px-6 py-3 rounded-lg shadow-lg shadow-black/25 dark:shadow-gray-900/50 transition-all duration-300 hover:shadow-xl hover:shadow-black/40 dark:hover:shadow-gray-800/60"
+              >
+                {t.homePage.viewAllProducts}
+                <IoIosArrowForward className="ml-2 text-xl" />
+              </Link>
+            </motion.div>
+          </motion.div>
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ margin: "-50px" }}
+            className="px-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"
+          >
+            {highlyRatedProducts.map((product, index) => (
+              <motion.div
                 key={product.id}
-                locale={language}
-                product={product}
-              />
+                variants={cardVariants}
+                custom={index}
+              >
+                <ProductCard
+                  locale={language}
+                  product={product}
+                />
+              </motion.div>
             ))}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
 
       {/* Platform Statistics Section */}
       {platformStats && (
-        <div className="w-full py-8 px-4 sm:px-6 lg:px-8">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ margin: "-50px" }}
+          variants={fadeInUpVariants}
+          className="w-full py-8 px-4 sm:px-6 lg:px-8"
+        >
           <div className="max-w-7xl mx-auto">
-            <h2 className="text-2xl font-bold text-center text-gray-800 dark:text-white mb-8">
+            <motion.h2
+              variants={itemVariants}
+              className="text-2xl font-bold text-center text-gray-800 dark:text-white mb-8"
+            >
               {t.homePage.ourCommunity}
-            </h2>
+            </motion.h2>
 
             {/* User Avatars Row */}
             {users.length > 0 && (
-              <div className="flex justify-center mb-8">
+              <motion.div
+                variants={staggerContainer}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                className="flex justify-center mb-8"
+              >
                 <div className="flex -space-x-3">
                   {users.slice(0, 6).map((user, index) => (
-                    <div
+                    <motion.div
                       key={`${user.id ?? "no-id"}-${index}`}
+                      variants={cardVariants}
+                      custom={index}
+                      whileHover={{ scale: 1.2, y: -5 }}
                       className="w-12 h-12 rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center text-white font-bold text-sm shadow-lg bg-gradient-to-br from-blue-400 to-purple-500 overflow-hidden"
                     >
                       {user.avatar ? (
@@ -529,77 +758,133 @@ export default function CustomerHomePage({
                       ) : (
                         <span>{user.name.charAt(0).toUpperCase()}</span>
                       )}
-                    </div>
+                    </motion.div>
                   ))}
 
                   {platformStats?.total_users && platformStats.total_users > 6 && (
-                    <div className="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold text-sm shadow-lg">
+                    <motion.div
+                      variants={cardVariants}
+                      whileHover={{ scale: 1.2, y: -5 }}
+                      className="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold text-sm shadow-lg"
+                    >
                       +{platformStats.total_users - 6}
-                    </div>
+                    </motion.div>
                   )}
                 </div>
-              </div>
+              </motion.div>
             )}
 
-
             {/* Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 p-6 rounded-lg text-center border border-blue-200 dark:border-blue-800">
-                <FaUsers className="h-8 w-8 text-blue-600 dark:text-blue-400 mx-auto mb-3" />
-                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {platformStats.total_users.toLocaleString()}+
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">{t.homePage.happyCustomers}</div>
-              </div>
-              <div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 p-6 rounded-lg text-center border border-green-200 dark:border-green-800">
-                <AiOutlineFileProtect className="h-8 w-8 text-green-600 dark:text-green-400 mx-auto mb-3" />
-                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {platformStats.total_products.toLocaleString()}+
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">{t.homePage.qualityProducts}</div>
-              </div>
-              <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 p-6 rounded-lg text-center border border-yellow-200 dark:border-yellow-800">
-                <MdOutlineReviews className="h-8 w-8 text-yellow-600 dark:text-yellow-400 mx-auto mb-3" />
-                <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                  {platformStats.total_reviews.toLocaleString()}+
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">{t.homePage.customerReviews}</div>
-              </div>
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 p-6 rounded-lg text-center border border-purple-200 dark:border-purple-800">
-                <MdDeliveryDining className="h-8 w-8 text-purple-600 dark:text-purple-400 mx-auto mb-3" />
-                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  {platformStats.total_orders.toLocaleString()}+
-                </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">{t.homePage.successfulOrders}</div>
-              </div>
-            </div>
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              className="grid grid-cols-2 md:grid-cols-4 gap-6"
+            >
+              {[
+                {
+                  icon: <FaUsers className="h-8 w-8 text-blue-600 dark:text-blue-400 mx-auto mb-3" />,
+                  value: platformStats.total_users.toLocaleString() + "+",
+                  label: t.homePage.happyCustomers,
+                  bg: "from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20",
+                  border: "border-blue-200 dark:border-blue-800",
+                  color: "text-blue-600 dark:text-blue-400"
+                },
+                {
+                  icon: <AiOutlineFileProtect className="h-8 w-8 text-green-600 dark:text-green-400 mx-auto mb-3" />,
+                  value: platformStats.total_products.toLocaleString() + "+",
+                  label: t.homePage.qualityProducts,
+                  bg: "from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20",
+                  border: "border-green-200 dark:border-green-800",
+                  color: "text-green-600 dark:text-green-400"
+                },
+                {
+                  icon: <MdOutlineReviews className="h-8 w-8 text-yellow-600 dark:text-yellow-400 mx-auto mb-3" />,
+                  value: platformStats.total_reviews.toLocaleString() + "+",
+                  label: t.homePage.customerReviews,
+                  bg: "from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20",
+                  border: "border-yellow-200 dark:border-yellow-800",
+                  color: "text-yellow-600 dark:text-yellow-400"
+                },
+                {
+                  icon: <MdDeliveryDining className="h-8 w-8 text-purple-600 dark:text-purple-400 mx-auto mb-3" />,
+                  value: platformStats.total_orders.toLocaleString() + "+",
+                  label: t.homePage.successfulOrders,
+                  bg: "from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20",
+                  border: "border-purple-200 dark:border-purple-800",
+                  color: "text-purple-600 dark:text-purple-400"
+                }
+              ].map((stat, index) => (
+                <motion.div
+                  key={index}
+                  variants={itemVariants}
+                  whileHover={{
+                    y: -10,
+                    boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
+                  }}
+                  className={`bg-gradient-to-br ${stat.bg} p-6 rounded-lg text-center border ${stat.border} transition-all duration-300`}
+                >
+                  {stat.icon}
+                  <div className={`text-2xl font-bold ${stat.color}`}>
+                    {stat.value}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">{stat.label}</div>
+                </motion.div>
+              ))}
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Customer Reviews Section */}
       {recentReviews.length > 0 && (
-        <div className="w-full py-8 px-2 sm:px-6 lg:px-2 mt-6 bg-white dark:bg-gray-800">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ margin: "-50px" }}
+          variants={fadeInUpVariants}
+          className="w-full py-8 px-2 sm:px-6 lg:px-2 mt-6 bg-white dark:bg-gray-800"
+        >
           <div className="px-4 mx-auto">
-            <div className="text-center mb-8">
+            <motion.div
+              variants={itemVariants}
+              className="text-center mb-8"
+            >
               <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
                 {t.homePage.whatOurCustomersSay}
               </h2>
               <p className="text-gray-600 dark:text-gray-400">
                 {t.homePage.realReviews}
               </p>
-            </div>
+            </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {recentReviews.map((review) => (
-                <div
+            <motion.div
+              variants={staggerContainer}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+            >
+              {recentReviews.map((review, index) => (
+                <motion.div
                   key={review.id}
-                  className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600"
+                  variants={cardVariants}
+                  custom={index}
+                  whileHover={{
+                    y: -5,
+                    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)"
+                  }}
+                  className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 transition-all duration-300"
                 >
                   <div className="flex items-center mb-4">
-                    <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
+                    <motion.div
+                      whileHover={{ rotate: 360 }}
+                      transition={{ duration: 0.5 }}
+                      className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold"
+                    >
                       {review.user.name.charAt(0).toUpperCase()}
-                    </div>
+                    </motion.div>
                     <div className="ml-4">
                       <div className="font-semibold text-gray-800 dark:text-white">
                         {review.user.name}
@@ -626,11 +911,11 @@ export default function CustomerHomePage({
                   <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
                     {new Date(review.created_at).toLocaleDateString()}
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
       )}
     </main>
   );
