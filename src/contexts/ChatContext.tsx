@@ -57,17 +57,10 @@ interface Attachment {
     url: string;
 }
 
-interface CallOffer {
-    call_id: string;
-    type: 'audio' | 'video';
-    offer: RTCSessionDescriptionInit;
-    caller: User;
-}
-
-interface ICECandidate {
-    candidate: RTCIceCandidateInit;
-    call_id: string;
+interface UserPresence {
     user_id: number;
+    is_online: boolean;
+    last_seen: string;
 }
 
 interface ChatContextType {
@@ -81,6 +74,9 @@ interface ChatContextType {
     typingUsers: Record<number, string[]>;
     activeCall: CallData | null;
     isInCall: boolean;
+    onlineUsers: Set<number>;
+    userPresence: Record<number, UserPresence>;
+
     setActiveConversation: (conversation: Conversation | null) => void;
     sendMessage: (body: string, type?: string) => Promise<void>;
     sendVoiceMessage: (audioBlob: Blob, duration: number) => Promise<void>;
@@ -88,6 +84,7 @@ interface ChatContextType {
     markAsRead: (conversationId: number) => Promise<void>;
     findOrCreateConversation: (userId: number) => Promise<void>;
     fetchConversations: () => Promise<void>;
+    fetchOnlineStatus: (userIds: number[]) => Promise<void>
     fetchDeliveryAgents: () => Promise<void>;
     fetchCustomers: () => Promise<void>;
     emitTypingEvent: (conversationId: number, isTyping: boolean) => void;
@@ -124,7 +121,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [activeCall, setActiveCall] = useState<CallData | null>(null);
     const [isInCall, setIsInCall] = useState(false);
     const [callStartTime, setCallStartTime] = useState<number | null>(null);
-    const callDurationRef = useRef<NodeJS.Timeout | null>(null);
     const [localStream, setLocalStream] = useState<MediaStream | null>(null);
 
     const [token, setToken] = useState<string | null>(null);
@@ -132,6 +128,16 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const lastReadAtRef = React.useRef<Record<number, number>>({});
     const conversationRequestCache = new Map<number, Promise<any>>();
+
+    const [onlineUsers, setOnlineUsers] = useState<Set<number>>(new Set());
+    const [userPresence, setUserPresence] = useState<Record<number, UserPresence>>({});
+
+    // Refs for debouncing and rate limiting
+    const lastActivityTimeRef = useRef<number>(0);
+    const lastPresenceFetchRef = useRef<number>(0);
+    const onlineStatusCacheRef = useRef<Map<number, { data: UserPresence, timestamp: number }>>(new Map());
+    const activityIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const presenceIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     const transformMessage = (msg: any): Message => {
         const attachments: Attachment[] = [];
@@ -172,6 +178,133 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
     };
 
+    // Fetch all user status with caching and debouncing
+    const fetchOnlineStatus = useCallback(async (userIds: number[], forceRefresh: boolean = false) => {
+        if (!token) return;
+
+        // Filter out cached results that are still fresh (5 minutes)
+        const now = Date.now();
+        const uncachedUserIds = userIds.filter(userId => {
+            const cached = onlineStatusCacheRef.current.get(userId);
+            if (!cached) return true;
+            return forceRefresh || now - cached.timestamp > 5 * 60 * 1000; // 5 minutes cache
+        });
+
+        if (uncachedUserIds.length === 0 && !forceRefresh) {
+            // All users are cached and fresh
+            return;
+        }
+
+        // Rate limiting: don't fetch more than once every 2 seconds
+        if (now - lastPresenceFetchRef.current < 2000 && !forceRefresh) {
+            console.log('Rate limiting presence fetch');
+            return;
+        }
+
+        lastPresenceFetchRef.current = now;
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/users/online-status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({ user_ids: uncachedUserIds }),
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+
+                const newPresence: Record<number, UserPresence> = {};
+                const onlineSet = new Set<number>();
+
+                data.statuses.forEach((status: UserPresence) => {
+                    // Cache the result
+                    onlineStatusCacheRef.current.set(status.user_id, {
+                        data: status,
+                        timestamp: now
+                    });
+
+                    newPresence[status.user_id] = status;
+                    if (status.is_online) {
+                        onlineSet.add(status.user_id);
+                    }
+                });
+
+                setUserPresence(prev => ({ ...prev, ...newPresence }));
+                setOnlineUsers(prev => {
+                    const newSet = new Set(prev);
+                    onlineSet.forEach(id => newSet.add(id));
+                    // Remove users who went offline
+                    Object.keys(newPresence).forEach(id => {
+                        const userId = parseInt(id);
+                        if (!newPresence[userId].is_online) {
+                            newSet.delete(userId);
+                        }
+                    });
+                    return newSet;
+                });
+            }
+        } catch (err) {
+            console.error('Failed to fetch online status:', err);
+        }
+    }, [token]);
+
+    const acceptCall = useCallback(async (callId: string) => {
+        if (!token || !activeConversation) return;
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/conversations/${activeConversation.id}/accept-call`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ call_id: callId }),
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "Failed to accept call");
+            }
+
+            setIsInCall(true);
+            setActiveCall(prev => prev ? { ...prev, status: 'accepted' } : null);
+            setCallStartTime(Date.now());
+        } catch (err) {
+            console.error("[ChatProvider] Error accepting call", err);
+            throw err;
+        }
+    }, [token, activeConversation]);
+
+    const rejectCall = useCallback(async (callId: string, reason?: string) => {
+        if (!token || !activeConversation) return;
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/conversations/${activeConversation.id}/reject-call`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ call_id: callId, reason }),
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "Failed to reject call");
+            }
+
+            // The message will be added via the event listener, so we don't need to do it here
+            setActiveCall(null);
+            setIsInCall(false);
+        } catch (err) {
+            console.error("[ChatProvider] Error rejecting call", err);
+            throw err;
+        }
+    }, [token, activeConversation]);
+
     // Load user/token from localStorage
     useEffect(() => {
         const storedToken = localStorage.getItem("token");
@@ -207,8 +340,123 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (echoInstance) {
                 echoInstance.disconnect();
             }
+            if (activityIntervalRef.current) {
+                clearInterval(activityIntervalRef.current);
+            }
+            if (presenceIntervalRef.current) {
+                clearInterval(presenceIntervalRef.current);
+            }
         };
     }, [token, user]);
+
+    // Presence state set up echo
+    useEffect(() => {
+        if (!echo || !user) return;
+
+        // Listen to user's own presence channel
+        const presenceChannel = echo.private(`user.presence.${user.id}`);
+
+        presenceChannel.listen('.presence.updated', (data: any) => {
+            console.log('Presence updated:', data);
+
+            // Update presence state
+            setUserPresence(prev => ({
+                ...prev,
+                [data.user_id]: {
+                    user_id: data.user_id,
+                    is_online: data.is_online,
+                    last_seen: data.last_seen
+                }
+            }));
+
+            // Update online users set
+            setOnlineUsers(prev => {
+                const newSet = new Set(prev);
+                if (data.is_online) {
+                    newSet.add(data.user_id);
+                } else {
+                    newSet.delete(data.user_id);
+                }
+                return newSet;
+            });
+        });
+
+        return () => {
+            if (presenceChannel) {
+                echo.leave(`user.presence.${user.id}`);
+            }
+        };
+    }, [echo, user]);
+
+    // Update user activity with debouncing
+    useEffect(() => {
+        if (!token || !user) return;
+
+        const updateActivity = () => {
+            const now = Date.now();
+            // Debounce activity updates - minimum 10 seconds between calls
+            if (now - lastActivityTimeRef.current < 10000) {
+                return;
+            }
+
+            lastActivityTimeRef.current = now;
+
+            fetch(`${API_BASE_URL}/api/users/update-activity`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            }).catch(err => console.error('Failed to update activity:', err));
+        };
+
+        // Update immediately
+        updateActivity();
+
+        // Update every 30 seconds
+        activityIntervalRef.current = setInterval(updateActivity, 30000);
+
+        // Update on visibility change
+        const handleVisibilityChange = () => {
+            if (!document.hidden) {
+                updateActivity();
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            if (activityIntervalRef.current) {
+                clearInterval(activityIntervalRef.current);
+            }
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [token, user]);
+
+    // Periodic presence updates for active conversation (every 2 minutes)
+    useEffect(() => {
+        if (!activeConversation || !user) return;
+
+        // Extract user IDs from conversation
+        const participantIds = activeConversation.participants
+            ?.filter(p => p.id !== user.id)
+            .map(p => p.id) || [];
+
+        if (participantIds.length > 0) {
+            // Fetch initial online status
+            fetchOnlineStatus(participantIds, true);
+
+            // Set up periodic refresh (every 2 minutes)
+            presenceIntervalRef.current = setInterval(() => {
+                fetchOnlineStatus(participantIds);
+            }, 120000);
+
+            return () => {
+                if (presenceIntervalRef.current) {
+                    clearInterval(presenceIntervalRef.current);
+                }
+            };
+        }
+    }, [activeConversation, user, fetchOnlineStatus]);
 
     // Listen to channel
     useEffect(() => {
@@ -238,7 +486,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
 
         const readListener = (e: any) => {
-            // console.log("Message read event:", e);
             if (e.user_id !== user.id) {
                 setConversations(prev =>
                     prev.map(conv =>
@@ -373,6 +620,41 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         };
 
+        const presenceListener = (e: any) => {
+            console.log("User presence update in conversation:", e);
+
+            if (e.user_id === user.id) return; // ignore self
+
+            // Update cache
+            onlineStatusCacheRef.current.set(e.user_id, {
+                data: {
+                    user_id: e.user_id,
+                    is_online: e.is_online,
+                    last_seen: e.last_seen || new Date().toISOString()
+                },
+                timestamp: Date.now()
+            });
+
+            setUserPresence(prev => ({
+                ...prev,
+                [e.user_id]: {
+                    user_id: e.user_id,
+                    is_online: e.is_online,
+                    last_seen: e.last_seen || new Date().toISOString()
+                }
+            }));
+
+            setOnlineUsers(prev => {
+                const newSet = new Set(prev);
+                if (e.is_online) {
+                    newSet.add(e.user_id);
+                } else {
+                    newSet.delete(e.user_id);
+                }
+                return newSet;
+            });
+        };
+
         channel.listen('.message.updated', (e: any) => {
             console.log("Message updated event:", e);
 
@@ -391,6 +673,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         channel.listen('.message.read', readListener);
         channel.listen('.typing', typingListener);
         channel.listen('.stop-typing', stopTypingListener);
+        channel.listen('.user.presence', presenceListener);
 
         // Call events
         channel.listen('.call.initiated', callInitiatedListener);
@@ -405,14 +688,16 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             channel.stopListening('.message.read', readListener);
             channel.stopListening('.typing', typingListener);
             channel.stopListening('.stop-typing', stopTypingListener);
+            channel.stopListening('.user.presence', presenceListener);
 
             channel.stopListening('.call.initiated', callInitiatedListener);
             channel.stopListening('.call.accepted', callAcceptedListener);
             channel.stopListening('.call.rejected', callRejectedListener);
             channel.stopListening('.call.ended', callEndedListener);
+
             echo.leave(channelName);
         };
-    }, [echo, user, activeConversation]);
+    }, [echo, user, activeConversation, acceptCall, rejectCall]);
 
     // Emit typing events
     const emitTypingEvent = useCallback((conversationId: number, isTyping: boolean) => {
@@ -446,7 +731,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [token, user]);
 
     // Call functions
-    const initiateCall = async (type: 'audio' | 'video') => {
+    const initiateCall = useCallback(async (type: 'audio' | 'video') => {
         if (!token || !activeConversation) {
             throw new Error("No active conversation or authentication token");
         }
@@ -498,63 +783,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             throw err;
         }
-    };
+    }, [token, activeConversation]);
 
-    const acceptCall = async (callId: string) => {
-        if (!token || !activeConversation) return;
-
-        try {
-            const res = await fetch(`${API_BASE_URL}/api/conversations/${activeConversation.id}/accept-call`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ call_id: callId }),
-            });
-
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.error || "Failed to accept call");
-            }
-
-            setIsInCall(true);
-            setActiveCall(prev => prev ? { ...prev, status: 'accepted' } : null);
-            setCallStartTime(Date.now());
-        } catch (err) {
-            console.error("[ChatProvider] Error accepting call", err);
-            throw err;
-        }
-    };
-
-    const rejectCall = async (callId: string, reason?: string) => {
-        if (!token || !activeConversation) return;
-
-        try {
-            const res = await fetch(`${API_BASE_URL}/api/conversations/${activeConversation.id}/reject-call`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ call_id: callId, reason }),
-            });
-
-            if (!res.ok) {
-                const data = await res.json();
-                throw new Error(data.error || "Failed to reject call");
-            }
-
-            // The message will be added via the event listener, so we don't need to do it here
-            setActiveCall(null);
-            setIsInCall(false);
-        } catch (err) {
-            console.error("[ChatProvider] Error rejecting call", err);
-            throw err;
-        }
-    };
-
-    const endCall = async (callId: string, duration?: number) => {
+    const endCall = useCallback(async (callId: string, duration?: number) => {
         if (!token || !activeConversation) return;
 
         try {
@@ -589,15 +820,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error("[ChatProvider] Error ending call", err);
             throw err;
         }
-    };
-
-    useEffect(() => {
-        return () => {
-            if (callDurationRef.current) {
-                clearInterval(callDurationRef.current);
-            }
-        };
-    }, []);
+    }, [token, activeConversation, callStartTime, localStream]);
 
     // Send voice message
     const sendVoiceMessage = async (audioBlob: Blob, duration: number) => {
@@ -699,6 +922,22 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }));
 
                 setConversations(conversationsWithUnread);
+
+                // Extract user IDs from conversations
+                const userIds = new Set<number>();
+                conversationsWithUnread.forEach((conv: any) => {
+                    conv.participants?.forEach((participant: any) => {
+                        if (participant.id !== user?.id) {
+                            userIds.add(participant.id);
+                        }
+                    });
+                });
+
+                // Fetch online status for these users
+                if (userIds.size > 0) {
+                    await fetchOnlineStatus(Array.from(userIds), true);
+                }
+
                 console.log("Conversations state updated");
             } else {
                 console.error("Failed to fetch conversations:", res.status, res.statusText);
@@ -820,7 +1059,6 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (!res.ok) throw new Error(data.error || "Failed to send message");
 
             const message = transformMessage(data.message);
-
             setMessages((prev) => [...prev, message]);
         } catch (err) {
             console.error("[ChatProvider] Error sending message", err);
@@ -1116,6 +1354,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 typingUsers,
                 activeCall,
                 isInCall,
+                onlineUsers,
+                userPresence,
+                fetchOnlineStatus,
                 setActiveConversation: handleSetActiveConversation,
                 sendMessage,
                 sendVoiceMessage,

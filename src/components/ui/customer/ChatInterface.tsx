@@ -50,6 +50,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ params }) => {
         customers,
         isLoading,
         isUploading,
+        onlineUsers,
+        userPresence,
         setActiveConversation,
         sendMessage,
         sendMessageWithAttachment,
@@ -647,7 +649,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ params }) => {
                                                     <span className="text-lg">{otherParticipant.name?.charAt(0).toUpperCase()}</span>
                                                 )}
                                             </div>
-                                            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white dark:border-gray-800 shadow-sm"></div>
+                                            <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-gray-800 ${onlineUsers.has(otherParticipant?.id ?? 0)
+                                                ? 'bg-green-500'
+                                                : 'bg-gray-400'
+                                                }`}></div>
                                         </div>
                                         <div className="ml-4 flex-1 min-w-0">
                                             <div className="flex justify-between items-start mb-1">
@@ -747,21 +752,26 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ params }) => {
                                                         <span>{otherParticipant?.name?.charAt(0).toUpperCase()}</span>
                                                     )}
                                                 </div>
-                                                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800 shadow-sm"></div>
+                                                <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-gray-800 ${onlineUsers.has(otherParticipant?.id ?? 0)
+                                                    ? 'bg-green-500'
+                                                    : 'bg-gray-400'
+                                                    }`}></div>
                                             </div>
                                             <div className="ml-4">
                                                 <p className="font-semibold text-gray-800 dark:text-white">{otherParticipant?.name}</p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
-                                                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
-                                                    {(() => {
-                                                        const typingUsersInConv = typingUsers[activeConversation.id] || [];
-                                                        const otherTypingUsers = typingUsersInConv.filter(u => u !== user?.name);
-
-                                                        if (otherTypingUsers.length > 0) {
-                                                            return ` ${otherTypingUsers.join(', ')} ${otherTypingUsers.length === 1 ? t.chatPage.isTyping : t.chatPage.areTyping}`;
-                                                        }
-                                                        return ` ${t.chatPage.online}`;
-                                                    })()}
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                                    {otherParticipant?.id && onlineUsers.has(otherParticipant.id) ? (
+                                                        <>
+                                                            <span className="flex items-center">
+                                                                <span className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></span>
+                                                                {t.chatPage.online}
+                                                            </span>
+                                                        </>
+                                                    ) : (
+                                                        otherParticipant?.id && userPresence[otherParticipant.id]?.last_seen ?
+                                                            `${t.chatPage.lastSeen} ${new Date(userPresence[otherParticipant.id].last_seen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` :
+                                                            t.chatPage.offline
+                                                    )}
                                                 </p>
                                             </div>
                                         </>

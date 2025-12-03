@@ -46,6 +46,8 @@ export default function ChatPage({
     typingUsers,
     activeCall,
     isInCall,
+    onlineUsers,
+    userPresence,
     setActiveConversation,
     sendMessage,
     sendMessageWithAttachment,
@@ -61,6 +63,7 @@ export default function ChatPage({
     acceptCall,
     rejectCall,
     endCall,
+
   } = useChat();
 
   const [message, setMessage] = useState('');
@@ -459,8 +462,12 @@ export default function ChatPage({
 
   // Get other participant in conversation
   const getOtherParticipant = (conversation: any) => {
-    if (!user || !conversation.participants) return null;
-    return conversation.participants.find((p: User) => p.id !== user.id) || null;
+    if (!user || !conversation?.participants || !Array.isArray(conversation.participants)) {
+      return null;
+    }
+
+    const participant = conversation.participants.find((p: User) => p.id !== user.id);
+    return participant || null;
   };
 
   // Filter conversations to only show customers that have active conversations
@@ -469,7 +476,7 @@ export default function ChatPage({
       conversations.map(conv => {
         const otherParticipant = getOtherParticipant(conv);
         return otherParticipant?.id;
-      }).filter(Boolean)
+      }).filter((id): id is number => id !== undefined && id !== null) // Type guard
     );
 
     return customers.filter(customer =>
@@ -596,7 +603,12 @@ export default function ChatPage({
                         <span>{customer.name.charAt(0).toUpperCase()}</span>
                       )}
                     </div>
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
+                    {customer.id && (
+                      <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-gray-800 ${onlineUsers.has(customer.id)
+                        ? 'bg-green-500'
+                        : 'bg-gray-400'
+                        }`}></div>
+                    )}
                   </div>
                   <div className="ml-3 overflow-hidden">
                     <p className="font-semibold truncate text-gray-800 dark:text-white">{customer.name}</p>
@@ -626,16 +638,23 @@ export default function ChatPage({
                       }`}
                     onClick={() => handleSelectConversation(conversation)}
                   >
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center text-white font-medium text-lg shadow-sm">
-                      {otherParticipant.avatar ? (
-                        <img
-                          src={otherParticipant.avatar}
-                          alt={otherParticipant.name}
-                          className="w-12 h-12 rounded-full object-cover"
-                        />
-                      ) : (
-                        <span>{otherParticipant.name?.charAt(0).toUpperCase()}</span>
-                      )}
+                    <div className="relative">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 flex items-center justify-center text-white font-medium text-lg shadow-sm">
+                        {otherParticipant.avatar ? (
+                          <img
+                            src={otherParticipant.avatar}
+                            alt={otherParticipant.name}
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                        ) : (
+                          <span>{otherParticipant.name?.charAt(0).toUpperCase()}</span>
+                        )}
+                      </div>
+                      {/* The online indicator should be INSIDE the relative parent */}
+                      <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-gray-800 ${onlineUsers.has(otherParticipant.id)
+                        ? 'bg-green-500'
+                        : 'bg-gray-400'
+                        }`}></div>
                     </div>
                     <div className="ml-3 flex-1 min-w-0">
                       <div className="flex justify-between items-start">
@@ -715,21 +734,26 @@ export default function ChatPage({
                             <span>{otherParticipant?.name?.charAt(0).toUpperCase()}</span>
                           )}
                         </div>
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></div>
+                        <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-gray-800 ${onlineUsers.has(otherParticipant?.id ?? 0)
+                          ? 'bg-green-500'
+                          : 'bg-gray-400'
+                          }`}></div>
                       </div>
                       <div className="ml-3">
                         <p className="font-semibold text-gray-800 dark:text-white">{otherParticipant?.name}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {t.chatPage.customer} •
-                          {(() => {
-                            const typingUsersInConv = typingUsers[activeConversation.id] || [];
-                            const otherTypingUsers = typingUsersInConv.filter(u => u !== user?.name);
-
-                            if (otherTypingUsers.length > 0) {
-                              return ` ${otherTypingUsers.join(', ')} ${otherTypingUsers.length === 1 ? t.chatPage.isTyping : t.chatPage.areTyping}`;
-                            }
-                            return ` ${t.chatPage.online}`;
-                          })()}
+                          {otherParticipant?.id && onlineUsers.has(otherParticipant.id) ? (
+                            <>
+                              <span className="flex items-center">
+                                <span className="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></span>
+                                {t.chatPage.online}
+                              </span>
+                            </>
+                          ) : (
+                            otherParticipant?.id && userPresence[otherParticipant.id]?.last_seen ?
+                              `${t.chatPage.lastSeen} ${new Date(userPresence[otherParticipant.id].last_seen).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` :
+                              t.chatPage.offline
+                          )}
                         </p>
                       </div>
                     </>

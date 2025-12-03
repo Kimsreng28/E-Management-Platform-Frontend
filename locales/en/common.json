@@ -984,6 +984,13 @@
     "useChatSupport": "Use \"Chat with Support\" on order details",
     "selectFromRecent": "Select from your recent conversations",
     "openConversations": "Open Conversations",
-    "callOptions": "Call Options"
+    "callOptions": "Call Options",
+    "offline": "Offline",
+    "lastSeen": "Last seen",
+    "justNow": "just now",
+    "minutesAgo": "minutes ago",
+    "hoursAgo": "hours ago",
+    "userOnline": "User is online",
+    "userOffline": "User is offline"
   }
 }
