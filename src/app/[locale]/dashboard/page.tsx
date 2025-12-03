@@ -84,6 +84,25 @@ interface OrderStatusData {
     count: number;
 }
 
+interface ActivityStats {
+    activity_timeline: Array<{
+        time: string;
+        active_users: number;
+        new_users: number;
+    }>;
+    activity_distribution: {
+        online: number;
+        idle: number;
+        away: number;
+        offline: number;
+    };
+    peak_activity: {
+        time: string | null;
+        users: number;
+    };
+    timeframe: string;
+}
+
 export default function DashboardPage({
     params,
 }: {
@@ -96,6 +115,7 @@ export default function DashboardPage({
     const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
     const [salesTrendData, setSalesTrendData] = useState<SalesTrendData[]>([]);
     const [orderStatusData, setOrderStatusData] = useState<OrderStatusData[]>([]);
+    const [activityStats, setActivityStats] = useState<ActivityStats | null>(null);
 
     const pathname = usePathname();
     const router = useRouter();
@@ -193,6 +213,20 @@ export default function DashboardPage({
         }
     };
 
+    // Fetch activity stats
+    const fetchActivityStats = async (timeframe: string = 'day') => {
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`${API_BASE_URL}/api/dashboard/customer-activity?timeframe=${timeframe}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await res.json();
+            setActivityStats(data);
+        } catch (error) {
+            console.error("Error fetching activity stats:", error);
+        }
+    };
+
     // Fetch low stock api
     const fetchLowStock = async () => {
         try {
@@ -241,6 +275,7 @@ export default function DashboardPage({
     useEffect(() => {
         fetchDashboardStats();
         fetchLowStock();
+        fetchActivityStats('day');
     }, []);
 
     if (loading) {
@@ -388,6 +423,32 @@ export default function DashboardPage({
                             ) : (
                                 <div className="flex items-center justify-center h-full text-gray-500">
                                     {t.dashboardPage.noRevenueData}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Customer Activity Timeline */}
+                    <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+                        <h3 className="text-lg font-semibold mb-4">{t.dashboardPage.customerActivityTimeline}</h3>
+                        <div className="h-80">
+                            {activityStats && activityStats.activity_timeline.length > 0 ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={activityStats.activity_timeline}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="time" />
+                                        <YAxis />
+                                        <Tooltip
+                                            formatter={(value) => [value, t.dashboardPage.users]}
+                                        />
+                                        <Legend />
+                                        <Line type="monotone" dataKey="active_users" stroke="#8884d8" name={t.dashboardPage.activeUsers} />
+                                        <Line type="monotone" dataKey="new_users" stroke="#82ca9d" name={t.dashboardPage.newUsers} />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="flex items-center justify-center h-full text-gray-500">
+                                    {t.dashboardPage.noActivityData}
                                 </div>
                             )}
                         </div>

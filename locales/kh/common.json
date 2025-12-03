@@ -412,7 +412,18 @@
     "noRevenueData": "មិនមានទិន្នន័យចំណូល",
     "noSalesData": "មិនមានទិន្នន័យលក់",
     "noCategoryData": "មិនមានទិន្នន័យប្រភេទ",
-    "noOrderStatusData": "មិនមានទិន្នន័យស្ថានភាពកម្មង់"
+    "noOrderStatusData": "មិនមានទិន្នន័យស្ថានភាពកម្មង់",
+    "customerActivityTimeline": "ពេលវេលាសកម្មភាពអតិថិជន",
+    "customerActivityDistribution": "ការចែកចាយសកម្មភាពអតិថិជន",
+    "onlineNow": "អនឡាញឥឡូវនេះ",
+    "idle": "រងចាំ",
+    "away": "ចេញ",
+    "offline": "អវត្ដមាន",
+    "peakActivity": "សកម្មភាពកំពូល",
+    "activeUsers": "អ្នកប្រើប្រាស់សកម្ម",
+    "newUsers": "អ្នកប្រើប្រាស់ថ្មី",
+    "users": "អ្នកប្រើ",
+    "noActivityData": "គ្មានទិន្នន័យសកម្មភាពអ្នកប្រើប្រាស់"
   },
 
   "ordersPage": {

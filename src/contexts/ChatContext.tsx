@@ -458,6 +458,26 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     }, [activeConversation, user, fetchOnlineStatus]);
 
+    useEffect(() => {
+        if (activeConversation && messages.length > 0) {
+            // Check if all messages are read
+            const hasUnread = messages.some(msg =>
+                msg.user_id !== user?.id && !msg.read_at
+            );
+
+            if (!hasUnread) {
+                // Update conversation unread count in the list
+                setConversations(prev =>
+                    prev.map(conv =>
+                        conv.id === activeConversation.id
+                            ? { ...conv, unread_count: 0 }
+                            : conv
+                    )
+                );
+            }
+        }
+    }, [messages, activeConversation, user]);
+
     // Listen to channel
     useEffect(() => {
         if (!echo) return;
@@ -486,12 +506,27 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
 
         const readListener = (e: any) => {
+            console.log("Message read event:", e);
+
             if (e.user_id !== user.id) {
+                // Update conversations unread count
                 setConversations(prev =>
                     prev.map(conv =>
-                        conv.id === e.conversation_id ? { ...conv, unread_count: 0 } : conv
+                        conv.id === e.conversation_id
+                            ? { ...conv, unread_count: 0 }
+                            : conv
                     )
                 );
+
+                // Also update messages in current conversation if active
+                if (activeConversation && activeConversation.id === e.conversation_id) {
+                    setMessages(prev =>
+                        prev.map(msg => ({
+                            ...msg,
+                            read_at: msg.read_at || new Date().toISOString()
+                        }))
+                    );
+                }
             }
         };
 
@@ -655,6 +690,40 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
         };
 
+        // listener for unread count updates
+        const unreadCountListener = (e: any) => {
+            console.log("Unread count updated:", e);
+
+            setConversations(prev =>
+                prev.map(conv =>
+                    conv.id === e.conversation_id
+                        ? {
+                            ...conv,
+                            unread_count: e.unread_count || 0
+                        }
+                        : conv
+                )
+            );
+        };
+
+        const conversationUpdatedListener = (e: any) => {
+            console.log("Conversation updated:", e);
+
+            if (e.conversation) {
+                setConversations(prev =>
+                    prev.map(conv =>
+                        conv.id === e.conversation.id
+                            ? {
+                                ...conv,
+                                unread_count: e.conversation.unread_count || 0,
+                                latest_message: e.conversation.latest_message
+                            }
+                            : conv
+                    )
+                );
+            }
+        };
+
         channel.listen('.message.updated', (e: any) => {
             console.log("Message updated event:", e);
 
@@ -674,6 +743,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         channel.listen('.typing', typingListener);
         channel.listen('.stop-typing', stopTypingListener);
         channel.listen('.user.presence', presenceListener);
+        channel.listen('.unread.updated', unreadCountListener);
+        channel.listen('.conversation.updated', conversationUpdatedListener);
 
         // Call events
         channel.listen('.call.initiated', callInitiatedListener);
@@ -689,6 +760,8 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
             channel.stopListening('.typing', typingListener);
             channel.stopListening('.stop-typing', stopTypingListener);
             channel.stopListening('.user.presence', presenceListener);
+            channel.stopListening('.unread.updated', unreadCountListener);
+            channel.stopListening('.conversation.updated', conversationUpdatedListener);
 
             channel.stopListening('.call.initiated', callInitiatedListener);
             channel.stopListening('.call.accepted', callAcceptedListener);
@@ -1153,15 +1226,15 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Mark conversation as read
     const markAsRead = async (conversationId: number) => {
         if (!token) {
-            console.log(" No token available for marking as read");
+            console.log("No token available for marking as read");
             return;
         }
 
         const now = Date.now();
         const lastCalled = lastReadAtRef.current[conversationId];
 
-        // Prevent duplicate calls within 5 seconds
-        if (lastCalled && now - lastCalled < 5000) {
+        // Prevent duplicate calls within 3 seconds
+        if (lastCalled && now - lastCalled < 3000) {
             console.log(`Skipping markAsRead for conversation ${conversationId} (recently called)`);
             return;
         }
@@ -1173,16 +1246,41 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             const res = await fetch(`${API_BASE_URL}/api/conversations/${conversationId}/read`, {
                 method: "POST",
-                headers: { Authorization: `Bearer ${token}` },
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
             });
 
             if (res.ok) {
-                console.log("Successfully marked conversation as read");
+                const data = await res.json();
+                console.log("Successfully marked conversation as read:", data);
+
+                // Update local state immediately for better UX
+                setConversations(prev =>
+                    prev.map(conv =>
+                        conv.id === conversationId
+                            ? { ...conv, unread_count: 0 }
+                            : conv
+                    )
+                );
+
+                // If this is the active conversation, update messages
+                if (activeConversation && activeConversation.id === conversationId) {
+                    setMessages(prev =>
+                        prev.map(msg => ({
+                            ...msg,
+                            read_at: msg.read_at || new Date().toISOString()
+                        }))
+                    );
+                }
             } else {
                 console.error("Failed to mark as read:", res.status, res.statusText);
             }
         } catch (err) {
             console.error("[ChatProvider] Error marking as read", err);
+            // Re-enable the call after error
+            delete lastReadAtRef.current[conversationId];
         }
     };
 
@@ -1268,17 +1366,24 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const handleSetActiveConversation = async (conversation: Conversation | null) => {
-        console.log(" Setting active conversation:", conversation ? conversation.id : 'null');
+        console.log("Setting active conversation:", conversation ? conversation.id : 'null');
+
+        // If switching from a conversation, mark it as read
+        if (activeConversation && activeConversation.id !== conversation?.id) {
+            await markAsRead(activeConversation.id);
+        }
 
         setActiveConversation(conversation);
 
         if (conversation) {
             await fetchMessages(conversation.id);
-            if (user && conversation.unread_count && conversation.unread_count > 0) {
+
+            // Always mark as read when opening a conversation
+            if (conversation.unread_count && conversation.unread_count > 0) {
                 await markAsRead(conversation.id);
             }
         } else {
-            console.log(" Clearing messages (no active conversation)");
+            console.log("Clearing messages (no active conversation)");
             setMessages([]);
         }
     };

@@ -53,7 +53,9 @@ export async function middleware(request: NextRequest) {
     if (isAdminRoute || isCustomerRoute) {
       if (!token) {
         // Redirect to login if no token
-        return NextResponse.redirect(new URL(`/${locale}/login`, request.url));
+        return NextResponse.redirect(
+          new URL(`/${locale}/auth/login`, request.url)
+        );
       }
 
       try {
@@ -85,14 +87,14 @@ export async function middleware(request: NextRequest) {
           } else {
             // Fallback for unknown roles
             return NextResponse.redirect(
-              new URL(`/${locale}/login`, request.url)
+              new URL(`/${locale}/auth/login`, request.url)
             );
           }
         }
       } catch (error) {
         // Invalid token - clear cookie and redirect to login
         const response = NextResponse.redirect(
-          new URL(`/${locale}/login`, request.url)
+          new URL(`/${locale}/auth/login`, request.url)
         );
         response.cookies.delete("token");
         return response;

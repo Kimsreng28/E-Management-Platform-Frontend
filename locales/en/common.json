@@ -415,7 +415,18 @@
     "noRevenueData": "No revenue data available",
     "noSalesData": "No sales trend data available",
     "noCategoryData": "No category data available",
-    "noOrderStatusData": "No order status data available"
+    "noOrderStatusData": "No order status data available",
+    "customerActivityTimeline": "Customer Activity Timeline",
+    "customerActivityDistribution": "Customer Activity Distribution",
+    "onlineNow": "Online Now",
+    "idle": "Idle",
+    "away": "Away",
+    "offline": "Offline",
+    "peakActivity": "Peak Activity",
+    "activeUsers": "Active Users",
+    "newUsers": "New Users",
+    "users": "Users",
+    "noActivityData": "No activity data available"
   },
 
   "ordersPage": {
