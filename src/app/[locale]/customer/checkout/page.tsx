@@ -2,7 +2,7 @@
 "use client";
 
 import DeliveryTrackingModal from "@/components/ui/customer/DeliveryTracking";
-import DeliveryTracking from "@/components/ui/customer/DeliveryTracking";
+import MapSelectionModal from "@/components/ui/customer/MapSelectionModal";
 import OrderDetailModal from "@/components/ui/customer/OrderDetailModal";
 import { useCart } from "@/contexts/CartContext";
 import { API_BASE_URL } from "@/lib/config";
@@ -16,12 +16,12 @@ import {
   useStripe,
 } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
-import { MessageSquare } from "lucide-react";
+import dynamic from 'next/dynamic';
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { BsFillHouseAddFill } from "react-icons/bs";
 import { FaCheck, FaCreditCard, FaShippingFast } from "react-icons/fa";
 import { FaNoteSticky } from "react-icons/fa6";
@@ -35,6 +35,8 @@ import {
 import { RiCoupon3Fill } from "react-icons/ri";
 import { TbReport } from "react-icons/tb";
 import { VscDebugContinue } from "react-icons/vsc";
+import { useMapEvents } from "react-leaflet";
+
 import Swal from "sweetalert2";
 
 // Initialize Stripe
@@ -42,7 +44,9 @@ const stripePromise = loadStripe(
   "pk_test_51PuwVDRo9UNVikjncEeJvDzuEJY7q4x6f73o9s5r53OILjGqdnecW7DvEmt7pNQM8sOsNbqx1Rh0JEdLhyIvfziQ00j961JlI6"
 );
 
-// Stripe Payment Form Component
+
+
+// Stripe Payment Form Component (unchanged)
 function StripePaymentForm({
   clientSecret,
   onSuccess,
@@ -143,7 +147,7 @@ function StripePaymentForm({
           <button
             type="submit"
             disabled={!stripe || processing}
-            className="px-4 py-2 flex items-center cursor-pointer bg-blue-600 text-white rounded-lg disabled:opacity-50"
+            className="px-4 py-2 flex items-center cursor-pointer bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-2" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7H9a5 5 0 0 0 0 10M20 7l-3-3m3 3l-3 3m-1 7h-3" /></svg>
             {processing ? "Processing..." : "Pay Now"}
@@ -154,7 +158,7 @@ function StripePaymentForm({
   );
 }
 
-// KHQR Modal Component 
+// KHQR Modal Component (unchanged)
 function KhqrModal({
   qrPayload,
   onSuccess,
@@ -410,13 +414,19 @@ export default function CheckoutPage({
     city: "",
     state: "",
     postal_code: "",
-    country: "",
+    country: "Cambodia",
     is_default: false,
+    latitude: undefined as number | undefined,
+    longitude: undefined as number | undefined,
   });
   const [delivery, setDelivery] = useState<any>(null);
   const [showDeliveryTracking, setShowDeliveryTracking] = useState(false);
-
   const [showFullScreenLoading, setShowFullScreenLoading] = useState(false);
+
+  // New states for map functionality
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState<number | null>(null);
+  const [selectedCoordinates, setSelectedCoordinates] = useState<{ lat: number; lng: number } | null>(null);
 
   const handleViewOrderDetails = (order: Order) => {
     setSelectedOrder(order);
@@ -481,10 +491,74 @@ export default function CheckoutPage({
         if (defaultAddress) {
           setSelectedAddress(defaultAddress);
         }
+
+        console.log('Fetched addresses with coordinates:', data.addresses);
       }
     } catch (error) {
       console.error("Failed to fetch addresses:", error);
     }
+  };
+
+  // Function to save address coordinates
+  const saveAddressCoordinates = async (addressId: number, lat: number, lng: number) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/addresses/${addressId}/coordinates`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ latitude: lat, longitude: lng }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+
+        // Update local addresses state
+        setAddresses(prev =>
+          prev.map(addr =>
+            addr.id === addressId
+              ? { ...addr, latitude: lat, longitude: lng }
+              : addr
+          )
+        );
+
+        // Update selected address if it's the one being edited
+        if (selectedAddress?.id === addressId) {
+          setSelectedAddress((prev: Address | null) =>
+            prev
+              ? { ...prev, latitude: lat, longitude: lng }
+              : null
+          );
+        }
+
+        Swal.fire({
+          position: 'top-end',
+          icon: 'success',
+          title: 'Location saved successfully!',
+          showConfirmButton: false,
+          timer: 1500,
+          toast: true,
+        });
+
+        return true;
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save coordinates');
+      }
+    } catch (error: any) {
+      console.error('Failed to save coordinates:', error);
+      Swal.fire({
+        position: 'top-end',
+        icon: 'error',
+        title: 'Failed to save location',
+        text: error.message || 'Please try again',
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true,
+      });
+    }
+    return false;
   };
 
   const fetchDeliveryInfo = async (orderId: number) => {
@@ -564,15 +638,42 @@ export default function CheckoutPage({
           city: "",
           state: "",
           postal_code: "",
-          country: "",
+          country: "Cambodia",
           is_default: false,
+          latitude: undefined,
+          longitude: undefined,
+        });
+
+        Swal.fire({
+          position: 'top-end',
+          icon: 'success',
+          title: 'Address saved successfully!',
+          showConfirmButton: false,
+          timer: 1500,
+          toast: true,
         });
       } else {
-        alert(data.message || "Failed to add address");
+        Swal.fire({
+          position: 'top-end',
+          icon: 'error',
+          title: 'Failed to add address',
+          text: data.message || 'Please check your information',
+          showConfirmButton: false,
+          timer: 3000,
+          toast: true,
+        });
       }
     } catch (err) {
       console.error(err);
-      alert("Error creating address");
+      Swal.fire({
+        position: 'top-end',
+        icon: 'error',
+        title: 'Error creating address',
+        text: 'Please try again',
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true,
+      });
     }
   };
 
@@ -650,6 +751,25 @@ export default function CheckoutPage({
     if (!selectedAddress) {
       setError("Please select a shipping address");
       return;
+    }
+
+    // Warn if address has no coordinates
+    if (!selectedAddress.latitude || !selectedAddress.longitude) {
+      const result = await Swal.fire({
+        title: 'Address Missing Location',
+        text: 'Your address does not have precise coordinates. This may affect delivery accuracy. Would you like to set your exact location on a map?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Set Location',
+        cancelButtonText: 'Continue Anyway',
+      });
+
+      if (result.isConfirmed) {
+        setEditingAddressId(selectedAddress.id);
+        setSelectedCoordinates(null);
+        setShowMapModal(true);
+        return;
+      }
     }
 
     if (couponCode) {
@@ -981,57 +1101,141 @@ export default function CheckoutPage({
                   <div>
                     <h3 className="text-lg font-medium flex items-center mb-4">
                       {t.checkOutPage.selectShippingAddress}
+                      <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        Location Required
+                      </span>
                     </h3>
-                    <div className="grid gap-4">
-                      {addresses.map((address) => (
-                        <div
-                          key={address.id}
-                          className={`p-4 border rounded-lg cursor-pointer ${selectedAddress?.id === address.id
-                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
-                            : "border-gray-200 dark:border-gray-700"
-                            }`}
-                          onClick={() => setSelectedAddress(address)}
-                        >
-                          <div className="flex items-center">
+
+                    {addresses.length === 0 ? (
+                      <div className="p-8 text-center border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                        <svg className="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <p className="text-gray-600 dark:text-gray-400">No addresses saved yet</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">Add your first address to continue</p>
+                      </div>
+                    ) : (
+                      <div className="grid gap-4">
+                        {addresses.map((address) => {
+                          const hasCoordinates = address.latitude && address.longitude;
+                          const coordinatesStatus = hasCoordinates ? 'good' : 'missing';
+
+                          return (
                             <div
-                              className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${selectedAddress?.id === address.id
-                                ? "border-blue-500 bg-blue-500"
-                                : "border-gray-300"
+                              key={address.id}
+                              className={`p-4 border rounded-lg cursor-pointer transition-all ${selectedAddress?.id === address.id
+                                ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-sm"
+                                : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
                                 }`}
+                              onClick={() => setSelectedAddress(address)}
                             >
-                              {selectedAddress?.id === address.id && (
-                                <svg
-                                  className="w-3 h-3 text-white"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center mb-2">
+                                    <div
+                                      className={`w-5 h-5 rounded-full border mr-3 flex items-center justify-center ${selectedAddress?.id === address.id
+                                        ? "border-blue-500 bg-blue-500"
+                                        : "border-gray-300"
+                                        }`}
+                                    >
+                                      {selectedAddress?.id === address.id && (
+                                        <svg
+                                          className="w-3 h-3 text-white"
+                                          fill="currentColor"
+                                          viewBox="0 0 20 20"
+                                        >
+                                          <path
+                                            fillRule="evenodd"
+                                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                            clipRule="evenodd"
+                                          />
+                                        </svg>
+                                      )}
+                                    </div>
+                                    <div className="flex-1">
+                                      <div className="flex items-center justify-between">
+                                        <div>
+                                          <p className="font-medium">
+                                            {address.address_line_1}
+                                          </p>
+                                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                                            {address.address_line_2}, {address.city},{" "}
+                                            {address.state} {address.postal_code}
+                                          </p>
+                                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                                            {address.country}
+                                          </p>
+                                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                                            {t.checkOutPage.phone}: {address.phone}
+                                          </p>
+                                        </div>
+
+                                        {/* Coordinates Status Indicator */}
+                                        <div className="flex items-center ml-4">
+                                          {hasCoordinates ? (
+                                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                                              <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                              </svg>
+                                              Location Set
+                                            </span>
+                                          ) : (
+                                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.998-.833-2.732 0L4.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                              </svg>
+                                              Needs Location
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {/* Show coordinates if available */}
+                                      {hasCoordinates && (
+                                        <div className="mt-6">
+                                          <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                                            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                                            </svg>
+                                            <span className="font-mono">
+                                              {Number(address.latitude)?.toFixed(6)}, {Number(address.longitude)?.toFixed(6)}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Map Button */}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingAddressId(address.id);
+
+                                    setSelectedCoordinates(
+                                      address.latitude != null && address.longitude != null
+                                        ? { lat: address.latitude, lng: address.longitude }
+                                        : null
+                                    );
+
+                                    setShowMapModal(true);
+                                  }}
+                                  className="ml-4 px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center"
+                                  title="Set exact location on map"
                                 >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                              )}
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                                  </svg>
+                                  <span className="ml-1 hidden sm:inline">Map</span>
+                                </button>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-medium">
-                                {address.address_line_1}
-                              </p>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
-                                {address.address_line_2}, {address.city},{" "}
-                                {address.state} {address.postal_code}
-                              </p>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
-                                {address.country}
-                              </p>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
-                                {t.checkOutPage.phone}: {address.phone}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                          );
+                        })}
+                      </div>
+                    )}
 
                     <button
                       className="mt-4 cursor-pointer text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center"
@@ -1050,124 +1254,260 @@ export default function CheckoutPage({
 
                   {showNewAddressDropdown && (
                     <div className="mt-4 p-6 bg-gray-50 dark:bg-gray-800 rounded-xl shadow-md space-y-4 transition-all duration-300">
+                      <h4 className="text-lg font-medium text-gray-900 dark:text-white">
+                        Add New Address
+                        <span className="ml-2 text-sm font-normal text-blue-600 dark:text-blue-400">
+                          (Coordinates will be auto-detected)
+                        </span>
+                      </h4>
+
                       {/* Address Inputs */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <input
-                          type="text"
-                          placeholder="Label (Home, Office)"
-                          value={newAddress.label}
-                          onChange={(e) =>
-                            setNewAddress({
-                              ...newAddress,
-                              label: e.target.value,
-                            })
-                          }
-                          className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Recipient Name"
-                          value={newAddress.recipient_name}
-                          onChange={(e) =>
-                            setNewAddress({
-                              ...newAddress,
-                              recipient_name: e.target.value,
-                            })
-                          }
-                          className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                        />
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Label *
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Home, Office, etc."
+                            value={newAddress.label}
+                            onChange={(e) =>
+                              setNewAddress({
+                                ...newAddress,
+                                label: e.target.value,
+                              })
+                            }
+                            className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Recipient Name *
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Full Name"
+                            value={newAddress.recipient_name}
+                            onChange={(e) =>
+                              setNewAddress({
+                                ...newAddress,
+                                recipient_name: e.target.value,
+                              })
+                            }
+                            className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                            required
+                          />
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Phone Number *
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="012 345 678"
+                            value={newAddress.phone}
+                            onChange={(e) =>
+                              setNewAddress({
+                                ...newAddress,
+                                phone: e.target.value,
+                              })
+                            }
+                            className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Address Line 1 *
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Street address, building, house number"
+                            value={newAddress.address_line_1}
+                            onChange={(e) =>
+                              setNewAddress({
+                                ...newAddress,
+                                address_line_1: e.target.value,
+                              })
+                            }
+                            className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Address Line 2 (Optional)
+                        </label>
                         <input
                           type="text"
-                          placeholder="Phone"
-                          value={newAddress.phone}
+                          placeholder="Apartment, suite, unit, etc."
+                          value={newAddress.address_line_2}
                           onChange={(e) =>
                             setNewAddress({
                               ...newAddress,
-                              phone: e.target.value,
-                            })
-                          }
-                          className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Address Line 1"
-                          value={newAddress.address_line_1}
-                          onChange={(e) =>
-                            setNewAddress({
-                              ...newAddress,
-                              address_line_1: e.target.value,
+                              address_line_2: e.target.value,
                             })
                           }
                           className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                         />
                       </div>
-
-                      <input
-                        type="text"
-                        placeholder="Address Line 2 (Optional)"
-                        value={newAddress.address_line_2}
-                        onChange={(e) =>
-                          setNewAddress({
-                            ...newAddress,
-                            address_line_2: e.target.value,
-                          })
-                        }
-                        className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                      />
 
                       {/* City / State / Postal / Country */}
                       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                        <input
-                          type="text"
-                          placeholder="City"
-                          value={newAddress.city}
-                          onChange={(e) =>
-                            setNewAddress({
-                              ...newAddress,
-                              city: e.target.value,
-                            })
-                          }
-                          className="flex-1 p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                        />
-                        <input
-                          type="text"
-                          placeholder="State"
-                          value={newAddress.state}
-                          onChange={(e) =>
-                            setNewAddress({
-                              ...newAddress,
-                              state: e.target.value,
-                            })
-                          }
-                          className="flex-1 p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Postal Code"
-                          value={newAddress.postal_code}
-                          onChange={(e) =>
-                            setNewAddress({
-                              ...newAddress,
-                              postal_code: e.target.value,
-                            })
-                          }
-                          className="flex-1 p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Country"
-                          value={newAddress.country}
-                          onChange={(e) =>
-                            setNewAddress({
-                              ...newAddress,
-                              country: e.target.value,
-                            })
-                          }
-                          className="flex-1 p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                        />
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            City *
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="City"
+                            value={newAddress.city}
+                            onChange={(e) =>
+                              setNewAddress({
+                                ...newAddress,
+                                city: e.target.value,
+                              })
+                            }
+                            className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            State/Province *
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="State"
+                            value={newAddress.state}
+                            onChange={(e) =>
+                              setNewAddress({
+                                ...newAddress,
+                                state: e.target.value,
+                              })
+                            }
+                            className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Postal Code *
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Postal Code"
+                            value={newAddress.postal_code}
+                            onChange={(e) =>
+                              setNewAddress({
+                                ...newAddress,
+                                postal_code: e.target.value,
+                              })
+                            }
+                            className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Country *
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Country"
+                            value={newAddress.country}
+                            onChange={(e) =>
+                              setNewAddress({
+                                ...newAddress,
+                                country: e.target.value,
+                              })
+                            }
+                            className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      {/* Manual Coordinates Input (Optional) */}
+                      <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <div className="flex items-center justify-between mb-4">
+                          <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Manual Coordinates (Optional)
+                          </h5>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingAddressId(null);
+                              setSelectedCoordinates(newAddress.latitude && newAddress.longitude
+                                ? { lat: newAddress.latitude, lng: newAddress.longitude }
+                                : null
+                              );
+                              setShowMapModal(true);
+                            }}
+                            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center"
+                          >
+                            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                            </svg>
+                            Select on Map
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                              Latitude
+                            </label>
+                            <input
+                              type="number"
+                              step="any"
+                              placeholder="e.g., 11.5564"
+                              value={newAddress.latitude || ''}
+                              onChange={(e) =>
+                                setNewAddress({
+                                  ...newAddress,
+                                  latitude: e.target.value ? parseFloat(e.target.value) : undefined,
+                                })
+                              }
+                              className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                              Longitude
+                            </label>
+                            <input
+                              type="number"
+                              step="any"
+                              placeholder="e.g., 104.9282"
+                              value={newAddress.longitude || ''}
+                              onChange={(e) =>
+                                setNewAddress({
+                                  ...newAddress,
+                                  longitude: e.target.value ? parseFloat(e.target.value) : undefined,
+                                })
+                              }
+                              className="w-full p-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                            />
+                          </div>
+                        </div>
+
+                        {newAddress.latitude && newAddress.longitude && (
+                          <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                            <p className="text-xs text-green-600 dark:text-green-400 flex items-center">
+                              <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                              Coordinates set: {newAddress.latitude.toFixed(6)}, {newAddress.longitude.toFixed(6)}
+                            </p>
+                          </div>
+                        )}
                       </div>
 
                       {/* Default Address */}
@@ -1195,17 +1535,32 @@ export default function CheckoutPage({
                       {/* Actions */}
                       <div className="flex justify-end gap-3">
                         <button
-                          onClick={() => setShowNewAddressDropdown(false)}
+                          onClick={() => {
+                            setShowNewAddressDropdown(false);
+                            setNewAddress({
+                              label: "",
+                              recipient_name: "",
+                              phone: "",
+                              address_line_1: "",
+                              address_line_2: "",
+                              city: "",
+                              state: "",
+                              postal_code: "",
+                              country: "Cambodia",
+                              is_default: false,
+                              latitude: undefined,
+                              longitude: undefined,
+                            });
+                          }}
                           className="px-4 py-2 flex items-center cursor-pointer bg-gray-200 dark:bg-gray-700 text-gray-700 hover:text-red-500 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-all"
                         >
                           <MdOutlineCancel className="mr-2 w-5 h-5" /> Cancel
                         </button>
                         <button
                           onClick={handleSaveNewAddress}
-                          className="px-4 py-2 flex  items-center cursor-pointer bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black text-white rounded-lg shadow-md transition-all"
+                          className="px-4 py-2 flex items-center cursor-pointer bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black text-white rounded-lg shadow-md transition-all"
                         >
-                          <MdOutlineSaveAlt className="mr-2 w-5 h-5" /> Save
-                          Address
+                          <MdOutlineSaveAlt className="mr-2 w-5 h-5" /> Save Address
                         </button>
                       </div>
                     </div>
@@ -1465,17 +1820,36 @@ export default function CheckoutPage({
                         <h5 className="font-medium text-gray-900 dark:text-white mb-2">
                           {t.checkOutPage.shippingAddress}
                         </h5>
-                        <p className="text-gray-600 dark:text-gray-400">
-                          {selectedAddress?.address_line_1}
-                          {selectedAddress?.address_line_2}
-                          <br />
-                          {selectedAddress?.city}, {selectedAddress?.state}{" "}
-                          {selectedAddress?.postal_code}
-                          <br />
-                          {selectedAddress?.country}
-                          <br />
-                          {t.checkOutPage.phone}: {selectedAddress?.phone}
-                        </p>
+                        <div className="space-y-2">
+                          <p className="text-gray-600 dark:text-gray-400">
+                            {selectedAddress?.address_line_1}
+                            {selectedAddress?.address_line_2 && <>, {selectedAddress.address_line_2}</>}
+                          </p>
+                          <p className="text-gray-600 dark:text-gray-400">
+                            {selectedAddress?.city}, {selectedAddress?.state}{" "}
+                            {selectedAddress?.postal_code}
+                          </p>
+                          <p className="text-gray-600 dark:text-gray-400">
+                            {selectedAddress?.country}
+                          </p>
+                          <p className="text-gray-600 dark:text-gray-400">
+                            {t.checkOutPage.phone}: {selectedAddress?.phone}
+                          </p>
+
+                          {selectedAddress?.latitude && selectedAddress?.longitude && (
+                            <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
+                              <p className="text-xs text-blue-600 dark:text-blue-400 flex items-center">
+                                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                                </svg>
+                                Location coordinates set for accurate delivery tracking
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {parseFloat(selectedAddress.latitude).toFixed(6)}, {parseFloat(selectedAddress.longitude).toFixed(6)}
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       {/* Order Summary */}
@@ -1931,6 +2305,33 @@ export default function CheckoutPage({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Map Selection Modal */}
+      {showMapModal && (
+        <MapSelectionModal
+          isOpen={showMapModal}
+          onClose={() => {
+            setShowMapModal(false);
+            setEditingAddressId(null);
+            setSelectedCoordinates(null);
+          }}
+          onSelect={async (lat, lng) => {
+            if (editingAddressId) {
+              // Update existing address
+              await saveAddressCoordinates(editingAddressId, lat, lng);
+            } else {
+              // Update new address being created
+              setNewAddress({
+                ...newAddress,
+                latitude: lat,
+                longitude: lng,
+              });
+            }
+          }}
+          initialLat={selectedCoordinates?.lat || (newAddress.latitude || 11.5564)}
+          initialLng={selectedCoordinates?.lng || (newAddress.longitude || 104.9282)}
+        />
       )}
 
       {showDeliveryTracking && orderId && (

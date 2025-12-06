@@ -17,6 +17,21 @@ export interface Order {
   items: OrderItem[];
   user: OrderUser;
   payments: Payment[];
+  delivery?: Delivery;
+}
+
+interface Delivery {
+  id: number;
+  order_id: number;
+  delivery_agent_id?: number;
+  status: string;
+  tracking_number: string;
+  agent_rating?: number | null;
+  agent_rating_comment?: string | null;
+  agent_rated_at?: string | null;
+  delivered_at?: string | null;
+  agent_lat?: number | null;
+  agent_lng?: number | null;
 }
 
 export interface OrderItem {

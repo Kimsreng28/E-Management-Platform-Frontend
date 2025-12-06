@@ -10,11 +10,9 @@ import TopCouponsPage from "@/components/ui/dashboard/settings/TopCouponsPage";
 import { getToken } from "@/lib/api/auth";
 import { API_BASE_URL } from "@/lib/config";
 import { useTranslations } from "@/utils/useTranslations";
-import { icon } from "leaflet";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CiDiscount1 } from "react-icons/ci";
-import { MdBusiness, MdDesignServices, MdDiscount, MdLocalOffer, MdNotifications, MdSaveAs, MdSecurity, MdSettings } from "react-icons/md";
+import { MdBusiness, MdDesignServices, MdDiscount, MdNotifications, MdSaveAs, MdSecurity, MdSettings } from "react-icons/md";
 import Swal from "sweetalert2";
 
 interface UserData {
@@ -51,6 +49,13 @@ interface FormDataState {
   address: AddressData;
 }
 
+interface AuthUser {
+  id: number;
+  role_id: number;
+  name: string;
+  email: string;
+}
+
 export default function SettingsPage({ locale }: { locale: "en" | "kh" }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -61,6 +66,7 @@ export default function SettingsPage({ locale }: { locale: "en" | "kh" }) {
   const [isLoading, setIsLoading] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [notificationData, setNotificationData] = useState<any>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
 
   const [formData, setFormData] = useState<FormDataState>({
     user: { name: "", email: "", phone: "", avatar: "" },
@@ -88,6 +94,77 @@ export default function SettingsPage({ locale }: { locale: "en" | "kh" }) {
     document.documentElement.classList.toggle("dark", savedDarkMode);
   }, []);
 
+  // Fetch user data and profile
+  const fetchUserAndProfile = async () => {
+    try {
+      const token = getToken();
+      if (!token) throw new Error("No authentication token found");
+
+      // Fetch user data (including role_id)
+      const userRes = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!userRes.ok) throw new Error("Failed to fetch user data");
+
+      const userData = await userRes.json();
+      setUser(userData);
+
+      // Fetch profile data
+      const profileRes = await fetch(`${API_BASE_URL}/api/profile`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!profileRes.ok) throw new Error("Failed to fetch profile");
+
+      const profileData = await profileRes.json();
+
+      setFormData({
+        user: {
+          name: profileData.user?.name || "",
+          email: profileData.user?.email || "",
+          phone: profileData.user?.phone || "",
+          avatar: profileData.user?.avatar || "",
+        },
+        profile: {
+          bio: profileData.profile?.bio || "",
+          birth_date: profileData.profile?.birth_date || "",
+          gender: profileData.profile?.gender || "",
+          website: profileData.profile?.website || "",
+          social_links: profileData.profile?.social_links || "",
+        },
+        address: {
+          label: profileData.address?.label || "Home",
+          recipient_name: profileData.address?.recipient_name || profileData.user?.name || "",
+          phone: profileData.address?.phone || profileData.user?.phone || "",
+          address_line_1: profileData.address?.address_line_1 || "",
+          address_line_2: profileData.address?.address_line_2 || "",
+          city: profileData.address?.city || "",
+          state: profileData.address?.state || "",
+          postal_code: profileData.address?.postal_code || "",
+          country: profileData.address?.country || "Cambodia",
+        },
+      });
+
+      console.log("Fetched user data:", userData);
+      console.log("Fetched profile data:", profileData);
+    } catch (err) {
+      console.error(err);
+      Swal.fire({
+        title: "Error!",
+        text: "Failed to load user data",
+        icon: "error",
+        confirmButtonText: "OK",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserAndProfile();
+  }, []);
+
   const toggleDarkMode = (newMode: boolean) => {
     setDarkMode(newMode);
     localStorage.setItem("darkMode", String(newMode));
@@ -100,65 +177,6 @@ export default function SettingsPage({ locale }: { locale: "en" | "kh" }) {
     router.push(newPath);
   };
 
-  // Fetch user profile
-  const fetchProfile = async () => {
-    try {
-      const token = getToken();
-      if (!token) throw new Error("No authentication token found");
-
-      const res = await fetch(`${API_BASE_URL}/api/profile`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!res.ok) throw new Error("Failed to fetch profile");
-
-      const data = await res.json();
-      setFormData({
-        user: {
-          name: data.user?.name || "",
-          email: data.user?.email || "",
-          phone: data.user?.phone || "",
-          avatar: data.user?.avatar || "",
-        },
-        profile: {
-          bio: data.profile?.bio || "",
-          birth_date: data.profile?.birth_date || "",
-          gender: data.profile?.gender || "",
-          website: data.profile?.website || "",
-          social_links: data.profile?.social_links || "",
-        },
-        address: {
-          label: data.address?.label || "Home",
-          recipient_name: data.address?.recipient_name || data.user?.name || "",
-          phone: data.address?.phone || data.user?.phone || "",
-          address_line_1: data.address?.address_line_1 || "",
-          address_line_2: data.address?.address_line_2 || "",
-          city: data.address?.city || "",
-          state: data.address?.state || "",
-          postal_code: data.address?.postal_code || "",
-          country: data.address?.country || "Cambodia",
-        },
-      });
-
-      console.log("Fetched profile data:", data);
-    } catch (err) {
-      console.error(err);
-      Swal.fire({
-        title: "Error!",
-        text: "Failed to load profile data",
-        icon: "error",
-        confirmButtonText: "OK",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  // Update form data with deep merge
   const updateFormData = (newData: Partial<FormDataState>) => {
     setFormData((prev) => ({
       user: { ...prev.user, ...(newData.user || {}) },
@@ -167,7 +185,6 @@ export default function SettingsPage({ locale }: { locale: "en" | "kh" }) {
     }));
   };
 
-  // Save handler
   const handleSave = async () => {
     try {
       const token = getToken();
@@ -176,7 +193,6 @@ export default function SettingsPage({ locale }: { locale: "en" | "kh" }) {
       if (activeTab === "general") {
         let res: Response;
 
-        // If uploading avatar, use FormData
         if (formData.user.file) {
           const fd = new FormData();
           if (formData.user.name) fd.append("name", formData.user.name);
@@ -204,14 +220,12 @@ export default function SettingsPage({ locale }: { locale: "en" | "kh" }) {
             body: fd,
           });
         } else {
-          // JSON payload with only non-empty fields
           const payload: any = {};
           if (formData.user.name) payload.name = formData.user.name;
           if (formData.user.email) payload.email = formData.user.email;
           if (formData.user.phone) payload.phone = formData.user.phone;
           if (formData.profile.bio) payload.bio = formData.profile.bio;
 
-          // Address fields
           payload.address = {};
           if (formData.address.address_line_1)
             payload.address.address_line_1 = formData.address.address_line_1;
@@ -224,7 +238,6 @@ export default function SettingsPage({ locale }: { locale: "en" | "kh" }) {
           if (formData.address.country)
             payload.address.country = formData.address.country;
 
-          // Remove address if empty
           if (Object.keys(payload.address).length === 0) delete payload.address;
 
           res = await fetch(`${API_BASE_URL}/api/profile`, {
@@ -265,7 +278,7 @@ export default function SettingsPage({ locale }: { locale: "en" | "kh" }) {
         toast: true,
       });
 
-      await fetchProfile();
+      await fetchUserAndProfile();
     } catch (err: any) {
       console.error(err);
       Swal.fire({
@@ -280,18 +293,48 @@ export default function SettingsPage({ locale }: { locale: "en" | "kh" }) {
     }
   };
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
+  // Define tabs based on user role
+  const getTabs = () => {
+    const baseTabs = [
+      { id: "general", icon: <MdSettings />, label: t.settingSession.general },
+      { id: "notifications", icon: <MdNotifications />, label: t.settingSession.notification },
+      { id: "security", icon: <MdSecurity />, label: t.settingSession.security },
+      { id: "appearance", icon: <MdDesignServices />, label: t.settingSession.appearance },
+    ];
 
-  const tabs = [
-    { id: "general", icon: <MdSettings />, label: t.settingSession.general },
-    { id: "notifications", icon: <MdNotifications />, label: t.settingSession.notification },
-    { id: "security", icon: <MdSecurity />, label: t.settingSession.security },
-    { id: "appearance", icon: <MdDesignServices />, label: t.settingSession.appearance },
-    { id: "business", icon: <MdBusiness />, label: t.settingSession.business },
-    { id: "coupons", icon: <MdDiscount />, label: t.coupon.coupons },
-  ];
+    // For delivery agent (role_id = 5), only show base tabs
+    if (user?.role_id === 5) {
+      return baseTabs;
+    }
+
+    // For customer (role_id = 2), show base tabs + coupons
+    if (user?.role_id === 2) {
+      return [
+        ...baseTabs,
+        { id: "coupons", icon: <MdDiscount />, label: t.coupon.coupons },
+      ];
+    }
+
+    // For admin (role_id = 1) or vendor (role_id = 4), show all tabs
+    if (user?.role_id === 1 || user?.role_id === 4) {
+      return [
+        ...baseTabs,
+        { id: "business", icon: <MdBusiness />, label: t.settingSession.business },
+        { id: "coupons", icon: <MdDiscount />, label: t.coupon.coupons },
+      ];
+    }
+
+    // Default to base tabs
+    return baseTabs;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-1 space-y-1">
@@ -316,7 +359,7 @@ export default function SettingsPage({ locale }: { locale: "en" | "kh" }) {
 
       {/* Tabs Navigation */}
       <SettingsTabs
-        tabs={tabs}
+        tabs={getTabs()}
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
@@ -347,11 +390,12 @@ export default function SettingsPage({ locale }: { locale: "en" | "kh" }) {
             onDarkModeChange={toggleDarkMode}
           />
         )}
-        {activeTab === "business" && (
+        {activeTab === "business" && user?.role_id !== 5 && user?.role_id !== 2 && (
           <BusinessSettings currentLanguage={language} />
         )}
-
-        {activeTab === "coupons" && <TopCouponsPage locale={language} />}
+        {activeTab === "coupons" && user?.role_id !== 5 && (
+          <TopCouponsPage locale={language} />
+        )}
       </div>
     </div>
   );

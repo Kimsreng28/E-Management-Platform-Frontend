@@ -2,7 +2,7 @@
 
 import { API_BASE_URL } from "@/lib/config";
 import { useRouter } from "next/navigation";
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import {
   IoIosArrowBack,
@@ -15,10 +15,14 @@ import {
   IoIosLink,
   IoIosLock,
   IoIosEye,
-  IoIosEyeOff
+  IoIosEyeOff,
+  IoIosPin
 } from "react-icons/io";
 import { FaTransgender, FaGlobe } from "react-icons/fa";
 import { useTranslations } from "@/utils/useTranslations";
+import dynamic from 'next/dynamic';
+import Swal from "sweetalert2";
+import MapSelectionModal from "@/components/ui/customer/MapSelectionModal";
 
 interface UserProfile {
   user: {
@@ -35,6 +39,7 @@ interface UserProfile {
     social_links: string | null;
   };
   address: {
+    id?: number;
     label: string;
     recipient_name: string;
     phone: string;
@@ -44,6 +49,8 @@ interface UserProfile {
     state: string;
     postal_code: string;
     country: string;
+    latitude?: number;
+    longitude?: number;
   } | null;
 }
 
@@ -52,7 +59,6 @@ interface PasswordForm {
   new_password: string;
   new_password_confirmation: string;
 }
-
 export default function ProfilePage({
   params,
 }: {
@@ -74,6 +80,10 @@ export default function ProfilePage({
   const [error, setError] = useState("");
   const router = useRouter();
 
+  // Map modal states
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [selectedCoordinates, setSelectedCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+
   const [formData, setFormData] = useState({
     user: {
       name: "",
@@ -88,6 +98,7 @@ export default function ProfilePage({
       social_links: "",
     },
     address: {
+      id: undefined as number | undefined,
       label: "",
       recipient_name: "",
       phone: "",
@@ -97,6 +108,8 @@ export default function ProfilePage({
       state: "",
       postal_code: "",
       country: "",
+      latitude: undefined as number | undefined,
+      longitude: undefined as number | undefined,
     }
   });
 
@@ -137,7 +150,21 @@ export default function ProfilePage({
             website: data.profile?.website || "",
             social_links: data.profile?.social_links || "",
           },
-          address: data.address || {
+          address: data.address ? {
+            id: data.address.id,
+            label: data.address.label || "",
+            recipient_name: data.address.recipient_name || "",
+            phone: data.address.phone || "",
+            address_line_1: data.address.address_line_1 || "",
+            address_line_2: data.address.address_line_2 || "",
+            city: data.address.city || "",
+            state: data.address.state || "",
+            postal_code: data.address.postal_code || "",
+            country: data.address.country || "",
+            latitude: data.address.latitude,
+            longitude: data.address.longitude,
+          } : {
+            id: undefined,
             label: "",
             recipient_name: "",
             phone: "",
@@ -147,8 +174,18 @@ export default function ProfilePage({
             state: "",
             postal_code: "",
             country: "",
+            latitude: undefined,
+            longitude: undefined,
           }
         });
+
+        // Set coordinates for map modal
+        if (data.address?.latitude && data.address?.longitude) {
+          setSelectedCoordinates({
+            lat: data.address.latitude,
+            lng: data.address.longitude
+          });
+        }
       } else {
         setError("Failed to fetch profile");
       }
@@ -174,7 +211,7 @@ export default function ProfilePage({
     }));
   };
 
-  const handleAddressChange = (field: string, value: string) => {
+  const handleAddressChange = (field: string, value: string | number | undefined) => {
     setFormData(prev => ({
       ...prev,
       address: {
@@ -209,14 +246,35 @@ export default function ProfilePage({
       });
 
       if (response.ok) {
-
+        Swal.fire({
+          position: 'top-end',
+          icon: 'success',
+          title: 'Avatar updated successfully!',
+          showConfirmButton: false,
+          timer: 1500,
+          toast: true,
+        });
         fetchProfile();
       } else {
-
+        Swal.fire({
+          position: 'top-end',
+          icon: 'error',
+          title: 'Failed to update avatar',
+          showConfirmButton: false,
+          timer: 3000,
+          toast: true,
+        });
       }
     } catch (error) {
-
       console.error("Avatar upload error:", error);
+      Swal.fire({
+        position: 'top-end',
+        icon: 'error',
+        title: 'Error updating avatar',
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true,
+      });
     }
   };
 
@@ -226,29 +284,56 @@ export default function ProfilePage({
 
     try {
       const token = localStorage.getItem("token");
+
+      // Prepare the data for submission
+      const submissionData = {
+        ...formData.user,
+        ...formData.profile,
+        address: formData.address
+      };
+
       const response = await fetch(`${API_BASE_URL}/api/profile`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          ...formData.user,
-          ...formData.profile,
-          address: formData.address
-        }),
+        body: JSON.stringify(submissionData),
       });
 
       if (response.ok) {
-
+        Swal.fire({
+          position: 'top-end',
+          icon: 'success',
+          title: 'Profile updated successfully!',
+          showConfirmButton: false,
+          timer: 1500,
+          toast: true,
+        });
         fetchProfile();
       } else {
         const errorData = await response.json();
-
+        Swal.fire({
+          position: 'top-end',
+          icon: 'error',
+          title: 'Failed to update profile',
+          text: errorData.message || 'Please try again',
+          showConfirmButton: false,
+          timer: 3000,
+          toast: true,
+        });
       }
     } catch (error) {
-
       console.error("Profile update error:", error);
+      Swal.fire({
+        position: 'top-end',
+        icon: 'error',
+        title: 'Error updating profile',
+        text: 'Please try again',
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true,
+      });
     } finally {
       setSaving(false);
     }
@@ -270,7 +355,14 @@ export default function ProfilePage({
       });
 
       if (response.ok) {
-
+        Swal.fire({
+          position: 'top-end',
+          icon: 'success',
+          title: 'Password changed successfully!',
+          showConfirmButton: false,
+          timer: 1500,
+          toast: true,
+        });
         setShowPasswordModal(false);
         setPasswordForm({
           current_password: "",
@@ -279,14 +371,81 @@ export default function ProfilePage({
         });
       } else {
         const errorData = await response.json();
-
+        Swal.fire({
+          position: 'top-end',
+          icon: 'error',
+          title: 'Failed to change password',
+          text: errorData.message || 'Please try again',
+          showConfirmButton: false,
+          timer: 3000,
+          toast: true,
+        });
       }
     } catch (error) {
-
       console.error("Password change error:", error);
+      Swal.fire({
+        position: 'top-end',
+        icon: 'error',
+        title: 'Error changing password',
+        text: 'Please try again',
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true,
+      });
     } finally {
       setChangingPassword(false);
     }
+  };
+
+  const handleMapSelect = async (lat: number, lng: number) => {
+    handleAddressChange("latitude", lat);
+    handleAddressChange("longitude", lng);
+
+    // Save coordinates to the address if it exists
+    if (formData.address?.id) {
+      await saveAddressCoordinates(formData.address.id, lat, lng);
+    }
+  };
+
+  const saveAddressCoordinates = async (addressId: number, lat: number, lng: number) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_BASE_URL}/api/addresses/${addressId}/coordinates`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ latitude: lat, longitude: lng }),
+      });
+
+      if (response.ok) {
+        Swal.fire({
+          position: 'top-end',
+          icon: 'success',
+          title: 'Location saved successfully!',
+          showConfirmButton: false,
+          timer: 1500,
+          toast: true,
+        });
+        return true;
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save coordinates');
+      }
+    } catch (error: any) {
+      console.error('Failed to save coordinates:', error);
+      Swal.fire({
+        position: 'top-end',
+        icon: 'error',
+        title: 'Failed to save location',
+        text: error.message || 'Please try again',
+        showConfirmButton: false,
+        timer: 3000,
+        toast: true,
+      });
+    }
+    return false;
   };
 
   if (loading) {
@@ -600,6 +759,75 @@ export default function ProfilePage({
                   />
                 </div>
               </div>
+
+              {/* Coordinates Section */}
+              <div className="col-span-1 md:col-span-2 border-t border-gray-200 dark:border-gray-700 pt-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                      Location Coordinates
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Set your exact location for better delivery accuracy
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCoordinates(
+                        formData.address.latitude && formData.address.longitude
+                          ? { lat: formData.address.latitude, lng: formData.address.longitude }
+                          : null
+                      );
+                      setShowMapModal(true);
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+                  >
+                    <IoIosPin className="mr-2" />
+                    Set on Map
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Latitude
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={formData.address.latitude || ''}
+                      onChange={(e) => handleAddressChange("latitude", e.target.value ? parseFloat(e.target.value) : undefined)}
+                      className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                      placeholder="e.g., 11.5564"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Longitude
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      value={formData.address.longitude || ''}
+                      onChange={(e) => handleAddressChange("longitude", e.target.value ? parseFloat(e.target.value) : undefined)}
+                      className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                      placeholder="e.g., 104.9282"
+                    />
+                  </div>
+                </div>
+
+                {formData.address.latitude && formData.address.longitude && (
+                  <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <p className="text-sm text-green-600 dark:text-green-400 flex items-center">
+                      <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      Location coordinates set: {Number(formData.address.latitude).toFixed(6)}, {Number(formData.address.longitude).toFixed(6)}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -750,6 +978,18 @@ export default function ProfilePage({
             </div>
           </div>
         )}
+
+        {/* Map Selection Modal */}
+        <MapSelectionModal
+          isOpen={showMapModal}
+          onClose={() => {
+            setShowMapModal(false);
+            setSelectedCoordinates(null);
+          }}
+          onSelect={handleMapSelect}
+          initialLat={selectedCoordinates?.lat || (formData.address.latitude || 11.5564)}
+          initialLng={selectedCoordinates?.lng || (formData.address.longitude || 104.9282)}
+        />
       </div>
     </div>
   );

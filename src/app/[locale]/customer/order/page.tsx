@@ -24,6 +24,7 @@ import OrderDetailModal from "@/components/ui/customer/OrderDetailModal";
 import ReviewModal from "@/components/ui/customer/ReviewModal"; // Import the ReviewModal
 import { useTranslations } from "@/utils/useTranslations";
 import { PiStarDuotone } from "react-icons/pi";
+import DeliveryAgentRatingModal from "@/components/ui/customer/DeliveryAgentRatingModal";
 
 interface OrdersResponse {
     data: Order[];
@@ -51,6 +52,8 @@ export default function OrderHistoryPage({
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [showReviewModal, setShowReviewModal] = useState(false);
     const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+    const [showDeliveryRatingModal, setShowDeliveryRatingModal] = useState(false);
+    const [selectedDelivery, setSelectedDelivery] = useState<any>(null);
 
     const unwrappedParams = use(params);
     const language = unwrappedParams.locale || "en";
@@ -151,6 +154,47 @@ export default function OrderHistoryPage({
 
     const handlePageChange = (page: number) => {
         fetchOrders(page, searchTerm, statusFilter);
+    };
+
+    const handleRateDeliveryAgent = async (delivery: any) => {
+        try {
+            const token = localStorage.getItem("token");
+            if (!token) return;
+
+            const rating = prompt("Rate the delivery agent (1-5 stars):");
+            if (!rating || isNaN(parseInt(rating)) || parseInt(rating) < 1 || parseInt(rating) > 5) {
+                alert("Please enter a valid rating between 1 and 5");
+                return;
+            }
+
+            const comment = prompt("Add a comment (optional):");
+
+            const response = await fetch(
+                `${API_BASE_URL}/api/deliveries/${delivery.id}/rate-agent`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                        rating: parseInt(rating),
+                        comment: comment || "",
+                    }),
+                }
+            );
+
+            if (response.ok) {
+                alert("Thank you for rating the delivery agent!");
+                fetchOrders(currentPage, searchTerm, statusFilter);
+            } else {
+                const error = await response.json();
+                alert(error.message || "Failed to submit rating");
+            }
+        } catch (error) {
+            console.error("Error rating delivery agent:", error);
+            alert("An error occurred while submitting rating");
+        }
     };
 
     const getStatusIcon = (status: string) => {
@@ -363,6 +407,27 @@ export default function OrderHistoryPage({
                                             {t.ordersDetail.rateProducts}
                                         </button>
                                     )}
+
+                                    {order.delivery?.status === 'delivered' && !order.delivery?.agent_rating && (
+                                        <button
+                                            onClick={() => {
+                                                setSelectedDelivery(order.delivery);
+                                                setShowDeliveryRatingModal(true);
+                                            }}
+                                            className="w-fit flex items-center cursor-pointer justify-center px-4 py-2 gap-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm"
+                                        >
+                                            <PiStarDuotone className="ml-2 w-5 h-5" />
+                                            Rate Delivery Agent
+                                        </button>
+                                    )}
+
+                                    {order.delivery && order.delivery.agent_rating && (
+                                        <div className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-lg text-sm">
+                                            <span className="mr-1">⭐ {order.delivery.agent_rating}/5</span>
+                                            <span>Delivery Rated</span>
+                                        </div>
+                                    )}
+
                                     <button
                                         onClick={() => handleViewOrderDetails(order)}
                                         className={`px-4 w-fit flex items-center cursor-pointer justify-center gap-2 py-2 rounded-lg font-medium text-white transition-all duration-300 bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black shadow-md hover:shadow-lg`}
@@ -425,6 +490,17 @@ export default function OrderHistoryPage({
                 onClose={() => setShowReviewModal(false)}
                 order={selectedOrder}
                 onReviewSubmitted={handleReviewSubmitted}
+                params={{ locale: language }}
+            />
+
+            <DeliveryAgentRatingModal
+                isOpen={showDeliveryRatingModal}
+                onClose={() => setShowDeliveryRatingModal(false)}
+                delivery={selectedDelivery}
+                onRatingSubmitted={() => {
+                    setShowDeliveryRatingModal(false);
+                    fetchOrders(currentPage, searchTerm, statusFilter);
+                }}
                 params={{ locale: language }}
             />
         </div>

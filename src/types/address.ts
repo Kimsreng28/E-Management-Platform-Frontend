@@ -10,4 +10,6 @@ export interface Address {
   country: string;
   postal_code: string;
   is_default: boolean;
+  latitude?: number | null;
+  longitude?: number | null;
 }
