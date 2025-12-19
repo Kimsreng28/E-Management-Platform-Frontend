@@ -4,8 +4,16 @@ import { useTranslations } from "@/utils/useTranslations";
 import { TrashIcon } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
-import { MdCheck, MdDeleteOutline, MdPendingActions, MdRateReview, MdReply } from "react-icons/md";
+import { MdCheck, MdDeleteOutline, MdImage, MdPendingActions, MdRateReview, MdReply, MdVideoLibrary } from "react-icons/md";
 import Swal from "sweetalert2";
+
+interface ReviewMedia {
+    id: number;
+    path: string;
+    type: 'image' | 'video';
+    full_url: string;
+    mime_type: string | null;
+}
 
 interface Review {
     id: number;
@@ -25,6 +33,7 @@ interface Review {
     is_approved: boolean;
     created_at: string;
     replies: ReviewReply[];
+    media: ReviewMedia[];
 }
 
 interface ReviewReply {
@@ -579,6 +588,47 @@ export default function CommentPage({
                                         <p className="text-gray-700">{review.comment}</p>
                                     </div>
 
+                                    {/* Review Media */}
+                                    {review.media && review.media.length > 0 && (
+                                        <div className="mb-4">
+                                            <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                                                <MdImage className="mr-1" />
+                                                Media Attachments:
+                                            </h4>
+                                            <div className="grid grid-cols-4 gap-2">
+                                                {review.media.map((media) => (
+                                                    <div key={media.id} className="relative group">
+                                                        {media.type === 'image' ? (
+                                                            <div className="relative h-20 w-full">
+                                                                <img
+                                                                    src={media.full_url}
+                                                                    alt="Review attachment"
+                                                                    className="w-full h-full object-cover rounded-md cursor-pointer hover:opacity-90"
+                                                                    onClick={() => window.open(media.full_url, '_blank')}
+                                                                />
+                                                            </div>
+                                                        ) : (
+                                                            <div className="relative h-20 w-full bg-gray-800 rounded-md overflow-hidden">
+                                                                <video
+                                                                    src={media.full_url}
+                                                                    className="w-full h-full object-cover"
+                                                                >
+                                                                    <track kind="captions" />
+                                                                </video>
+                                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                                    <MdVideoLibrary className="w-6 h-6 text-white" />
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                        <span className="absolute bottom-1 left-1 text-xs bg-black/60 text-white px-1 rounded">
+                                                            {media.type}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Product Info */}
                                     <div className="mb-4 p-3 bg-gray-50 rounded">
                                         <p className="text-sm text-gray-600">
@@ -673,7 +723,6 @@ export default function CommentPage({
                                                             onClick={() => handleDeleteReply(review.id, reply.id)}
                                                             className="text-red-600 hover:text-red-800 text-sm cursor-pointer"
                                                         >
-
                                                             <MdDeleteOutline className="w-5 h-5" />
                                                         </button>
                                                     </div>

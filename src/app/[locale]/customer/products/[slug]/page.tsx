@@ -9,7 +9,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { AiFillProduct } from "react-icons/ai";
-import { BiCopy } from "react-icons/bi";
+import { BiCopy, BiTrash } from "react-icons/bi";
 import { BsStars } from "react-icons/bs";
 import { CgDanger } from "react-icons/cg";
 import { CiBarcode } from "react-icons/ci";
@@ -20,6 +20,7 @@ import {
   FiChevronRight,
   FiHeart,
   FiHome,
+  FiImage,
   FiMessageSquare,
   FiMinus,
   FiPlus,
@@ -28,6 +29,7 @@ import {
   FiShoppingCart,
   FiStar,
   FiTruck,
+  FiVideo,
 } from "react-icons/fi";
 import { IoStar, IoStarHalf, IoStarOutline } from "react-icons/io5";
 import { PiShareNetworkDuotone } from "react-icons/pi";
@@ -96,6 +98,14 @@ interface ReviewReply {
   is_vendor_reply: boolean;
 }
 
+interface ReviewMedia {
+  id: number;
+  path: string;
+  type: 'image' | 'video';
+  full_url: string;
+  mime_type: string | null;
+}
+
 interface Review {
   id: number;
   user: {
@@ -106,6 +116,7 @@ interface Review {
   comment: string;
   created_at: string;
   replies: ReviewReply[];
+  media: ReviewMedia[];
 }
 
 interface ProductDetailPageProps {
@@ -129,6 +140,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   const [quantity, setQuantity] = useState(1);
   const [token, setToken] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
   const [userReview, setUserReview] = useState({
     rating: 0,
     comment: "",
@@ -249,7 +262,6 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     fetchProductData();
   }, [slug, locale, router, isInWishlist, token]);
 
-
   useEffect(() => {
     const fetchBarcode = async () => {
       try {
@@ -282,6 +294,71 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
 
     fetchBarcode();
   }, [slug]);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const remainingSlots = 3 - selectedImages.length;
+    const newImages = files.slice(0, remainingSlots);
+
+    if (selectedImages.length + newImages.length > 3) {
+      Swal.fire({
+        icon: "warning",
+        title: "Maximum 3 images allowed",
+        toast: true,
+        position: "top-end",
+        showConfirmButton: false,
+        timer: 1500,
+      });
+      return;
+    }
+
+    setSelectedImages([...selectedImages, ...newImages]);
+  };
+
+  const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate video file
+      const validTypes = ['video/mp4', 'video/avi', 'video/mov', 'video/wmv'];
+      if (!validTypes.includes(file.type)) {
+        Swal.fire({
+          icon: "error",
+          title: "Invalid video format",
+          text: "Please select MP4, AVI, MOV, or WMV file",
+          toast: true,
+          position: "top-end",
+          showConfirmButton: false,
+          timer: 2000,
+        });
+        return;
+      }
+
+      if (file.size > 15 * 1024 * 1024) { // 15MB limit
+        Swal.fire({
+          icon: "error",
+          title: "File too large",
+          text: "Video must be less than 15MB",
+          toast: true,
+          position: "top-end",
+          showConfirmButton: false,
+          timer: 2000,
+        });
+        return;
+      }
+
+      setSelectedVideo(file);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    const newImages = [...selectedImages];
+    newImages.splice(index, 1);
+    setSelectedImages(newImages);
+  };
+
+  const removeVideo = () => {
+    setSelectedVideo(null);
+  };
 
   const handleAddToCart = async () => {
     if (!product) return;
@@ -394,17 +471,27 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     setSubmittingReview(true);
 
     try {
+      const formData = new FormData();
+      formData.append('product_id', product.id.toString());
+      formData.append('rating', userReview.rating.toString());
+      formData.append('comment', userReview.comment);
+
+      // Append images
+      selectedImages.forEach((image, index) => {
+        formData.append(`images[${index}]`, image);
+      });
+
+      // Append video
+      if (selectedVideo) {
+        formData.append('video', selectedVideo);
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/reviews`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          product_id: product.id,
-          rating: userReview.rating,
-          comment: userReview.comment,
-        }),
+        body: formData,
       });
 
       if (response.ok) {
@@ -420,6 +507,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         });
 
         setUserReview({ rating: 0, comment: "" });
+        setSelectedImages([]);
+        setSelectedVideo(null);
 
         // Refresh reviews
         const reviewsResponse = await fetch(
@@ -430,17 +519,19 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
           setReviews(reviewsData.data || []);
         }
       } else {
-        throw new Error("Failed to submit review");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to submit review");
       }
     } catch (error) {
       console.error("Error submitting review:", error);
       Swal.fire({
         icon: "error",
         title: "Failed to submit review",
+        text: (error as Error).message || "Please try again",
         toast: true,
         position: "top-end",
         showConfirmButton: false,
-        timer: 1500,
+        timer: 3000,
         background: darkMode ? "#374151" : "#fff",
         color: darkMode ? "#fff" : "#000",
       });
@@ -982,6 +1073,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
             <h3 className="text-lg font-semibold mb-4 dark:text-white">
               {t.productDetail.writeAReview}
             </h3>
+
+            {/* Rating */}
             <div className="mb-4">
               <label className="block text-sm font-medium mb-2 dark:text-gray-300">
                 {t.productDetail.yourRating}
@@ -1005,6 +1098,8 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                 ))}
               </div>
             </div>
+
+            {/* Comment */}
             <div className="mb-4">
               <label
                 htmlFor="comment"
@@ -1023,27 +1118,230 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                 placeholder={t.productDetail.shareYourExperience}
               />
             </div>
-            <button
-              type="button"
-              onClick={handleSubmitReview}
-              disabled={submittingReview}
-              className={`w-fit cursor-pointer py-2 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 text-sm sm:text-base ${submittingReview
-                ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
-                : "bg-gradient-to-r from-black to-gray-800 hover:from-gray-800 hover:to-black text-white shadow-md transform hover:shadow-lg dark:bg-gray-800 dark:hover:bg-gray-700"
-                }`}
-            >
-              {submittingReview ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Submitting...
-                </>
-              ) : (
-                <>
-                  <FiSend className="w-5 h-5" />
-                  {t.productDetail.submitReview}
-                </>
-              )}
-            </button>
+
+            {/* Media Upload Section - Horizontal Layout */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium mb-3 dark:text-gray-300">
+                Add Photos & Video (Optional)
+              </label>
+
+              <div className="space-y-4">
+                {/* Upload Buttons - Horizontal Layout */}
+                <div className="flex flex-wrap gap-3">
+                  {/* Image Upload Button */}
+                  <div className="relative">
+                    <label className={`
+          inline-flex items-center justify-center px-4 py-2.5 rounded-lg border-2 border-dashed 
+          transition-all duration-200 cursor-pointer min-w-[160px]
+          ${selectedImages.length >= 3
+                        ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed dark:bg-gray-800 dark:border-gray-700'
+                        : 'bg-white border-blue-300 hover:border-blue-400 hover:bg-blue-50 dark:bg-gray-800 dark:border-blue-700 dark:hover:border-blue-600'
+                      }
+        `}>
+                      <div className="text-center">
+                        <FiImage className={`w-5 h-5 mx-auto mb-1 ${selectedImages.length >= 3 ? 'text-gray-400' : 'text-blue-500'}`} />
+                        <span className="text-sm font-medium">Add Photos</span>
+                        <span className="block text-xs mt-1">
+                          {selectedImages.length}/3
+                        </span>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageSelect}
+                        className="hidden"
+                        disabled={selectedImages.length >= 3}
+                      />
+                    </label>
+                    {selectedImages.length >= 3 && (
+                      <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        3
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Video Upload Button */}
+                  <div className="relative">
+                    <label className={`
+          inline-flex items-center justify-center px-4 py-2.5 rounded-lg border-2 border-dashed 
+          transition-all duration-200 cursor-pointer min-w-[160px]
+          ${selectedVideo
+                        ? 'bg-purple-50 border-purple-300 dark:bg-purple-900/20 dark:border-purple-700'
+                        : 'bg-white border-purple-300 hover:border-purple-400 hover:bg-purple-50 dark:bg-gray-800 dark:border-purple-700 dark:hover:border-purple-600'
+                      }
+        `}>
+                      <div className="text-center">
+                        <FiVideo className={`w-5 h-5 mx-auto mb-1 ${selectedVideo ? 'text-purple-500' : 'text-purple-400'}`} />
+                        <span className="text-sm font-medium">
+                          {selectedVideo ? 'Video Added' : 'Add Video'}
+                        </span>
+                        <span className="block text-xs mt-1">
+                          Max 15MB
+                        </span>
+                      </div>
+                      <input
+                        type="file"
+                        accept="video/*"
+                        onChange={handleVideoSelect}
+                        className="hidden"
+                      />
+                    </label>
+                    {selectedVideo && (
+                      <button
+                        type="button"
+                        onClick={removeVideo}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors shadow-sm"
+                        title="Remove video"
+                      >
+                        <BiTrash className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Media Preview - Compact Grid */}
+                {(selectedImages.length > 0 || selectedVideo) && (
+                  <div className="pt-3 border-t dark:border-gray-700">
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Preview
+                    </h4>
+
+                    <div className="flex flex-wrap gap-2">
+                      {/* Image Previews */}
+                      {selectedImages.map((image, index) => (
+                        <div key={index} className="relative group">
+                          <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+                            <img
+                              src={URL.createObjectURL(image)}
+                              alt={`Preview ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100 shadow-sm"
+                            title="Remove image"
+                          >
+                            <BiTrash className="w-3 h-3" />
+                          </button>
+                          <div className="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
+                            {Math.round(image.size / 1024)}KB
+                          </div>
+                          <div className="absolute top-1 left-1 bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded">
+                            {index + 1}
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Video Preview */}
+                      {selectedVideo && (
+                        <div className="relative group">
+                          <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-800">
+                            <video
+                              src={URL.createObjectURL(selectedVideo)}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <FiVideo className="w-6 h-6 text-white/80" />
+                            </div>
+                          </div>
+                          <div className="absolute bottom-1 right-1 bg-black/70 text-white text-xs px-1.5 py-0.5 rounded">
+                            {Math.round(selectedVideo.size / (1024 * 1024))}MB
+                          </div>
+                          <div className="absolute top-1 left-1 bg-purple-500 text-white text-xs px-1.5 py-0.5 rounded">
+                            Video
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* File Info Summary */}
+                    <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                      <div className="flex items-center gap-4">
+                        {selectedImages.length > 0 && (
+                          <span className="flex items-center gap-1">
+                            <FiImage className="w-3 h-3" />
+                            {selectedImages.length} photo{selectedImages.length !== 1 ? 's' : ''}
+                          </span>
+                        )}
+                        {selectedVideo && (
+                          <span className="flex items-center gap-1">
+                            <FiVideo className="w-3 h-3" />
+                            1 video ({Math.round(selectedVideo.size / (1024 * 1024))}MB)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Upload Guidelines */}
+                <div className="text-xs text-gray-500 dark:text-gray-400 pt-2 border-t dark:border-gray-700">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="flex items-start gap-1">
+                      <FiImage className="w-3 h-3 mt-0.5 text-blue-500" />
+                      <span>Up to 3 images (5MB each)</span>
+                    </div>
+                    <div className="flex items-start gap-1">
+                      <FiVideo className="w-3 h-3 mt-0.5 text-purple-500" />
+                      <span>1 video, MP4/AVI/MOV/WMV (15MB max)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Submit Button - Optimized */}
+            <div className="flex flex-col sm:flex-row items-center gap-4 pt-4 border-t dark:border-gray-700">
+              <div className="flex-1">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  {submittingReview ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                      <span>Uploading media and submitting review...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <FiCheck className="w-4 h-4 text-green-500" />
+                      <span>Ready to submit your review</span>
+                      {(selectedImages.length > 0 || selectedVideo) && (
+                        <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full dark:bg-blue-900/30 dark:text-blue-300">
+                          +{selectedImages.length + (selectedVideo ? 1 : 0)} media file{selectedImages.length + (selectedVideo ? 1 : 0) !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSubmitReview}
+                disabled={submittingReview}
+                className={`
+      px-6 py-3 rounded-xl font-medium transition-all duration-300 
+      flex items-center justify-center gap-3 min-w-[160px]
+      ${submittingReview
+                    ? "bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
+                    : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md hover:shadow-lg transform hover:-translate-y-0.5 dark:from-blue-700 dark:to-blue-800 dark:hover:from-blue-800 dark:hover:to-blue-900"
+                  }
+    `}
+              >
+                {submittingReview ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>Submitting...</span>
+                  </>
+                ) : (
+                  <>
+                    <FiSend className="w-5 h-5" />
+                    <span className="font-semibold">Submit Review</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         )}
 
@@ -1086,6 +1384,39 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
                 <p className="text-gray-700 dark:text-gray-300 mb-4">
                   {review.comment}
                 </p>
+
+                {/* Review Media */}
+                {review.media && review.media.length > 0 && (
+                  <div className="mb-4">
+                    <div className="grid grid-cols-3 gap-2">
+                      {review.media.map((media) => (
+                        media.type === 'image' ? (
+                          <div key={media.id} className="relative">
+                            <img
+                              src={media.full_url}
+                              alt="Review image"
+                              className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                              onClick={() => window.open(media.full_url, '_blank')}
+                            />
+                          </div>
+                        ) : (
+                          <div key={media.id} className="relative">
+                            <div className="relative w-full h-32 bg-gray-900 rounded-lg overflow-hidden">
+                              <video
+                                src={media.full_url}
+                                className="w-full h-full object-cover"
+                                controls
+                                preload="metadata"
+                              >
+                                <track kind="captions" />
+                              </video>
+                            </div>
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Vendor Replies */}
                 {review.replies && review.replies.length > 0 && (

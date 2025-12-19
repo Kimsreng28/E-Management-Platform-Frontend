@@ -7,7 +7,7 @@ export interface Order {
   shipping_cost: string;
   discount_amount: string;
   total: string;
-  status: "pending" | "confirmed" | "completed" | "cancelled" | string; // adjust as needed
+  status: "pending" | "confirmed" | "completed" | "cancelled" | string;
   shipping_address_id: number | null;
   billing_address_id: number | null;
   notes: string | null;
@@ -43,7 +43,7 @@ export interface OrderItem {
   quantity: number;
   unit_price: string;
   total_price: string;
-  options: any[]; // if you have a structure for options, replace 'any'
+  options: any[];
   created_at: string;
   updated_at: string;
   product?: {
@@ -53,7 +53,7 @@ export interface OrderItem {
       id: number;
       path: string;
       is_primary: boolean;
-      url?: string; // Add this for full image URL
+      url?: string;
     }>;
   };
 }
@@ -79,10 +79,10 @@ export interface OrderUser {
 export interface Payment {
   id: number;
   order_id: number;
-  payment_method: "stripe" | "khqr" | string; // extend if you have more methods
+  payment_method: "stripe" | "khqr" | string;
   amount: string;
   transaction_id: string;
-  status: "pending" | "completed" | "failed" | string; // adjust as needed
+  status: "pending" | "completed" | "failed" | string;
   notes: string | null;
   paid_at: string;
   created_at: string;

@@ -423,7 +423,12 @@ export default function OrderHistoryPage({
 
                                     {order.delivery && order.delivery.agent_rating && (
                                         <div className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-lg text-sm">
-                                            <span className="mr-1">⭐ {order.delivery.agent_rating}/5</span>
+                                            <span className="mr-1 flex items-center gap-2">
+                                                <PiStarDuotone className="ml-2 w-5 h-5" />
+                                                {Number(order.delivery.agent_rating) % 1 === 0
+                                                    ? Number(order.delivery.agent_rating).toFixed(0)
+                                                    : Number(order.delivery.agent_rating).toFixed(1)}/5
+                                            </span>
                                             <span>Delivery Rated</span>
                                         </div>
                                     )}

@@ -1,7 +1,7 @@
 // app/[locale]/dashboard/tracking/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { API_BASE_URL } from "@/lib/config";
 import { useTranslations } from "@/utils/useTranslations";
 import { usePathname, useRouter } from "next/navigation";
@@ -14,10 +14,8 @@ import {
     FiUser,
     FiPhone,
     FiNavigation,
-    FiRefreshCw,
     FiCheckCircle,
     FiStar,
-
     FiCalendar,
     FiTrendingUp,
     FiHash
@@ -129,7 +127,6 @@ export default function DeliveryAgentDashboard({
     const [deliveryHistory, setDeliveryHistory] = useState<DeliveryHistory[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingHistory, setLoadingHistory] = useState(false);
-    const [refreshing, setRefreshing] = useState(false);
     const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
     const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
@@ -147,7 +144,8 @@ export default function DeliveryAgentDashboard({
         total_items: 0,
         per_page: 10
     });
-    const [markerUpdates, setMarkerUpdates] = useState<{ [key: number]: { lat: number, lng: number } }>({});
+
+    const echoRef = useRef<any>(null);
 
     useEffect(() => {
         if (activeTab === 'active') {
@@ -162,12 +160,9 @@ export default function DeliveryAgentDashboard({
             if (token) {
                 try {
                     const echoInstance = initializeEcho(token);
+                    echoRef.current = echoInstance;
                     setEcho(echoInstance);
-
-                    // Wait a bit for connection
-                    setTimeout(() => {
-                        setupEchoListeners(echoInstance);
-                    }, 1000);
+                    setupEchoListeners(echoInstance);
                 } catch (error) {
                     console.error("Failed to initialize Echo:", error);
                 }
@@ -176,51 +171,31 @@ export default function DeliveryAgentDashboard({
 
         initEcho();
 
-        // Get and update location on page load
+        // Get initial location
         updateInitialLocation();
 
-        // Set up interval for location updates (every 30 seconds)
-        const locationInterval = setInterval(() => {
-            if (deliveries.length > 0) {
-                updateCurrentLocation();
-            }
-        }, 30000);
-
-        // Set up interval for data updates
-        const dataInterval = setInterval(() => {
-            if (activeTab === 'active') {
-                fetchActiveDeliveries();
-            }
-        }, 30000);
-
         return () => {
-            clearInterval(locationInterval);
-            clearInterval(dataInterval);
-
-            if (echo) {
-                echo.disconnect();
-                setEcho(null);
+            if (echoRef.current) {
+                echoRef.current.disconnect();
             }
         };
     }, [activeTab]);
 
-    const updateInitialLocation = () => {
+    const updateInitialLocation = useCallback(() => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     const { latitude, longitude } = position.coords;
                     console.log('Got initial location:', { latitude, longitude });
                     setCurrentLocation({ lat: latitude, lng: longitude });
+
+                    // Update location in backend
+                    updateAllDeliveriesLocation(latitude, longitude);
                 },
                 (error) => {
-                    console.error("Error getting initial location:", {
-                        code: error.code,
-                        message: error.message,
-                        PERMISSION_DENIED: error.PERMISSION_DENIED,
-                        POSITION_UNAVAILABLE: error.POSITION_UNAVAILABLE,
-                        TIMEOUT: error.TIMEOUT
-                    });
-                    getCurrentLocationWithFallback();
+                    console.error("Error getting initial location:", error);
+                    // Set default location (Phnom Penh)
+                    setCurrentLocation({ lat: 11.5564, lng: 104.9282 });
                 },
                 {
                     enableHighAccuracy: true,
@@ -232,103 +207,89 @@ export default function DeliveryAgentDashboard({
             console.warn('Geolocation is not supported by this browser');
             setCurrentLocation({ lat: 11.5564, lng: 104.9282 });
         }
-    };
+    }, []);
 
-    const getCurrentLocationWithFallback = () => {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const { latitude, longitude } = position.coords;
-                    console.log('Got fallback location:', { latitude, longitude });
-                    setCurrentLocation({ lat: latitude, lng: longitude });
-                },
-                (error) => {
-                    console.error("Fallback location error:", {
-                        code: error.code,
-                        message: error.message
-                    });
-
-                    // Set default location (Phnom Penh)
-                    const defaultLocation = { lat: 11.5564, lng: 104.9282 };
-                    console.log('Using default location:', defaultLocation);
-                    setCurrentLocation(defaultLocation);
-
-                    // Show user-friendly message
-                    if (error.code === error.PERMISSION_DENIED) {
-                        console.warn('Location permission denied by user');
-                    }
-                },
-                {
-                    enableHighAccuracy: false,
-                    timeout: 5000,
-                    maximumAge: 300000
-                }
-            );
-        } else {
-            console.warn('Geolocation not supported, using default');
-            setCurrentLocation({ lat: 11.5564, lng: 104.9282 });
-        }
-    };
-
-    const setupEchoListeners = (echoInstance: any) => {
+    const setupEchoListeners = useCallback((echoInstance: any) => {
         if (!echoInstance) return;
 
-        deliveries.forEach(delivery => {
-            echoInstance.private(`delivery.${delivery.id}`)
-                .listen('.delivery.location.updated', (data: any) => {
-                    console.log('Location update received:', data);
-
-                    setDeliveries(prev => prev.map(d =>
-                        d.id === data.delivery_id
-                            ? {
-                                ...d,
-                                agent_lat: data.lat,
-                                agent_lng: data.lng
-                            }
-                            : d
-                    ));
-
-                    if (selectedDelivery?.id === data.delivery_id) {
-                        setSelectedDelivery(prev => prev ? {
-                            ...prev,
-                            agent_lat: data.lat,
-                            agent_lng: data.lng
-                        } : null);
-                    }
-
-                    Swal.fire({
-                        position: 'top-end',
-                        icon: 'success',
-                        title: 'Location updated!',
-                        showConfirmButton: false,
-                        timer: 2000,
-                        toast: true
-                    });
-                })
-                .listen('.delivery.status.updated', (data: any) => {
-                    console.log('Status update received:', data);
-                    fetchActiveDeliveries();
-                });
-        });
-
+        // Listen for delivery updates for the current user
         const user = JSON.parse(localStorage.getItem("user") || '{}');
         if (user.id) {
             echoInstance.private(`user.${user.id}`)
                 .listen('.delivery.location.updated', (data: any) => {
-                    setDeliveries(prev => prev.map(d =>
-                        d.id === data.delivery_id
-                            ? {
-                                ...d,
-                                agent_lat: data.lat,
-                                agent_lng: data.lng
-                            }
-                            : d
-                    ));
+                    console.log('Real-time location update:', data);
+                    handleRealTimeLocationUpdate(data);
+                })
+                .listen('.delivery.status.updated', (data: any) => {
+                    console.log('Real-time status update:', data);
+                    handleRealTimeStatusUpdate(data);
+                })
+                .listen('.delivery.assigned', (data: any) => {
+                    console.log('New delivery assigned:', data);
+                    fetchActiveDeliveries();
+                    Swal.fire({
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'New Delivery Assigned!',
+                        showConfirmButton: false,
+                        timer: 2000,
+                        toast: true
+                    });
                 });
         }
-    };
 
-    const fetchActiveDeliveries = async () => {
+        // Listen for general delivery channel updates
+        echoInstance.channel('deliveries')
+            .listen('.delivery.updated', (data: any) => {
+                console.log('General delivery update:', data);
+                handleRealTimeStatusUpdate(data);
+            });
+    }, []);
+
+    const handleRealTimeLocationUpdate = useCallback((data: any) => {
+        setDeliveries(prev => prev.map(d =>
+            d.id === data.delivery_id
+                ? {
+                    ...d,
+                    agent_lat: data.lat,
+                    agent_lng: data.lng
+                }
+                : d
+        ));
+
+        if (selectedDelivery?.id === data.delivery_id) {
+            setSelectedDelivery(prev => prev ? {
+                ...prev,
+                agent_lat: data.lat,
+                agent_lng: data.lng
+            } : null);
+        }
+
+        // Update current location if it's the current user
+        const user = JSON.parse(localStorage.getItem("user") || '{}');
+        if (user.id === data.user_id) {
+            setCurrentLocation({ lat: data.lat, lng: data.lng });
+        }
+    }, [selectedDelivery]);
+
+    const handleRealTimeStatusUpdate = useCallback((data: any) => {
+        setDeliveries(prev => prev.map(d =>
+            d.id === data.delivery_id
+                ? { ...d, status: data.status }
+                : d
+        ));
+
+        if (selectedDelivery?.id === data.delivery_id) {
+            setSelectedDelivery(prev => prev ? { ...prev, status: data.status } : null);
+        }
+
+        // If delivery is completed, remove from active list
+        if (data.status === 'delivered') {
+            setDeliveries(prev => prev.filter(d => d.id !== data.delivery_id));
+        }
+    }, [selectedDelivery]);
+
+    const fetchActiveDeliveries = useCallback(async () => {
         try {
             const token = localStorage.getItem("token");
             if (!token) {
@@ -336,7 +297,7 @@ export default function DeliveryAgentDashboard({
                 return;
             }
 
-            setRefreshing(true);
+            setLoading(true);
             console.log('Fetching active deliveries...');
 
             const response = await fetch(`${API_BASE_URL}/api/delivery-agent/dashboard/deliveries`, {
@@ -348,8 +309,6 @@ export default function DeliveryAgentDashboard({
             if (response.ok) {
                 const data = await response.json();
                 console.log('Deliveries data received:', data.deliveries);
-
-                // Use the data as is - backend should handle location
                 setDeliveries(data.deliveries || []);
 
                 // If no delivery selected, select first one
@@ -357,35 +316,13 @@ export default function DeliveryAgentDashboard({
                     setSelectedDelivery(data.deliveries[0]);
                 }
 
-                // After setting deliveries, try to update location if needed
+                // Update location for deliveries without location
                 const deliveriesWithoutLocation = data.deliveries?.filter((d: Delivery) =>
                     d.agent_lat === null || d.agent_lng === null
                 );
 
-                if (deliveriesWithoutLocation?.length > 0 && navigator.geolocation) {
-                    // Get current location in background
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            const lat = position.coords.latitude;
-                            const lng = position.coords.longitude;
-
-                            // Update current location state
-                            setCurrentLocation({ lat, lng });
-
-                            // Try to update backend (optional - don't block UI)
-                            fetch(`${API_BASE_URL}/api/delivery-agent/update-initial-location`, {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': `Bearer ${token}`,
-                                    'Content-Type': 'application/json',
-                                },
-                                body: JSON.stringify({ lat, lng }),
-                            }).catch(console.error);
-                        },
-                        (error) => {
-                            console.error('Failed to get location:', error);
-                        }
-                    );
+                if (deliveriesWithoutLocation?.length > 0 && currentLocation) {
+                    updateAllDeliveriesLocation(currentLocation.lat, currentLocation.lng);
                 }
             } else {
                 console.error('Failed to fetch deliveries:', response.status);
@@ -396,11 +333,10 @@ export default function DeliveryAgentDashboard({
             setDeliveries([]);
         } finally {
             setLoading(false);
-            setRefreshing(false);
         }
-    };
+    }, [router, selectedDelivery, currentLocation]);
 
-    const fetchDeliveryHistory = async (page = 1) => {
+    const fetchDeliveryHistory = useCallback(async (page = 1) => {
         try {
             const token = localStorage.getItem("token");
             if (!token) {
@@ -432,98 +368,32 @@ export default function DeliveryAgentDashboard({
         } finally {
             setLoadingHistory(false);
         }
-    };
+    }, [router]);
 
-    const updateDeliveryLocation = async (deliveryId: number, lat: number, lng: number) => {
+    const updateAllDeliveriesLocation = useCallback(async (lat: number, lng: number) => {
         try {
             const token = localStorage.getItem("token");
-            if (!token) return false;
+            if (!token) return;
 
-            const response = await fetch(`${API_BASE_URL}/api/deliveries/${deliveryId}/update-location`, {
+            const response = await fetch(`${API_BASE_URL}/api/delivery-agent/update-location`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    delivery_id: deliveryId,
-                    lat: lat,
-                    lng: lng
-                }),
+                body: JSON.stringify({ lat, lng }),
             });
 
             if (response.ok) {
-                // Update local state for ALL deliveries
-                setDeliveries(prev => prev.map(delivery => ({
-                    ...delivery,
-                    agent_lat: lat,
-                    agent_lng: lng
-                })));
-
-                if (selectedDelivery) {
-                    setSelectedDelivery(prev => prev ? {
-                        ...prev,
-                        agent_lat: lat,
-                        agent_lng: lng
-                    } : null);
-                }
-
-                return true;
+                // Local state will be updated via WebSocket
+                console.log('Location updated for all deliveries');
             }
-            return false;
         } catch (error) {
-            console.error("Error updating delivery location:", error);
-            return false;
+            console.error("Error updating location:", error);
         }
-    };
+    }, []);
 
-    const setInitialLocationForAllDeliveries = async () => {
-        if (navigator.geolocation && deliveries.length > 0) {
-            navigator.geolocation.getCurrentPosition(
-                async (position) => {
-                    const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
-
-                    setCurrentLocation({ lat, lng });
-
-                    try {
-                        const token = localStorage.getItem("token");
-                        if (!token) return;
-
-                        // Update initial location for all deliveries
-                        const response = await fetch(`${API_BASE_URL}/api/delivery-agent/update-initial-location`, {
-                            method: 'POST',
-                            headers: {
-                                'Authorization': `Bearer ${token}`,
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({ lat, lng }),
-                        });
-
-                        if (response.ok) {
-                            const data = await response.json();
-                            console.log('Initial location set:', data);
-
-                            // Update local state
-                            const updatedDeliveries = deliveries.map(delivery => ({
-                                ...delivery,
-                                agent_lat: lat,
-                                agent_lng: lng
-                            }));
-                            setDeliveries(updatedDeliveries);
-                        }
-                    } catch (error) {
-                        console.error("Error setting initial location:", error);
-                    }
-                },
-                (error) => {
-                    console.error("Error getting initial location:", error);
-                }
-            );
-        }
-    };
-
-    const updateCurrentLocation = async () => {
+    const updateCurrentLocation = useCallback(async () => {
         setLocationUpdating(true);
 
         if (navigator.geolocation) {
@@ -533,159 +403,9 @@ export default function DeliveryAgentDashboard({
                     const lng = position.coords.longitude;
 
                     setCurrentLocation({ lat, lng });
+                    await updateAllDeliveriesLocation(lat, lng);
 
-                    try {
-                        const token = localStorage.getItem("token");
-                        if (!token) {
-                            setLocationUpdating(false);
-                            return;
-                        }
-
-                        let success = false;
-                        let errorMessage = '';
-
-                        // Try Method 1: Update initial location (bulk update)
-                        try {
-                            const initialResponse = await fetch(`${API_BASE_URL}/api/delivery-agent/update-initial-location`, {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': `Bearer ${token}`,
-                                    'Content-Type': 'application/json',
-                                    'Accept': 'application/json',
-                                },
-                                body: JSON.stringify({
-                                    lat,
-                                    lng,
-                                    timestamp: new Date().toISOString()
-                                }),
-                            });
-
-                            if (initialResponse.ok) {
-                                const data = await initialResponse.json();
-                                console.log('Bulk location update successful:', data);
-                                success = true;
-                            } else {
-                                const errorText = await initialResponse.text();
-                                console.error('Bulk update failed:', initialResponse.status, errorText);
-                                errorMessage = `Bulk update failed: ${initialResponse.status}`;
-                            }
-                        } catch (error) {
-                            console.error('Error with bulk update:', error);
-                            errorMessage = error instanceof Error ? error.message : 'Unknown bulk update error';
-                        }
-
-                        // If bulk update failed, try Method 2: Update each delivery individually
-                        if (!success && deliveries.length > 0) {
-                            console.log('Trying individual delivery updates...');
-
-                            // Create a simplified update function
-                            const updateDelivery = async (deliveryId: number) => {
-                                try {
-                                    const response = await fetch(`${API_BASE_URL}/api/deliveries/${deliveryId}/update-location`, {
-                                        method: 'POST',
-                                        headers: {
-                                            'Authorization': `Bearer ${token}`,
-                                            'Content-Type': 'application/json',
-                                        },
-                                        body: JSON.stringify({
-                                            delivery_id: deliveryId,
-                                            lat,
-                                            lng
-                                        }),
-                                    });
-
-                                    return response.ok;
-                                } catch (error) {
-                                    console.error(`Error updating delivery ${deliveryId}:`, error);
-                                    return false;
-                                }
-                            };
-
-                            // Update only the first 3 deliveries to avoid too many requests
-                            const deliveriesToUpdate = deliveries.slice(0, 3);
-                            const updatePromises = deliveriesToUpdate.map(delivery =>
-                                updateDelivery(delivery.id)
-                            );
-
-                            const results = await Promise.all(updatePromises);
-                            const successCount = results.filter(r => r).length;
-
-                            if (successCount > 0) {
-                                success = true;
-                                console.log(`Updated ${successCount} deliveries individually`);
-                            }
-                        }
-
-                        if (success) {
-                            // Update local state for all deliveries
-                            const updatedDeliveries = deliveries.map(delivery => ({
-                                ...delivery,
-                                agent_lat: lat,
-                                agent_lng: lng
-                            }));
-                            setDeliveries(updatedDeliveries);
-
-                            if (selectedDelivery) {
-                                setSelectedDelivery({
-                                    ...selectedDelivery,
-                                    agent_lat: lat,
-                                    agent_lng: lng
-                                });
-                            }
-
-                            // Show success notification
-                            Swal.fire({
-                                position: 'top-end',
-                                icon: 'success',
-                                title: 'Location Updated!',
-                                text: 'Your location has been updated for all active deliveries',
-                                showConfirmButton: false,
-                                timer: 2000,
-                                toast: true
-                            });
-                        } else {
-                            // If no backend update succeeded, still update frontend state
-                            // This ensures the map shows the correct location even if backend fails
-                            const updatedDeliveries = deliveries.map(delivery => ({
-                                ...delivery,
-                                agent_lat: lat,
-                                agent_lng: lng
-                            }));
-                            setDeliveries(updatedDeliveries);
-
-                            if (selectedDelivery) {
-                                setSelectedDelivery({
-                                    ...selectedDelivery,
-                                    agent_lat: lat,
-                                    agent_lng: lng
-                                });
-                            }
-
-                            Swal.fire({
-                                position: 'top-end',
-                                icon: 'info',
-                                title: 'Location Updated Locally',
-                                text: 'Location updated on map but backend update failed. The map will show your current position.',
-                                showConfirmButton: false,
-                                timer: 3000,
-                                toast: true
-                            });
-                        }
-
-                    } catch (error) {
-                        console.error("Error updating location:", error);
-                        Swal.fire({
-                            position: 'top-end',
-                            icon: 'error',
-                            title: 'Update Error',
-                            text: 'An unexpected error occurred',
-                            showConfirmButton: false,
-                            timer: 3000,
-                            toast: true
-                        });
-                    } finally {
-                        setLocationUpdating(false);
-                    }
+                    setLocationUpdating(false);
                 },
                 (error) => {
                     console.error("Error getting location:", error);
@@ -718,90 +438,12 @@ export default function DeliveryAgentDashboard({
             });
             setLocationUpdating(false);
         }
-    };
+    }, [updateAllDeliveriesLocation]);
 
-    const handleMapLocationUpdate = (deliveryId: number, lat: number, lng: number) => {
-        setMarkerUpdates(prev => ({
-            ...prev,
-            [deliveryId]: { lat, lng }
-        }));
-
-        // Also update the deliveries state
-        setDeliveries(prev => prev.map(d =>
-            d.id === deliveryId
-                ? { ...d, agent_lat: lat, agent_lng: lng }
-                : d
-        ));
-
-        if (selectedDelivery?.id === deliveryId) {
-            setSelectedDelivery(prev => prev ? { ...prev, agent_lat: lat, agent_lng: lng } : null);
-        }
-    };
-
-    useEffect(() => {
-        if (deliveries.length > 0 && activeTab === 'active') {
-            // Check if any delivery doesn't have location
-            const deliveriesWithoutLocation = deliveries.filter(d =>
-                d.agent_lat === null || d.agent_lng === null
-            );
-
-            if (deliveriesWithoutLocation.length > 0) {
-                setInitialLocationForAllDeliveries();
-            }
-        }
-    }, [deliveries, activeTab]);
-
-    useEffect(() => {
-        // Set up interval for location updates (every 30 seconds)
-        const locationInterval = setInterval(() => {
-            if (deliveries.length > 0) {
-                updateCurrentLocation();
-            }
-        }, 30000);
-
-        return () => {
-            clearInterval(locationInterval);
-        };
-    }, [deliveries]);
-
-    const updateDeliveryStatus = async (deliveryId: number, status: string) => {
+    const updateDeliveryStatus = useCallback(async (deliveryId: number, status: string) => {
         try {
             setUpdatingStatus(deliveryId);
 
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    async (position) => {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
-
-                        setCurrentLocation({ lat, lng });
-
-                        await sendStatusUpdate(deliveryId, status, lat, lng);
-                        setUpdatingStatus(null);
-                    },
-                    (error) => {
-                        console.error("Error getting location:", error);
-                        sendStatusUpdate(deliveryId, status, null, null);
-                        setUpdatingStatus(null);
-                    },
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 10000,
-                        maximumAge: 0
-                    }
-                );
-            } else {
-                sendStatusUpdate(deliveryId, status, null, null);
-                setUpdatingStatus(null);
-            }
-        } catch (error) {
-            console.error("Error updating status:", error);
-            setUpdatingStatus(null);
-        }
-    };
-
-    const sendStatusUpdate = async (deliveryId: number, status: string, lat: number | null, lng: number | null) => {
-        try {
             const token = localStorage.getItem("token");
             if (!token) return;
 
@@ -813,75 +455,40 @@ export default function DeliveryAgentDashboard({
                 },
                 body: JSON.stringify({
                     status,
-                    notes: `Status updated to ${status}`,
-                    ...(lat && lng ? { lat, lng } : {})
+                    notes: `Status updated to ${status}`
                 }),
             });
 
             if (response.ok) {
-                if (lat && lng) {
-                    setDeliveries(prev => prev.map(delivery =>
-                        delivery.id === deliveryId
-                            ? { ...delivery, status, agent_lat: lat, agent_lng: lng }
-                            : delivery
-                    ));
-
-                    if (selectedDelivery?.id === deliveryId) {
-                        setSelectedDelivery(prev => prev ? { ...prev, status, agent_lat: lat, agent_lng: lng } : null);
-                    }
-                } else {
-                    await fetchActiveDeliveries();
-                }
-
-                return true;
-            }
-            return false;
-        } catch (error) {
-            console.error("Error sending status update:", error);
-            return false;
-        }
-    };
-
-    const handleMarkAsArrived = async (deliveryId: number) => {
-        try {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    async (position) => {
-                        const lat = position.coords.latitude;
-                        const lng = position.coords.longitude;
-
-                        // Use the updateCurrentLocation function which updates ALL deliveries
-                        await updateCurrentLocation();
-
-                        Swal.fire({
-                            position: 'top-end',
-                            icon: 'success',
-                            title: 'Location updated for all deliveries!',
-                            showConfirmButton: false,
-                            timer: 1500,
-                            toast: true
-                        });
-                    },
-                    (error) => {
-                        console.error("Error getting location:", error);
-                        Swal.fire({
-                            position: 'top-end',
-                            icon: 'error',
-                            title: 'Failed to get location',
-                            text: error.message,
-                            showConfirmButton: false,
-                            timer: 3000,
-                            toast: true
-                        });
-                    }
-                );
+                // Status will be updated via WebSocket
+                Swal.fire({
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Status Updated!',
+                    showConfirmButton: false,
+                    timer: 1500,
+                    toast: true
+                });
+            } else {
+                throw new Error('Failed to update status');
             }
         } catch (error) {
-            console.error("Error marking as arrived:", error);
+            console.error("Error updating status:", error);
+            Swal.fire({
+                position: 'top-end',
+                icon: 'error',
+                title: 'Update Failed',
+                text: 'Failed to update delivery status',
+                showConfirmButton: false,
+                timer: 3000,
+                toast: true
+            });
+        } finally {
+            setUpdatingStatus(null);
         }
-    };
+    }, []);
 
-    const getStatusColor = (status: string) => {
+    const getStatusColor = useCallback((status: string) => {
         switch (status.toLowerCase()) {
             case 'assigned':
                 return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
@@ -896,9 +503,9 @@ export default function DeliveryAgentDashboard({
             default:
                 return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
         }
-    };
+    }, []);
 
-    const getNextStatusAction = (currentStatus: string) => {
+    const getNextStatusAction = useCallback((currentStatus: string) => {
         switch (currentStatus) {
             case 'assigned':
                 return { status: 'picked_up', label: 'Mark as Picked Up', color: 'bg-yellow-600 hover:bg-yellow-700' };
@@ -911,9 +518,9 @@ export default function DeliveryAgentDashboard({
             default:
                 return null;
         }
-    };
+    }, []);
 
-    const calculateETA = (estimatedTime: string | null) => {
+    const calculateETA = useCallback((estimatedTime: string | null) => {
         if (!estimatedTime) return "Unknown";
 
         const now = new Date();
@@ -927,26 +534,18 @@ export default function DeliveryAgentDashboard({
         const hours = Math.floor(diffMins / 60);
         const mins = diffMins % 60;
         return `${hours}h ${mins}m`;
-    };
+    }, []);
 
-    const getProgressPercentage = (status: string): number => {
+    const getProgressPercentage = useCallback((status: string): number => {
         const steps = ['assigned', 'picked_up', 'out_for_delivery', 'delivered'];
         const currentStep = steps.indexOf(status);
         const totalSteps = steps.length - 1;
 
         if (currentStep === -1) return 0;
         return (currentStep / totalSteps) * 100;
-    };
+    }, []);
 
-    const formatCoordinate = (coord: any): string => {
-        if (coord === null || coord === undefined) return 'N/A';
-        const num = Number(coord);
-        if (isNaN(num)) return 'N/A';
-        return num.toFixed(6);
-    };
-
-    const hasLocation = (delivery: Delivery): boolean => {
-        // Check if agent_lat and agent_lng are not null and are valid numbers
+    const hasLocation = useCallback((delivery: Delivery): boolean => {
         const lat = delivery.agent_lat;
         const lng = delivery.agent_lng;
 
@@ -954,24 +553,23 @@ export default function DeliveryAgentDashboard({
             return false;
         }
 
-        // Convert to number and check if valid
         const latNum = Number(lat);
         const lngNum = Number(lng);
 
         return !isNaN(latNum) && !isNaN(lngNum) && latNum !== 0 && lngNum !== 0;
-    };
+    }, []);
 
-    const formatDate = (dateString: string) => {
+    const formatDate = useCallback((dateString: string) => {
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
             day: 'numeric'
         });
-    };
+    }, []);
 
-    const handlePageChange = (page: number) => {
+    const handlePageChange = useCallback((page: number) => {
         fetchDeliveryHistory(page);
-    };
+    }, [fetchDeliveryHistory]);
 
     if (loading && activeTab === 'active') {
         return (
@@ -1002,15 +600,6 @@ export default function DeliveryAgentDashboard({
                     </div>
 
                     <div className="flex items-center space-x-4 mt-4 md:mt-0">
-                        <button
-                            onClick={() => activeTab === 'active' ? fetchActiveDeliveries() : fetchDeliveryHistory()}
-                            disabled={refreshing || loadingHistory}
-                            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                        >
-                            <FiRefreshCw className={`mr-2 ${refreshing || loadingHistory ? 'animate-spin' : ''}`} />
-                            {refreshing || loadingHistory ? 'Refreshing...' : 'Refresh'}
-                        </button>
-
                         {activeTab === 'active' && (
                             <button
                                 onClick={updateCurrentLocation}
@@ -1018,7 +607,7 @@ export default function DeliveryAgentDashboard({
                                 className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
                             >
                                 <FiNavigation className={`mr-2 ${locationUpdating ? 'animate-spin' : ''}`} />
-                                {locationUpdating ? 'Updating...' : 'Update All Locations'}
+                                {locationUpdating ? 'Updating...' : 'Update Location'}
                             </button>
                         )}
                     </div>
@@ -1068,7 +657,9 @@ export default function DeliveryAgentDashboard({
                                         <>
                                             Lat: {currentLocation.lat.toFixed(6)}, Lng: {currentLocation.lng.toFixed(6)}
                                             <br />
-                                            <small className="text-gray-500">Last updated: {new Date().toLocaleTimeString()}</small>
+                                            <small className="text-gray-500">
+                                                {echo ? 'Connected to real-time updates' : 'Connecting...'}
+                                            </small>
                                         </>
                                     ) : (
                                         "Location not available. Please enable location services."
@@ -1076,15 +667,15 @@ export default function DeliveryAgentDashboard({
                                 </p>
                             </div>
                             <div className="flex items-center text-green-600 dark:text-green-400">
-                                {currentLocation ? (
+                                {echo ? (
                                     <>
                                         <div className="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></div>
                                         <span className="text-sm">Live</span>
                                     </>
                                 ) : (
                                     <>
-                                        <div className="w-2 h-2 rounded-full bg-red-500 mr-2"></div>
-                                        <span className="text-sm">Offline</span>
+                                        <div className="w-2 h-2 rounded-full bg-yellow-500 mr-2 animate-pulse"></div>
+                                        <span className="text-sm">Connecting...</span>
                                     </>
                                 )}
                             </div>
@@ -1099,16 +690,8 @@ export default function DeliveryAgentDashboard({
                                     <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                                         Delivery Route Map
                                     </h2>
-                                    <div className="flex items-center space-x-2">
-                                        <span className="text-sm text-gray-600 dark:text-gray-400">
-                                            Showing {deliveries.filter(d => hasLocation(d)).length} of {deliveries.length} deliveries with location
-                                        </span>
-                                        <button
-                                            onClick={updateCurrentLocation}
-                                            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                                        >
-                                            Refresh
-                                        </button>
+                                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                                        Real-time tracking enabled
                                     </div>
                                 </div>
                                 <DeliveryMap
@@ -1116,7 +699,6 @@ export default function DeliveryAgentDashboard({
                                     deliveries={deliveries}
                                     currentLocation={currentLocation}
                                     useCurrentLocationAsFallback={true}
-                                    onLocationUpdate={handleMapLocationUpdate}
                                 />
                             </div>
 
@@ -1127,15 +709,8 @@ export default function DeliveryAgentDashboard({
                                         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                                             Your Deliveries ({deliveries.length})
                                         </h2>
-                                        <div className="flex items-center space-x-2">
-                                            <div className="flex items-center">
-                                                <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-                                                <span className="text-sm text-gray-600 dark:text-gray-400">With Location</span>
-                                            </div>
-                                            <div className="flex items-center">
-                                                <div className="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
-                                                <span className="text-sm text-gray-600 dark:text-gray-400">No Location</span>
-                                            </div>
+                                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                                            Updates in real-time
                                         </div>
                                     </div>
                                 </div>
@@ -1147,6 +722,9 @@ export default function DeliveryAgentDashboard({
                                                 <FiPackage className="w-8 h-8 text-gray-400" />
                                             </div>
                                             <p className="text-gray-600 dark:text-gray-400">No deliveries assigned</p>
+                                            <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
+                                                New deliveries will appear automatically
+                                            </p>
                                         </div>
                                     ) : (
                                         deliveries.map((delivery) => {
@@ -1175,21 +753,8 @@ export default function DeliveryAgentDashboard({
                                                                 {delivery.tracking_number}
                                                             </span>
                                                         </div>
-                                                        <div className="flex items-center space-x-3">
-                                                            <div className="text-sm text-gray-500">
-                                                                Order #{delivery.order.order_number}
-                                                            </div>
-                                                            {!deliveryHasLocation && (
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        handleMarkAsArrived(delivery.id);
-                                                                    }}
-                                                                    className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200"
-                                                                >
-                                                                    Mark as Arrived
-                                                                </button>
-                                                            )}
+                                                        <div className="text-sm text-gray-500">
+                                                            Order #{delivery.order.order_number}
                                                         </div>
                                                     </div>
 
@@ -1235,14 +800,14 @@ export default function DeliveryAgentDashboard({
                                                         <div className="mb-3 p-2 bg-green-50 dark:bg-green-900/20 rounded">
                                                             <p className="text-xs text-green-600 dark:text-green-400 flex items-center">
                                                                 <FiNavigation className="w-3 h-3 mr-1" />
-                                                                Location active: {formatCoordinate(delivery.agent_lat)}, {formatCoordinate(delivery.agent_lng)}
+                                                                Location active
                                                             </p>
                                                         </div>
                                                     ) : (
                                                         <div className="mb-3 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded">
                                                             <p className="text-xs text-yellow-600 dark:text-yellow-400 flex items-center">
                                                                 <FiNavigation className="w-3 h-3 mr-1" />
-                                                                Waiting for location update. Click "Mark as Arrived" or update status.
+                                                                Waiting for location update
                                                             </p>
                                                         </div>
                                                     )}
@@ -1279,7 +844,7 @@ export default function DeliveryAgentDashboard({
                                                             >
                                                                 {updatingStatus === delivery.id ? (
                                                                     <div className="flex items-center justify-center">
-                                                                        <FiRefreshCw className="animate-spin mr-2" />
+                                                                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
                                                                         Updating...
                                                                     </div>
                                                                 ) : (
@@ -1340,32 +905,11 @@ export default function DeliveryAgentDashboard({
                                                             </p>
                                                             <p className="text-xs text-gray-600 dark:text-gray-400">
                                                                 {hasLocation(selectedDelivery)
-                                                                    ? `Lat: ${formatCoordinate(selectedDelivery.agent_lat)}, Lng: ${formatCoordinate(selectedDelivery.agent_lng)}`
-                                                                    : 'Update status or click "Mark as Arrived" to enable tracking'
+                                                                    ? 'Real-time tracking enabled'
+                                                                    : 'Update status to enable tracking'
                                                                 }
                                                             </p>
-                                                            {hasLocation(selectedDelivery) && selectedDelivery.agent_lat && selectedDelivery.agent_lng && (
-                                                                <button
-                                                                    onClick={() => {
-                                                                        const url = `https://www.google.com/maps?q=${selectedDelivery.agent_lat},${selectedDelivery.agent_lng}`;
-                                                                        window.open(url, '_blank');
-                                                                    }}
-                                                                    className="mt-1 text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center"
-                                                                >
-                                                                    <FiNavigation className="w-3 h-3 mr-1" />
-                                                                    View on Map
-                                                                </button>
-                                                            )}
                                                         </div>
-                                                        {!hasLocation(selectedDelivery) && (
-                                                            <button
-                                                                onClick={() => handleMarkAsArrived(selectedDelivery.id)}
-                                                                className="text-xs px-3 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700 flex items-center"
-                                                            >
-                                                                <FiCheckCircle className="w-3 h-3 mr-1" />
-                                                                Mark Arrived
-                                                            </button>
-                                                        )}
                                                     </div>
                                                 </div>
 
@@ -1675,7 +1219,9 @@ export default function DeliveryAgentDashboard({
                                                         <div className="flex items-center bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full">
                                                             <FiStar className="w-4 h-4 text-green-600 dark:text-green-400 mr-1" />
                                                             <span className="font-medium text-green-700 dark:text-green-300">
-                                                                {delivery.agent_rating.toFixed(1)}
+                                                                {Number(delivery.agent_rating) % 1 === 0
+                                                                    ? Number(delivery.agent_rating).toFixed(0)
+                                                                    : Number(delivery.agent_rating).toFixed(1)}
                                                             </span>
                                                             <span className="text-xs text-green-600 dark:text-green-400 ml-1">/5</span>
                                                         </div>
